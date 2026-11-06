@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 6.0.0"
         required: true
-        default: "6.0.3"
+        default: "6.1.0"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '6.0.3' }}
+      VERSION: ${{ inputs.versi || '6.1.0' }}
 
     steps:
       - uses: actions/checkout@v4
