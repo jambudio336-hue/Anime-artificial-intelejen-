@@ -347,6 +347,20 @@ nav button.act{ text-shadow:0 0 14px rgba(0,229,255,.5) }
 }
 /* ===== END MAS KIPLAY UI REFRESH ===== */
 
+
+#char{display:none!important}
+.jarvis-holo{width:min(78vw,340px);height:min(42vh,360px);min-height:220px;position:relative;display:grid;place-items:center;perspective:900px;filter:drop-shadow(0 0 28px rgba(0,229,255,.22))}
+.holo-ring{position:absolute;width:72%;aspect-ratio:1;border:1px solid rgba(0,229,255,.42);border-radius:50%;box-shadow:inset 0 0 36px rgba(0,229,255,.12),0 0 32px rgba(0,229,255,.2);transform:rotateX(68deg);animation:holoSpin 12s linear infinite}
+.holo-ring:before,.holo-ring:after{content:"";position:absolute;inset:10%;border:1px dashed rgba(168,85,247,.45);border-radius:50%}.holo-ring:after{inset:-12%;border-style:solid;opacity:.35}
+.holo-ear,.holo-mouth{position:absolute;display:grid;place-items:center;transition:opacity .25s,transform .25s}.holo-ear{width:48%;height:64%;opacity:1;animation:earFloat 3.6s ease-in-out infinite}.holo-ear svg{width:100%;height:100%;filter:drop-shadow(0 0 15px #00e5ff)}
+.holo-mouth{width:72%;height:42%;opacity:0;transform:translateY(12px) scale(.82)}.holo-mouth svg{width:100%;height:100%;filter:drop-shadow(0 0 18px #00e5ff)}
+.holo-caption{position:absolute;bottom:7%;font-size:9px;letter-spacing:3px;color:#a9f5ff;text-shadow:0 0 12px #00e5ff}
+#v-jarvis.listening .holo-ear{opacity:1;animation:earPulse .85s ease-in-out infinite}
+#v-jarvis.speaking .holo-ear{opacity:0;transform:scale(.7)}
+#v-jarvis.speaking .holo-mouth{opacity:1;animation:mouthTalk .2s ease-in-out infinite alternate}
+@keyframes holoSpin{to{transform:rotateX(68deg) rotateZ(360deg)}}@keyframes earFloat{50%{transform:translateY(-7px) rotateY(-8deg)}}@keyframes earPulse{50%{transform:scale(1.12);filter:drop-shadow(0 0 26px #00e5ff)}}@keyframes mouthTalk{from{transform:translateY(0) scaleY(.72)}to{transform:translateY(-3px) scaleY(1.08)}}
+.cyber-intro{padding:14px;border:1px solid rgba(0,229,255,.25);border-radius:16px;background:linear-gradient(135deg,rgba(0,229,255,.1),rgba(139,92,246,.08));margin:10px 12px}
+.cyber-intro b{display:block;letter-spacing:2px;color:#a9f5ff}.cyber-intro small{display:block;color:var(--mut);margin-top:5px;line-height:1.5}.cyber-out{white-space:pre-wrap;overflow-wrap:anywhere;max-height:230px;overflow:auto}.cyber-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 </style>
 </head>
 <body>
@@ -418,7 +432,7 @@ nav button.act{ text-shadow:0 0 14px rgba(0,229,255,.5) }
       <video class="bgvid" id="bgJarvis" playsinline loop muted preload="auto"></video>
       <div class="bgveil"></div>
       <div class="lockOverlay" id="lockJarvis"><div class="lk">🔒</div><b>Jarvis terkunci</b><small>Hubungkan kunci API dulu supaya Jarvis bisa menjawab dengan suara.</small><button class="btn pri sm" style="width:180px" onclick="goKey()">Hubungkan Kunci</button></div>
-      <div id="charWrap"><canvas id="char"></canvas></div>
+      <div id="charWrap" aria-label="Hologram audio Jarvis"><canvas id="char" aria-hidden="true"></canvas><div class="jarvis-holo"><div class="holo-ring"></div><div class="holo-ear" id="jarvisEar"><svg viewBox="0 0 120 140"><path d="M76 15C40 4 16 30 17 67c1 23 11 35 20 47 8 11 10 20 20 20 13 0 17-12 12-22-4-8-13-11-13-21 0-8 7-14 15-13 10 1 16 11 15 22" fill="none" stroke="#00e5ff" stroke-width="11" stroke-linecap="round"/></svg></div><div class="holo-mouth" id="jarvisMouth"><svg viewBox="0 0 180 90"><path d="M18 34Q90 78 162 34Q145 85 90 85Q35 85 18 34Z" fill="#00aeca" stroke="#bafaff" stroke-width="3"/></svg></div><div class="holo-caption">MAS KIPLAY · NEURAL AUDIO</div></div></div>
       <div class="jlabel" id="jlabel">Siap mendengar</div>
       <div class="jcap" id="jcap"></div>
       <div class="jctl">
@@ -477,7 +491,16 @@ nav button.act{ text-shadow:0 0 14px rgba(0,229,255,.5) }
       <div class="scroll" id="surahBody"></div>
     </section>
 
-    <section class="view" id="v-lab">
+    <section class="view" id="v-cyber"><div class="scroll">
+<div class="cyber-intro"><b>MAS KIPLAY // CYBER LAB</b><small>Toolkit lokal untuk pembelajaran dan audit aset milik sendiri atau yang sudah mendapat izin.</small></div>
+<div class="card"><h3>Google Dork Builder</h3><small class="mut">Query OSINT domain yang berwenang kamu audit.</small><input class="f" id="dorkDomain" placeholder="example.com"><select class="f" id="dorkType" style="margin-top:7px"><option value="site">Semua halaman domain</option><option value="pdf">Dokumen PDF terindeks</option><option value="login">Halaman login terindeks</option><option value="subdomains">Subdomain terindeks</option><option value="index">Direktori terindeks</option><option value="admin">Halaman admin terindeks</option><option value="ext">Ekstensi file pilihan</option></select><input class="f" id="dorkExt" placeholder="Ekstensi, misalnya csv" style="margin-top:7px"><button class="btn pri sm" id="dorkBuild" style="margin-top:8px">Buat query</button><div class="mono cyber-out" id="dorkOut" style="margin-top:8px">Query akan tampil di sini.</div><div class="grid2" style="margin-top:7px"><button class="btn sm" id="dorkCopy">Salin query</button><button class="btn sm" id="dorkClear">Bersihkan</button></div></div>
+<div class="card"><h3>DNS Lookup</h3><input class="f" id="cyDnsHost" placeholder="example.com"><select class="f" id="cyDnsType" style="margin-top:7px"><option>A</option><option>AAAA</option><option>MX</option><option>TXT</option><option>NS</option><option>CNAME</option></select><button class="btn pri sm" id="cyDnsRun" style="margin-top:7px">Resolve DNS</button><div class="mono cyber-out" id="cyDnsOut" style="margin-top:7px">—</div></div>
+<div class="card"><h3>HTTP Security Header Inspector</h3><small class="mut">Pembacaan header bergantung pada CORS server.</small><input class="f" id="cyUrl" placeholder="https://example.com" style="margin-top:7px"><button class="btn pri sm" id="cyHeaderRun" style="margin-top:7px">Periksa header</button><div class="mono cyber-out" id="cyHeaderOut" style="margin-top:7px">—</div></div>
+<div class="card"><h3>JWT Decoder</h3><textarea class="f" id="cyJwt" rows="2" placeholder="Tempel JWT (hindari token aktif)"></textarea><button class="btn sm" id="cyJwtRun" style="margin-top:7px">Decode lokal</button><div class="mono cyber-out" id="cyJwtOut" style="margin-top:7px">—</div></div>
+<div class="card"><h3>Hash Generator</h3><textarea class="f" id="cyHash" rows="2" placeholder="Teks untuk di-hash"></textarea><div class="cyber-grid" style="margin-top:7px"><button class="btn sm" data-cyhash="SHA-256">SHA-256</button><button class="btn sm" data-cyhash="SHA-384">SHA-384</button><button class="btn sm" data-cyhash="SHA-512">SHA-512</button></div><div class="mono cyber-out" id="cyHashOut" style="margin-top:7px">—</div></div>
+<div class="card"><h3>Base64 & URL Encoder</h3><textarea class="f" id="cyCodec" rows="2" placeholder="Masukkan teks"></textarea><div class="grid2" style="margin-top:7px"><button class="btn sm" id="cyB64Enc">Base64 encode</button><button class="btn sm" id="cyB64Dec">Base64 decode</button><button class="btn sm" id="cyUrlEnc">URL encode</button><button class="btn sm" id="cyUrlDec">URL decode</button></div><div class="mono cyber-out" id="cyCodecOut" style="margin-top:7px">—</div></div>
+<div class="card"><h3>Catatan</h3><small class="mut">Tool ini tidak melakukan brute force, eksploitasi, pencurian kredensial, atau pemindaian massal. Gunakan lab terisolasi untuk pengujian aktif.</small></div>
+</div></section><section class="view" id="v-lab">
       <div class="scroll">
         <div class="tabs"><div class="tab on" data-tab="net">Jaringan</div><div class="tab" data-tab="text">Teks</div></div>
         <div id="labNet">
@@ -625,13 +648,11 @@ nav button.act{ text-shadow:0 0 14px rgba(0,229,255,.5) }
 
 <script>
 "use strict";
-const APP_VER="6.0.0";
+const APP_VER="6.1.0";
 const CDN="https://raw.githubusercontent.com/jambudio336-hue/Anime-artificial-intelejen-/main/";
 const A={splash:"video.mp4",dash:"Dashboard.mp4",jarvis:"latar belakang Jarvis tanpa audio.mp4",chat:"latar belakang chat.png",icon:"icon.png"};
 const API="https://openrouter.ai/api/v1", KEY_PAGE="https://openrouter.ai/keys";
-const BUILTIN=["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",
-"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",
-"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"];
+const BUILTIN=[];
 const FB=["meta-llama/llama-3.3-70b-instruct:free","deepseek/deepseek-chat-v3-0324:free"];
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c)=>{const e=document.createElement(t);if(c)e.className=c;return e;};
@@ -639,7 +660,7 @@ function srcSwap(n,name){n.src=name;n.onerror=()=>{if(n.dataset.cd)return;n.data
 $$("[src='icon.png']").forEach(n=>srcSwap(n,A.icon));
 
 const DEF={keys:[],keyIdx:0,model:"",visionModel:"google/gemini-2.0-flash-exp:free",gender:"male",lang:"id",rate:1,pitch:1,persona:"brutal",
-autoSpeak:false,brutal:true,cap:false,vib:true,exec:true,sysExtra:"",updUrl:CDN+"update.json"};
+autoSpeak:false,brutal:true,cap:false,vib:true,exec:false,sysExtra:"",updUrl:CDN+"update.json"};
 let S=Object.assign({},DEF);
 const store={get(k,d){try{const v=localStorage.getItem("mk6_"+k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
 set(k,v){try{localStorage.setItem("mk6_"+k,JSON.stringify(v));}catch(e){}}};
@@ -656,7 +677,7 @@ function copyTxt(t){try{navigator.clipboard.writeText(t);toast("Disalin");}catch
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 
 /* ===== router (tiap fitur punya halaman sendiri) ===== */
-const VIEWS=["home","jarvis","chat","agent","quran","surah","lab","tools","notes","profile","evo","plugin","hist","set"];
+const VIEWS=["home","jarvis","chat","agent","quran","surah","lab","cyber","tools","notes","profile","evo","plugin","hist","set"];
 function switchView(v,noHash){
   if(!VIEWS.includes(v))v="home";
   $$(".view").forEach(s=>s.classList.remove("act"));
@@ -664,7 +685,7 @@ function switchView(v,noHash){
   $$("nav button").forEach(b=>b.classList.toggle("act",b.dataset.v===v));
   const hero=$("#heroVid"),jar=$("#bgJarvis"),ag=$("#bgAgent");
   if(v==="home"){jar&&jar.pause();ag&&ag.pause();hero.muted=false;hero.play().catch(()=>{hero.muted=true;hero.play();});$("#heroSnd").textContent=hero.muted?"🔇":"🔊";}
-  else if(v==="jarvis"){hero.pause();hero.muted=true;ag&&ag.pause();jar&&jar.play().catch(()=>{});}
+  else if(v==="jarvis"){hero.pause();hero.muted=true;ag&&ag.pause();jar&&jar.play().catch(()=>{});if(!jarvisWelcomed){jarvisWelcomed=true;setTimeout(()=>{if($("#v-jarvis").classList.contains("act")&&!busy){$("#jlabel").textContent="MAS KIPLAY · SIAP MEMBANTU";$("#jcap").textContent="Selamat datang. Aku MAS KIPLAY, asisten AI-mu. Katakan apa yang ingin kamu kerjakan.";TTS.speak("Halo, selamat datang. Aku MAS KIPLAY, asisten AI-mu. Katakan apa yang ingin kamu kerjakan, dan kita mulai.");}},400);}}
   else{hero.pause();hero.muted=true;jar&&jar.pause();if(v==="agent"&&ag)ag.play().catch(()=>{});}
   if(v!=="jarvis"){voiceLoop=false;$("#btnLoop").classList.remove("hot");stopL();TTS.stop();}
   if(!noHash&&location.hash!=="#/"+v)history.replaceState(null,"","#/"+v);
@@ -764,7 +785,7 @@ const TTS={seq:0,audio:null,eng:store.get("ttsEngine",0),
    const a=new Audio();a.preservesPitch=true;const tn=this.tone(t);
    a.playbackRate=S.gender==="male"?tn.r*0.92:tn.r;this.audio=a;
    let d=false;const f=v=>{if(d)return;d=true;res(v);};
-   a.onended=()=>f(1);a.onerror=()=>f(0);
+   a.onplay=()=>{CH.speak=true;$("#v-jarvis").classList.add("speaking");$("#v-jarvis").classList.remove("listening");};a.onended=()=>{CH.speak=false;$("#v-jarvis").classList.remove("speaking");f(1);};a.onerror=()=>{CH.speak=false;$("#v-jarvis").classList.remove("speaking");f(0);};
    a.src=this.url(t);a.play().catch(()=>f(0));
    setTimeout(()=>{if(!d&&a.paused)f(0);},9000);});
  },
@@ -773,7 +794,7 @@ const TTS={seq:0,audio:null,eng:store.get("ttsEngine",0),
    const v=vs.find(x=>x.lang&&x.lang.toLowerCase().startsWith(S.lang))||vs.find(x=>/id/i.test(x.lang));
    if(v)u.voice=v;u.lang=v?v.lang:"id-ID";
    const tn=this.tone(t);u.rate=tn.r;u.pitch=(S.gender==="male"?0.72:1.12)*tn.p;
-   u.onstart=()=>CH.speak=true;u.onend=()=>CH.speak=false;speechSynthesis.speak(u);},
+   u.onstart=()=>{CH.speak=true;$("#v-jarvis").classList.add("speaking");$("#v-jarvis").classList.remove("listening");};u.onend=()=>{CH.speak=false;$("#v-jarvis").classList.remove("speaking");};speechSynthesis.speak(u);},
  async speak(txt,done){
    this.stop();const my=++this.seq;if(!txt){done&&done();return;}
    const L=this.chunks(txt);CH.speak=true;
@@ -922,8 +943,8 @@ function rlang(){return S.lang==="jv"?"jv-ID":S.lang==="su"?"su-ID":"id-ID";}
 function mkRecog(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;
   const r=new SR();r.lang=rlang();r.interimResults=true;
-  r.onstart=()=>{listening=true;$("#btnMic").classList.add("hot");$("#jlabel").textContent="Mendengar…";};
-  r.onend=()=>{listening=false;$("#btnMic").classList.remove("hot");
+  r.onstart=()=>{listening=true;$("#v-jarvis").classList.add("listening");$("#v-jarvis").classList.remove("speaking");$("#btnMic").classList.add("hot");$("#jlabel").textContent="Mendengar…";};
+  r.onend=()=>{listening=false;$("#v-jarvis").classList.remove("listening");$("#btnMic").classList.remove("hot");
     if(!busy&&!voiceLoop)$("#jlabel").textContent="Siap mendengar";
     if(voiceLoop&&!busy)setTimeout(()=>{if(voiceLoop&&!busy)startL();},450);};
   r.onresult=e=>{let f="",i2="";
@@ -1109,7 +1130,7 @@ $("#btnHist").onclick=()=>switchView("hist");
 $("#connAct").onclick=()=>{CONN==="ok"?ping():goKey();};
 $("#pill").onclick=goKey;
 
-const DEST=[["Beranda","home"],["Jarvis","jarvis"],["Chat","chat"],["Agent","agent"],["Al-Qur'an","quran"],["Lab","lab"],["Toolkit","tools"],["Catatan","notes"],["Profil","profile"],["Evolusi","evo"],["Riwayat","hist"],["Setelan","set"]];
+const DEST=[["Beranda","home"],["Jarvis","jarvis"],["Chat","chat"],["Agent","agent"],["Al-Qur'an","quran"],["Lab","lab"],["Cyber Lab","cyber"],["Toolkit","tools"],["Catatan","notes"],["Profil","profile"],["Evolusi","evo"],["Riwayat","hist"],["Setelan","set"]];
 function renderPal(){
   const q=$("#palInput").value.toLowerCase(),box=$("#palList");box.innerHTML="";
   DEST.filter(d=>d[0].toLowerCase().includes(q)).forEach(d=>{
@@ -1141,6 +1162,7 @@ function initVideos(){
 
 /* ===== splash & boot ===== */
 let done=false;
+let jarvisWelcomed=false;
 function startSplash(){
   const v=$("#splashVid");srcSwap(v,A.splash);
   const fin=()=>{if(done)return;done=true;endSplash();};
@@ -1172,7 +1194,7 @@ function bootApp(){
   if(booted)return;booted=true;window.__booted=true;
   $("#app").classList.remove("hidden");
   initVideos();sizeC();requestAnimationFrame(loop);
-  renderHist();renderVault();renderPersona();renderVoice();renderKeys();renderBridge();renderPlugs();renderNotes();renderProfile();
+  renderHist();chatWelcome();renderVault();renderPersona();renderVoice();renderKeys();renderBridge();renderPlugs();renderNotes();renderProfile();
   $("#verTxt").textContent=APP_VER;$("#updUrl").value=S.updUrl;
   $("#visionModel").value=S.visionModel;
   setConn("none","Tanpa kunci");
@@ -1477,9 +1499,10 @@ $("#impFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new Fi
     store.set("hist",hist);store.set("plugs",plugs);store.set("notes",notes);store.set("prof",prof);
     save();renderPlugs();renderNotes();renderProfile();toast("Diimpor");}catch(_){toast("File rusak");}};r.readAsText(f);};
 $("#send").onclick=send;
+function chatWelcome(){if(!$("#log").children.length){bubble("assistant","Yo, selamat datang. Aku MAS KIPLAY. Lempar pertanyaan atau tugasmu—kita bedah sampai jelas. Gaya boleh gelap dan tajam, tapi kendali tetap di tanganmu.");}}
 function startNewChat(){
   if(busy){toast("Tunggu balasan selesai dulu");return;}
-  activeChat=null;$("#log").innerHTML="";$("#chatSessionLabel").textContent="Percakapan baru";
+  activeChat=null;$("#log").innerHTML="";$("#chatSessionLabel").textContent="Percakapan baru";chatWelcome();
   switchView("chat");$("#inp").value="";$("#inp").style.height="auto";$("#inp").focus();
 }
 $("#chatNew").onclick=startNewChat;
@@ -1489,13 +1512,28 @@ $("#inp").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send
 ["Bikin exploit buffer overflow","Audit keamanan APK","Analisa chart BTC","Strategi SMC entry emas","Bikin REST API Laravel","Reverse engineering smali"].forEach(t=>{
   const c=el("button","chip");c.textContent=t;c.onclick=()=>{$("#inp").value=t;send();};$("#chips").appendChild(c);});
 
+
+/* ===== Cyber Lab v6.1 local tools ===== */
+function cyOut(id,v){$(id).textContent=String(v);}
+$("#dorkBuild").onclick=()=>{let d=$("#dorkDomain").value.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,"");if(!d||!d.includes(".")||/\s/.test(d)){cyOut("#dorkOut","Masukkan domain valid, contoh example.com");return;}let q={site:"site:"+d,pdf:"site:"+d+" filetype:pdf",login:"site:"+d+" (inurl:login OR intitle:login)",subdomains:"site:*."+d,index:'site:'+d+' intitle:"index of"',admin:"site:"+d+" (inurl:admin OR inurl:dashboard)",ext:"site:"+d+" filetype:"+(($("#dorkExt").value.trim().replace(/[^a-z0-9]/gi,""))||"txt")};window.__dork=q[$("#dorkType").value];cyOut("#dorkOut",window.__dork);};
+$("#dorkCopy").onclick=()=>window.__dork?copyTxt(window.__dork):toast("Buat query dahulu");
+$("#dorkClear").onclick=()=>{window.__dork="";$("#dorkDomain").value="";$("#dorkOut").textContent="Query dibersihkan.";};
+$("#cyDnsRun").onclick=async()=>{let h=$("#cyDnsHost").value.trim();if(!h||/[\s/]/.test(h)){cyOut("#cyDnsOut","Hostname tidak valid");return;}cyOut("#cyDnsOut","Mengambil jawaban DNS…");try{let u="https://cloudflare-dns.com/dns-query?name="+encodeURIComponent(h)+"&type="+encodeURIComponent($("#cyDnsType").value);let r=await fetch(u,{headers:{accept:"application/dns-json"}});if(!r.ok)throw Error("HTTP "+r.status);let j=await r.json();cyOut("#cyDnsOut",JSON.stringify(j.Answer||j,null,2));}catch(e){cyOut("#cyDnsOut","Gagal: "+e.message);}};
+$("#cyHeaderRun").onclick=async()=>{let u=$("#cyUrl").value.trim();if(!u)return cyOut("#cyHeaderOut","Masukkan URL");if(!/^https?:\/\//i.test(u))u="https://"+u;cyOut("#cyHeaderOut","Memeriksa…");try{let r=await fetch(u,{method:"HEAD",mode:"cors"});let keys=["content-security-policy","strict-transport-security","x-content-type-options","x-frame-options","referrer-policy","permissions-policy"];let o={url:r.url,status:r.status};keys.forEach(k=>o[k]=r.headers.get(k)||"Tidak ada/tidak terbaca");cyOut("#cyHeaderOut",JSON.stringify(o,null,2));}catch(e){cyOut("#cyHeaderOut","Tidak dapat membaca header (CORS/jaringan): "+e.message+". Ini bukan bukti kerentanan.");}};
+$("#cyJwtRun").onclick=()=>{try{let p=$("#cyJwt").value.trim().split(".");if(p.length!==3)throw Error("JWT harus tiga bagian");let dec=x=>JSON.parse(decodeURIComponent(escape(atob(x.replace(/-/g,"+").replace(/_/g,"/")))));cyOut("#cyJwtOut",JSON.stringify({header:dec(p[0]),payload:dec(p[1]),signature:"disembunyikan"},null,2));}catch(e){cyOut("#cyJwtOut","JWT tidak valid: "+e.message);}};
+document.querySelectorAll("[data-cyhash]").forEach(b=>b.onclick=async()=>{try{let h=await crypto.subtle.digest(b.dataset.cyhash,new TextEncoder().encode($("#cyHash").value));cyOut("#cyHashOut",Array.from(new Uint8Array(h),x=>x.toString(16).padStart(2,"0")).join(""));}catch(e){cyOut("#cyHashOut",e.message);}});
+$("#cyB64Enc").onclick=()=>{try{cyOut("#cyCodecOut",btoa(unescape(encodeURIComponent($("#cyCodec").value))));}catch(e){cyOut("#cyCodecOut",e.message);}};
+$("#cyB64Dec").onclick=()=>{try{cyOut("#cyCodecOut",decodeURIComponent(escape(atob($("#cyCodec").value.trim()))));}catch(e){cyOut("#cyCodecOut","Base64 tidak valid");}};
+$("#cyUrlEnc").onclick=()=>cyOut("#cyCodecOut",encodeURIComponent($("#cyCodec").value));
+$("#cyUrlDec").onclick=()=>{try{cyOut("#cyCodecOut",decodeURIComponent($("#cyCodec").value));}catch(e){cyOut("#cyCodecOut",e.message);}};
+
 /* ===== boot ===== */
 (function(){
   S.keys=store.get("keys",[]);S.keyIdx=store.get("keyIdx",0);S.model=store.get("model","");
   S.visionModel=store.get("visionModel",DEF.visionModel);
   S.gender=store.get("gender","male");S.lang=store.get("lang","id");S.rate=store.get("rate",1);S.pitch=store.get("pitch",1);
   S.autoSpeak=store.get("autoSpeak",false);S.brutal=store.get("brutal",true);S.cap=store.get("cap",false);
-  S.vib=store.get("vib",true);S.exec=store.get("exec",true);S.persona=store.get("persona","brutal");S.sysExtra=store.get("sysExtra","");
+  S.vib=store.get("vib",true);S.exec=store.get("exec",false);S.persona=store.get("persona","brutal");S.sysExtra=store.get("sysExtra","");
   S.updUrl=store.get("updUrl",DEF.updUrl);
   $("#sysExtra").value=S.sysExtra;
   ["swAuto","swBrutal","swCap","swVib","swExec"].forEach((id,i)=>$("#"+id).classList.toggle("on",[S.autoSpeak,S.brutal,S.cap,S.vib,S.exec][i]));
