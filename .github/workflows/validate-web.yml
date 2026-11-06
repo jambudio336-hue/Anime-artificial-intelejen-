@@ -17,14 +17,17 @@ jobs:
       - name: Check inline JavaScript syntax
         run: |
           python3 - <<'PY'
-          import re
           from pathlib import Path
           html = Path("index.html").read_text(encoding="utf-8")
-          scripts = re.findall(r"<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>", html, re.I)
-          inline = [item for item in scripts if item.strip()]
-          if not inline:
-              raise SystemExit("Tidak menemukan inline JavaScript di index.html")
-          Path("/tmp/app-inline.js").write_text(inline[-1], encoding="utf-8")
-          print(f"Memeriksa inline script terakhir ({len(inline[-1])} karakter)")
+          start = html.rfind("<script>")
+          if start < 0:
+              raise SystemExit("Tidak menemukan tag script")
+          start += len("<script>")
+          end = html.find("</script>", start)
+          if end < 0:
+              raise SystemExit("Tag script tidak ditutup")
+          script = html[start:end]
+          Path("/tmp/app-inline.js").write_text(script, encoding="utf-8")
+          print(f"Memeriksa inline JavaScript ({len(script)} karakter)")
           PY
           node --check /tmp/app-inline.js
