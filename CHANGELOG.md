@@ -1,5 +1,19 @@
 # Changelog
 
+## [6.1.0] — 2026-11-07
+
+### Ditambah
+- Tampilan Jarvis holografik: animasi telinga ketika mendengarkan dan animasi mulut ketika suara AI diputar.
+- Sapaan awal berbahasa Indonesia pada Chat dan perkenalan suara Jarvis saat pertama dibuka.
+- Cyber Lab in-app: Google Dork Builder, DNS over HTTPS, pemeriksa HTTP security headers (terbatas CORS), decoder JWT lokal, hash SHA-256/384/512, Base64 dan URL codec.
+- Informasi perangkat Android: model, merek, versi Android, jumlah core CPU, RAM, dan kapasitas storage volume aplikasi.
+
+### Keamanan dan batasan
+- API key tidak lagi ditanam di JavaScript publik; gunakan kunci milik sendiri dan cabut kunci lama yang pernah terpublikasi.
+- Eksekusi Agent dinonaktifkan secara default.
+- Akses SMS, notifikasi, isi WhatsApp, log panggilan, kontrol game, dan otomasi UI penuh belum tersedia di versi ini.
+
+
 Semua perubahan penting dicatat di sini. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/).
 
 ## [6.0.0] — 2026-11-06
