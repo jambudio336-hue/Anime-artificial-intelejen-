@@ -1,9 +1,12 @@
-name: Build Release APK
+name: Build APK Release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      versi:
+        description: "Versi rilis, contoh 6.0.0"
+        required: true
+        default: "6.0.0"
 
 permissions:
   contents: write
@@ -11,6 +14,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PUNYA_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,38 +29,112 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Siapkan SDK Android
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
 
-      - name: Pasang dependensi
+      - name: Siapkan folder web
         run: |
-          npm install
-          npx cap add android || true
+          mkdir -p www
+          cp index.html www/
+          cp manifest.webmanifest www/ 2>/dev/null || true
+          cp sw.js www/ 2>/dev/null || true
+          cp icon.png www/ 2>/dev/null || true
+          cp *.mp4 www/ 2>/dev/null || true
+          cp *.png www/ 2>/dev/null || true
+          sed -i "s/const APP_VER=\"[^\"]*\"/const APP_VER=\"${{ inputs.versi }}\"/" www/index.html
+
+      - name: Pasang Capacitor
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add android
           npx cap sync android
 
-      - name: Decode keystore
+      - name: Tulis bridge native
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/kiplay.keystore
+          D=android/app/src/main/java/com/kiplay/agent
+          mkdir -p "$D"
+          cat > "$D/MainActivity.kt" <<'KOTLIN'
+          package com.kiplay.agent
 
-      - name: Build release
+          import android.os.Bundle
+          import com.getcapacitor.BridgeActivity
+
+          class MainActivity : BridgeActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  bridge.webView.addJavascriptInterface(Bridge(this), "MK")
+              }
+          }
+          KOTLIN
+          cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
+
+      - name: Tambah izin Android
+        run: |
+          python3 - <<'PY'
+          p = "android/app/src/main/AndroidManifest.xml"
+          s = open(p).read()
+          izin = """    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+              <uses-permission android:name="android.permission.CAMERA"/>
+              <uses-permission android:name="android.permission.SET_ALARM"/>
+              <uses-permission android:name="android.permission.VIBRATE"/>
+              <queries>
+                  <package android:name="com.termux"/>
+                  <package android:name="com.whatsapp"/>
+                  <package android:name="com.tradingview"/>
+              </queries>
+          """
+          s = s.replace(">", ">\n" + izin, 1)
+          s = s.replace("<application", '<application android:usesCleartextTraffic="true"')
+          open(p, "w").write(s)
+          PY
+          sed -i 's/versionName ".*"/versionName "${{ inputs.versi }}"/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
+
+      - name: Decode keystore
+        if: env.PUNYA_KEY == 'true'
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$PWD/kiplay.keystore"
+
+      - name: Build APK release (bertanda tangan)
+        if: env.PUNYA_KEY == 'true'
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$PWD/app/kiplay.keystore \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASS }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASS }}
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$PWD/../kiplay.keystore" \
+            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASS }}" \
+            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
+            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASS }}"
 
-      - name: Ganti nama APK
+      - name: Build APK release (kunci debug)
+        if: env.PUNYA_KEY != 'true'
+        working-directory: android
         run: |
-          mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk "out/MasKiplay-${{ github.ref_name }}.apk"
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Upload ke Release
+      - name: Kumpulkan APK
+        run: |
+          mkdir -p keluar
+          F=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
+          cp "$F" "keluar/MasKiplay-v${{ inputs.versi }}.apk"
+          ls -lh keluar
+
+      - name: Simpan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MasKiplay-v${{ inputs.versi }}
+          path: keluar/*.apk
+
+      - name: Terbitkan release publik
         uses: softprops/action-gh-release@v2
         with:
-          files: out/*.apk
-          generate_release_notes: true
+          tag_name: v${{ inputs.versi }}
+          name: Mas Kiplay v${{ inputs.versi }}
           draft: false
           prerelease: false
+          generate_release_notes: true
+          body: |
+            APK Mas Kiplay v${{ inputs.versi }}
+
+            Unduh berkas `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
+          files: keluar/*.apk
