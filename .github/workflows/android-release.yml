@@ -84,6 +84,7 @@ jobs:
           import xml.etree.ElementTree as ET
 
           path = "android/app/src/main/AndroidManifest.xml"
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
           tree = ET.parse(path)
           root = tree.getroot()
           android_ns = "{http://schemas.android.com/apk/res/android}"
