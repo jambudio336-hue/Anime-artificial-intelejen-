@@ -219,9 +219,9 @@ jobs:
           test -n "$APK"
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           SIGNATURE=$("$APKSIGNER" verify --verbose --print-certs "$APK")
-          printf '%s\\n' "$SIGNATURE"
+          printf '%s\n' "$SIGNATURE"
           EXPECTED_CERT="ff:fa:7c:f7:7d:ad:05:2c:87:9d:7c:36:48:da:3a:da:c9:62:76:23:a5:df:ff:91:2b:be:1e:89:c8:83:ba:f6"
-          printf '%s\\n' "$SIGNATURE" | grep -Fqi "$EXPECTED_CERT" || {
+          printf '%s\n' "$SIGNATURE" | grep -Fqi "$EXPECTED_CERT" || {
             echo "::error::Fingerprint sertifikat APK tidak cocok dengan keystore release yang disiapkan."
             exit 1
           }
