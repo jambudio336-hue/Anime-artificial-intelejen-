@@ -1,0 +1,30 @@
+name: Validate Web App
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/**]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script(?:\\s[^>]*)?>([\\s\\S]*?)</script>", html, re.I)
+          inline = [item for item in scripts if item.strip()]
+          if not inline:
+              raise SystemExit("Tidak menemukan inline JavaScript di index.html")
+          Path("/tmp/app-inline.js").write_text(inline[-1], encoding="utf-8")
+          print(f"Memeriksa inline script terakhir ({len(inline[-1])} karakter)")
+          PY
+          node --check /tmp/app-inline.js
