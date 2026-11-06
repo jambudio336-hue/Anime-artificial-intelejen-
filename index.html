@@ -252,6 +252,83 @@ button{touch-action:manipulation}
 }
 /* ===== END RESPONSIVE UI PATCH ===== */
 
+
+/* ===== MAS KIPLAY UI REFRESH: visual polish only ===== */
+:root{
+  --panel:rgba(12,20,34,.76);
+  --line:rgba(126,164,202,.19);
+  --r:18px;
+}
+body{
+  background:
+    radial-gradient(ellipse at 18% 0%,rgba(0,229,255,.09),transparent 34%),
+    radial-gradient(ellipse at 92% 30%,rgba(168,85,247,.08),transparent 32%),
+    #02040a;
+}
+#app{box-shadow:0 0 70px rgba(0,0,0,.52)}
+header{
+  background:linear-gradient(110deg,rgba(5,13,24,.98),rgba(8,8,20,.96));
+  border-bottom-color:rgba(0,229,255,.18);
+  backdrop-filter:blur(16px);
+}
+#hdAva{box-shadow:0 0 18px rgba(0,229,255,.16)}
+.iconbtn,.sq,.sendbtn,.btn,.chip,.tab,.accb,.appb,.pcard,.vcard{
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.iconbtn:active,.sq:active,.btn:active,.chip:active,.tab:active,.accb:active,.appb:active,.pcard:active,.vcard:active{
+  transform:scale(.97);
+}
+#connBar{backdrop-filter:blur(12px)}
+.heroWrap{
+  border-color:rgba(0,229,255,.38);
+  box-shadow:0 16px 44px rgba(0,0,0,.42),0 0 28px rgba(0,229,255,.07);
+}
+.stat .cell,.tile,.card,.row,.appb,.pcard,.vcard,.accb,.tab{
+  background:linear-gradient(145deg,rgba(17,27,43,.88),rgba(7,12,22,.82));
+  border-color:rgba(135,167,205,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+.tile{position:relative;overflow:hidden}
+.tile::after{
+  content:"";position:absolute;inset:auto -24px -34px auto;width:82px;height:82px;
+  border-radius:50%;background:rgba(0,229,255,.075);filter:blur(18px);pointer-events:none;
+}
+.tile:active,.pcard.on,.vcard.on,.tab.on,.accb.on{
+  border-color:rgba(0,229,255,.62);
+  box-shadow:0 0 20px rgba(0,229,255,.09),inset 0 1px 0 rgba(255,255,255,.06);
+}
+.sect{color:#8ca6c2}
+#log{scroll-behavior:smooth}
+.msg{box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.msg.a{border-color:rgba(115,153,191,.2)}
+.msg.u{border:1px solid rgba(0,229,255,.22)}
+.composer{
+  background:linear-gradient(180deg,rgba(5,10,18,.96),rgba(3,6,12,.99));
+  border-top-color:rgba(0,229,255,.18);
+  backdrop-filter:blur(18px);
+}
+#inp:focus,input.f:focus,select.f:focus,textarea.f:focus{
+  border-color:rgba(0,229,255,.65);
+  box-shadow:0 0 0 3px rgba(0,229,255,.09);
+}
+.sendbtn{box-shadow:0 5px 18px rgba(0,229,255,.16)}
+.btn.pri{box-shadow:0 7px 20px rgba(0,229,255,.12)}
+nav{
+  background:rgba(2,5,11,.97);
+  border-top-color:rgba(0,229,255,.16);
+  backdrop-filter:blur(18px);
+}
+nav button.act{ text-shadow:0 0 14px rgba(0,229,255,.5) }
+#toast{box-shadow:0 12px 38px rgba(0,0,0,.42);backdrop-filter:blur(16px)}
+#gate .box{border:1px solid rgba(0,229,255,.15);border-radius:22px;padding:22px;background:linear-gradient(145deg,rgba(13,22,37,.92),rgba(4,8,16,.96));box-shadow:0 24px 70px rgba(0,0,0,.42)}
+@media(min-width:560px){
+  #app{border-left:1px solid rgba(0,229,255,.08);border-right:1px solid rgba(0,229,255,.08)}
+}
+@media(prefers-reduced-motion:reduce){
+  #log{scroll-behavior:auto}
+}
+/* ===== END MAS KIPLAY UI REFRESH ===== */
+
 </style>
 </head>
 <body>
