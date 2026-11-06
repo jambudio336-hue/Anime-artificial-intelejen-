@@ -1,11 +1,10 @@
 {
   "appId": "com.kiplay.agent",
   "appName": "Mas Kiplay",
-  "webDir": ".",
-  "bundledWebRuntime": false,
+  "webDir": "www",
   "android": {
     "allowMixedContent": true,
-    "webContentsDebuggingEnabled": true
+    "webContentsDebuggingEnabled": false
   },
   "server": {
     "androidScheme": "https"
