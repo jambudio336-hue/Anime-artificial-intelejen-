@@ -1,12 +1,15 @@
 name: Build APK Release
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       versi:
         description: "Versi rilis, contoh 6.0.0"
         required: true
-        default: "6.0.0"
+        default: "6.0.1"
 
 permissions:
   contents: write
@@ -16,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PUNYA_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
+      VERSION: ${{ inputs.versi || '6.0.1' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +48,7 @@ jobs:
           cp icon.png www/ 2>/dev/null || true
           cp *.mp4 www/ 2>/dev/null || true
           cp *.png www/ 2>/dev/null || true
-          sed -i "s/const APP_VER=\"[^\"]*\"/const APP_VER=\"${{ inputs.versi }}\"/" www/index.html
+          sed -i "s/const APP_VER=\"[^\"]*\"/const APP_VER=\"${{ env.VERSION }}\"/" www/index.html
 
       - name: Pasang Capacitor
         run: |
@@ -91,7 +95,7 @@ jobs:
           s = s.replace("<application", '<application android:usesCleartextTraffic="true"')
           open(p, "w").write(s)
           PY
-          sed -i 's/versionName ".*"/versionName "${{ inputs.versi }}"/' android/app/build.gradle
+          sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
           sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
 
       - name: Decode keystore
@@ -120,25 +124,25 @@ jobs:
         run: |
           mkdir -p keluar
           F=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
-          cp "$F" "keluar/MasKiplay-v${{ inputs.versi }}.apk"
+          cp "$F" "keluar/MasKiplay-v${{ env.VERSION }}.apk"
           ls -lh keluar
 
       - name: Simpan artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MasKiplay-v${{ inputs.versi }}
+          name: MasKiplay-v${{ env.VERSION }}
           path: keluar/*.apk
 
       - name: Terbitkan release publik
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ inputs.versi }}
-          name: Mas Kiplay v${{ inputs.versi }}
+          tag_name: v${{ env.VERSION }}
+          name: Mas Kiplay v${{ env.VERSION }}
           draft: false
           prerelease: false
           generate_release_notes: true
           body: |
-            APK Mas Kiplay v${{ inputs.versi }}
+            APK Mas Kiplay v${{ env.VERSION }}
 
             Unduh berkas `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
           files: keluar/*.apk
