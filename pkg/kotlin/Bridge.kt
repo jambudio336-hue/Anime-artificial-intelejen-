@@ -1,6 +1,8 @@
 package com.kiplay.agent
 
 import android.app.Activity
+import android.app.ActivityManager
+import android.os.StatFs
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
@@ -108,11 +110,26 @@ class Bridge(private val activity: Activity) {
     }
 
     @JavascriptInterface
-    fun info(): String = buildString {
-        appendLine("sdk: ${android.os.Build.VERSION.SDK_INT}")
-        appendLine("perangkat: ${android.os.Build.MODEL}")
-        appendLine("merek: ${android.os.Build.MANUFACTURER}")
-        append("cpu: ${Runtime.getRuntime().availableProcessors()} core")
+    fun info(): String = try {
+        val manager = activity.getSystemService(Activity.ACTIVITY_SERVICE) as ActivityManager
+        val memory = ActivityManager.MemoryInfo().also { manager.getMemoryInfo(it) }
+        val stat = StatFs(activity.filesDir.absolutePath)
+        val totalStorage = stat.totalBytes
+        val freeStorage = stat.availableBytes
+        fun size(bytes: Long): String = String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
+        buildString {
+            appendLine("Perangkat: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            appendLine("Brand: ${android.os.Build.BRAND}")
+            appendLine("Device: ${android.os.Build.DEVICE}")
+            appendLine("Android: ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})")
+            appendLine("CPU: ${Runtime.getRuntime().availableProcessors()} core")
+            appendLine("RAM total: ${size(memory.totalMem)}")
+            appendLine("RAM tersedia: ${size(memory.availMem)}")
+            appendLine("Storage volume aplikasi: ${size(totalStorage)}")
+            appendLine("Storage tersedia: ${size(freeStorage)}")
+        }
+    } catch (e: Exception) {
+        "Gagal membaca info perangkat: ${e.message}"
     }
 
     companion object {
