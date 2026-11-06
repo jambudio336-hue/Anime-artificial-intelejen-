@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 6.0.0"
         required: true
-        default: "6.0.1"
+        default: "6.0.2"
 
 permissions:
   contents: write
@@ -18,8 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      PUNYA_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
-      VERSION: ${{ inputs.versi || '6.0.1' }}
+      VERSION: ${{ inputs.versi || '6.0.2' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -120,27 +119,48 @@ jobs:
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
           sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
 
-      - name: Decode keystore
-        if: env.PUNYA_KEY == 'true'
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$PWD/kiplay.keystore"
-
-      - name: Build APK release (bertanda tangan)
-        if: env.PUNYA_KEY == 'true'
-        working-directory: android
+      - name: Validasi secret signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
         run: |
+          set -euo pipefail
+          for name in KEYSTORE_BASE64 KEYSTORE_PASS KEY_ALIAS KEY_PASS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::GitHub Secret $name belum diatur. Build publik wajib memakai keystore pribadi."
+              exit 1
+            fi
+          done
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/kiplay-release.keystore"
+          test -s "$RUNNER_TEMP/kiplay-release.keystore"
+
+      - name: Build APK release (keystore pribadi)
+        working-directory: android
+        env:
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: |
+          set -euo pipefail
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon \
-            -Pandroid.injected.signing.store.file="$PWD/../kiplay.keystore" \
-            -Pandroid.injected.signing.store.password="${{ secrets.KEYSTORE_PASS }}" \
-            -Pandroid.injected.signing.key.alias="${{ secrets.KEY_ALIAS }}" \
-            -Pandroid.injected.signing.key.password="${{ secrets.KEY_PASS }}"
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/kiplay-release.keystore" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASS" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASS"
 
-      - name: Build APK release (kunci debug)
-        if: env.PUNYA_KEY != 'true'
-        working-directory: android
+      - name: Verifikasi tanda tangan APK
         run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          set -euo pipefail
+          APK=$(find android/app/build/outputs/apk -name "*.apk" -print -quit)
+          test -n "$APK"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          mkdir -p keluar
+          cp "$APK" "keluar/MasKiplay-v${{ env.VERSION }}.apk"
+          rm -f "$RUNNER_TEMP/kiplay-release.keystore"
 
       - name: Kumpulkan APK
         run: |
