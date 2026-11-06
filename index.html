@@ -1194,7 +1194,7 @@ function bootApp(){
   if(booted)return;booted=true;window.__booted=true;
   $("#app").classList.remove("hidden");
   initVideos();sizeC();requestAnimationFrame(loop);
-  renderHist();renderVault();renderPersona();renderVoice();renderKeys();renderBridge();renderPlugs();renderNotes();renderProfile();
+  renderHist();chatWelcome();renderVault();renderPersona();renderVoice();renderKeys();renderBridge();renderPlugs();renderNotes();renderProfile();
   $("#verTxt").textContent=APP_VER;$("#updUrl").value=S.updUrl;
   $("#visionModel").value=S.visionModel;
   setConn("none","Tanpa kunci");
@@ -1522,7 +1522,7 @@ $("#cyDnsRun").onclick=async()=>{let h=$("#cyDnsHost").value.trim();if(!h||/[\s/
 $("#cyHeaderRun").onclick=async()=>{let u=$("#cyUrl").value.trim();if(!u)return cyOut("#cyHeaderOut","Masukkan URL");if(!/^https?:\/\//i.test(u))u="https://"+u;cyOut("#cyHeaderOut","Memeriksa…");try{let r=await fetch(u,{method:"HEAD",mode:"cors"});let keys=["content-security-policy","strict-transport-security","x-content-type-options","x-frame-options","referrer-policy","permissions-policy"];let o={url:r.url,status:r.status};keys.forEach(k=>o[k]=r.headers.get(k)||"Tidak ada/tidak terbaca");cyOut("#cyHeaderOut",JSON.stringify(o,null,2));}catch(e){cyOut("#cyHeaderOut","Tidak dapat membaca header (CORS/jaringan): "+e.message+". Ini bukan bukti kerentanan.");}};
 $("#cyJwtRun").onclick=()=>{try{let p=$("#cyJwt").value.trim().split(".");if(p.length!==3)throw Error("JWT harus tiga bagian");let dec=x=>JSON.parse(decodeURIComponent(escape(atob(x.replace(/-/g,"+").replace(/_/g,"/")))));cyOut("#cyJwtOut",JSON.stringify({header:dec(p[0]),payload:dec(p[1]),signature:"disembunyikan"},null,2));}catch(e){cyOut("#cyJwtOut","JWT tidak valid: "+e.message);}};
 document.querySelectorAll("[data-cyhash]").forEach(b=>b.onclick=async()=>{try{let h=await crypto.subtle.digest(b.dataset.cyhash,new TextEncoder().encode($("#cyHash").value));cyOut("#cyHashOut",Array.from(new Uint8Array(h),x=>x.toString(16).padStart(2,"0")).join(""));}catch(e){cyOut("#cyHashOut",e.message);}});
-$("#cyB64Enc").onclick=()=>{try{cyOut("#cyCodecOut",btoa(unescape(encodeURIComponent($("#cyCodec").value)));}catch(e){cyOut("#cyCodecOut",e.message);}};
+$("#cyB64Enc").onclick=()=>{try{cyOut("#cyCodecOut",btoa(unescape(encodeURIComponent($("#cyCodec").value))));}catch(e){cyOut("#cyCodecOut",e.message);}};
 $("#cyB64Dec").onclick=()=>{try{cyOut("#cyCodecOut",decodeURIComponent(escape(atob($("#cyCodec").value.trim()))));}catch(e){cyOut("#cyCodecOut","Base64 tidak valid");}};
 $("#cyUrlEnc").onclick=()=>cyOut("#cyCodecOut",encodeURIComponent($("#cyCodec").value));
 $("#cyUrlDec").onclick=()=>{try{cyOut("#cyCodecOut",decodeURIComponent($("#cyCodec").value));}catch(e){cyOut("#cyCodecOut",e.message);}};
