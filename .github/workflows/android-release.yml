@@ -81,22 +81,40 @@ jobs:
       - name: Tambah izin Android
         run: |
           python3 - <<'PY'
-          p = "android/app/src/main/AndroidManifest.xml"
-          s = open(p).read()
-          izin = """    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-              <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-              <uses-permission android:name="android.permission.CAMERA"/>
-              <uses-permission android:name="android.permission.SET_ALARM"/>
-              <uses-permission android:name="android.permission.VIBRATE"/>
-              <queries>
-                  <package android:name="com.termux"/>
-                  <package android:name="com.whatsapp"/>
-                  <package android:name="com.tradingview"/>
-              </queries>
-          """
-          s = s.replace(">", ">\n" + izin, 1)
-          s = s.replace("<application", '<application android:usesCleartextTraffic="true"')
-          open(p, "w").write(s)
+          import xml.etree.ElementTree as ET
+
+          path = "android/app/src/main/AndroidManifest.xml"
+          tree = ET.parse(path)
+          root = tree.getroot()
+          android_ns = "{http://schemas.android.com/apk/res/android}"
+
+          permissions = [
+              "android.permission.RECORD_AUDIO",
+              "android.permission.READ_MEDIA_IMAGES",
+              "android.permission.CAMERA",
+              "android.permission.SET_ALARM",
+              "android.permission.VIBRATE",
+          ]
+          for permission in permissions:
+              node = ET.Element("uses-permission")
+              node.set(android_ns + "name", permission)
+              root.insert(0, node)
+
+          queries = ET.Element("queries")
+          for package_name in ("com.termux", "com.whatsapp", "com.tradingview"):
+              package = ET.SubElement(queries, "package")
+              package.set(android_ns + "name", package_name)
+          root.insert(len(permissions), queries)
+
+          application = root.find("application")
+          if application is None:
+              raise RuntimeError("Elemen <application> tidak ditemukan di AndroidManifest.xml")
+          application.set(android_ns + "usesCleartextTraffic", "true")
+
+          ET.indent(tree, space="    ")
+          tree.write(path, encoding="utf-8", xml_declaration=True)
+          ET.parse(path)
+          print("AndroidManifest.xml valid.")
           PY
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
           sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
