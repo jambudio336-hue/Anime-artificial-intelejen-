@@ -451,6 +451,7 @@ button{touch-action:manipulation}
         <div class="card"><h3>Ringkasan</h3><div class="mono" id="profPrev">—</div></div>
       </div>
     </section>
+
     <section class="view" id="v-evo">
       <div class="scroll">
         <div class="card"><h3>Evolusi APK</h3><div class="sub">Sistem menumbuhkan dirinya sendiri.</div>
@@ -849,7 +850,8 @@ function openApp(p){if(!p)return "paket kosong";const n=MK();
   if(n&&n.openApp){try{n.openApp(p);return "luncur "+p;}catch(e){}}
   location.href="intent:#Intent;package="+p+";action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";
   return "intent "+p;}
-function galeri(){location.href="intent:#Intent;action=android.intent.action.VIEW;type=image/*;end";return "galeri";}function kamera(){location.href="intent:#Intent;action=android.media.action.IMAGE_CAPTURE;end";return "kamera";}
+function galeri(){location.href="intent:#Intent;action=android.intent.action.VIEW;type=image/*;end";return "galeri";}
+function kamera(){location.href="intent:#Intent;action=android.media.action.IMAGE_CAPTURE;end";return "kamera";}
 function alarm(h,m){location.href="intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR="+h+";i.android.intent.extra.alarm.MINUTES="+m+";end";return "alarm "+h+":"+m;}
 async function shell(c){if(!c)return "$ ";
   const n=MK();
@@ -1248,6 +1250,7 @@ async function loadSurahIndex(){
   }catch(e){$("#qList").innerHTML='<div class="empty">Gagal memuat. Cek koneksi.</div>';}
 }
 $("#qSearch").oninput=renderSurahList;
+
 async function openSurah(n){
   switchView("surah");
   const body=$("#surahBody");
