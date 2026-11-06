@@ -199,6 +199,59 @@ nav button.act{color:var(--cy)}
 .prof{display:flex;flex-direction:column;align-items:center;gap:9px;padding:6px 0}
 .prof img{width:86px;height:86px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,229,255,.5);background:#0a1220}
 .hidden{display:none!important}
+
+/* ===== RESPONSIVE UI PATCH: isolated screens + Android chat scrolling ===== */
+html,body{height:100%;min-height:100%;overscroll-behavior:none}
+body{-webkit-text-size-adjust:100%;touch-action:pan-y}
+#app{height:100dvh;min-height:0;overflow:hidden}
+header,#connBar,nav{flex:0 0 auto}
+header{padding-top:max(10px,env(safe-area-inset-top))}
+main{flex:1 1 auto;min-height:0;min-width:0;overflow:hidden;overscroll-behavior:contain}
+.view{min-height:0;min-width:0;overscroll-behavior-y:contain}
+.scroll,#log,#v-home{min-height:0;min-width:0;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:rgba(0,229,255,.28) transparent}
+#v-home{padding-bottom:max(18px,env(safe-area-inset-bottom))}
+.hm{padding-bottom:max(26px,env(safe-area-inset-bottom))}
+.scroll{flex:1 1 auto;padding-bottom:max(18px,env(safe-area-inset-bottom))}
+#v-chat{min-height:0;overflow:hidden}
+#log{flex:1 1 0%;min-height:0;overflow-x:hidden;overflow-y:auto;padding:12px 11px 18px;scroll-padding-bottom:22px}
+.msg{max-width:min(92%,680px);overflow-wrap:anywhere}
+.msg .body{overflow-wrap:anywhere;word-break:break-word}
+.codeblk{max-width:100%}
+.codeblk pre{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+#attBar,#chips,.composer{flex:0 0 auto;min-width:0}
+#attBar{max-height:76px;overflow-y:auto;overscroll-behavior:contain}
+.chips{max-width:100%;padding-bottom:7px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.composer{gap:7px;padding:8px 10px max(10px,env(safe-area-inset-bottom));align-items:flex-end}
+#inp{min-width:0;max-height:min(28dvh,160px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.sq,.sendbtn{flex:0 0 auto}
+nav{padding-bottom:env(safe-area-inset-bottom);overflow-x:auto;overscroll-behavior-x:contain}
+nav button{min-width:0;min-height:50px;flex:1 0 0;padding:8px 2px 7px}
+.card,.row,.tile{min-width:0}
+input.f,select.f,textarea.f{min-width:0;max-width:100%}
+button{touch-action:manipulation}
+@media(max-width:360px){
+  header{gap:5px;padding-left:7px;padding-right:7px}
+  .clock{font-size:10px}
+  .iconbtn{width:29px;height:29px}
+  .composer{gap:5px;padding-left:7px;padding-right:7px}
+  .sq{width:37px;height:40px}
+  .sendbtn{width:40px;height:40px}
+  #inp{font-size:14px;padding:10px}
+  .grid{gap:6px}
+  .tile{padding:10px 9px}
+}
+@media(max-height:560px){
+  header{padding-top:5px;padding-bottom:5px}
+  #connBar{padding-top:4px;padding-bottom:4px}
+  nav button{min-height:42px;padding-top:5px;padding-bottom:5px}
+  #log{padding-top:7px;padding-bottom:10px}
+  .composer{padding-top:5px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+/* ===== END RESPONSIVE UI PATCH ===== */
+
 </style>
 </head>
 <body>
@@ -398,7 +451,6 @@ nav button.act{color:var(--cy)}
         <div class="card"><h3>Ringkasan</h3><div class="mono" id="profPrev">—</div></div>
       </div>
     </section>
-
     <section class="view" id="v-evo">
       <div class="scroll">
         <div class="card"><h3>Evolusi APK</h3><div class="sub">Sistem menumbuhkan dirinya sendiri.</div>
@@ -797,8 +849,7 @@ function openApp(p){if(!p)return "paket kosong";const n=MK();
   if(n&&n.openApp){try{n.openApp(p);return "luncur "+p;}catch(e){}}
   location.href="intent:#Intent;package="+p+";action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";
   return "intent "+p;}
-function galeri(){location.href="intent:#Intent;action=android.intent.action.VIEW;type=image/*;end";return "galeri";}
-function kamera(){location.href="intent:#Intent;action=android.media.action.IMAGE_CAPTURE;end";return "kamera";}
+function galeri(){location.href="intent:#Intent;action=android.intent.action.VIEW;type=image/*;end";return "galeri";}function kamera(){location.href="intent:#Intent;action=android.media.action.IMAGE_CAPTURE;end";return "kamera";}
 function alarm(h,m){location.href="intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR="+h+";i.android.intent.extra.alarm.MINUTES="+m+";end";return "alarm "+h+":"+m;}
 async function shell(c){if(!c)return "$ ";
   const n=MK();
@@ -1197,7 +1248,6 @@ async function loadSurahIndex(){
   }catch(e){$("#qList").innerHTML='<div class="empty">Gagal memuat. Cek koneksi.</div>';}
 }
 $("#qSearch").oninput=renderSurahList;
-
 async function openSurah(n){
   switchView("surah");
   const body=$("#surahBody");
