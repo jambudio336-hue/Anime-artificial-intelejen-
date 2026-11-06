@@ -53,6 +53,9 @@ jobs:
       - name: Pasang Capacitor
         run: |
           npm install --no-audit --no-fund
+          # The repository contains only a native source stub, not a complete Gradle project.
+          # Regenerate the Capacitor Android platform before copying the maintained bridge sources.
+          rm -rf android
           npx cap add android
           npx cap sync android
 
