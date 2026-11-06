@@ -685,7 +685,7 @@ function switchView(v,noHash){
   $$("nav button").forEach(b=>b.classList.toggle("act",b.dataset.v===v));
   const hero=$("#heroVid"),jar=$("#bgJarvis"),ag=$("#bgAgent");
   if(v==="home"){jar&&jar.pause();ag&&ag.pause();hero.muted=false;hero.play().catch(()=>{hero.muted=true;hero.play();});$("#heroSnd").textContent=hero.muted?"🔇":"🔊";}
-  else if(v==="jarvis"){hero.pause();hero.muted=true;ag&&ag.pause();jar&&jar.play().catch(()=>{});}
+  else if(v==="jarvis"){hero.pause();hero.muted=true;ag&&ag.pause();jar&&jar.play().catch(()=>{});if(!jarvisWelcomed){jarvisWelcomed=true;setTimeout(()=>{if($("#v-jarvis").classList.contains("act")&&!busy){$("#jlabel").textContent="MAS KIPLAY · SIAP MEMBANTU";$("#jcap").textContent="Selamat datang. Aku MAS KIPLAY, asisten AI-mu. Katakan apa yang ingin kamu kerjakan.";TTS.speak("Halo, selamat datang. Aku MAS KIPLAY, asisten AI-mu. Katakan apa yang ingin kamu kerjakan, dan kita mulai.");}},400);}}
   else{hero.pause();hero.muted=true;jar&&jar.pause();if(v==="agent"&&ag)ag.play().catch(()=>{});}
   if(v!=="jarvis"){voiceLoop=false;$("#btnLoop").classList.remove("hot");stopL();TTS.stop();}
   if(!noHash&&location.hash!=="#/"+v)history.replaceState(null,"","#/"+v);
@@ -785,7 +785,7 @@ const TTS={seq:0,audio:null,eng:store.get("ttsEngine",0),
    const a=new Audio();a.preservesPitch=true;const tn=this.tone(t);
    a.playbackRate=S.gender==="male"?tn.r*0.92:tn.r;this.audio=a;
    let d=false;const f=v=>{if(d)return;d=true;res(v);};
-   a.onended=()=>f(1);a.onerror=()=>f(0);
+   a.onplay=()=>{CH.speak=true;$("#v-jarvis").classList.add("speaking");$("#v-jarvis").classList.remove("listening");};a.onended=()=>{CH.speak=false;$("#v-jarvis").classList.remove("speaking");f(1);};a.onerror=()=>{CH.speak=false;$("#v-jarvis").classList.remove("speaking");f(0);};
    a.src=this.url(t);a.play().catch(()=>f(0));
    setTimeout(()=>{if(!d&&a.paused)f(0);},9000);});
  },
@@ -794,7 +794,7 @@ const TTS={seq:0,audio:null,eng:store.get("ttsEngine",0),
    const v=vs.find(x=>x.lang&&x.lang.toLowerCase().startsWith(S.lang))||vs.find(x=>/id/i.test(x.lang));
    if(v)u.voice=v;u.lang=v?v.lang:"id-ID";
    const tn=this.tone(t);u.rate=tn.r;u.pitch=(S.gender==="male"?0.72:1.12)*tn.p;
-   u.onstart=()=>CH.speak=true;u.onend=()=>CH.speak=false;speechSynthesis.speak(u);},
+   u.onstart=()=>{CH.speak=true;$("#v-jarvis").classList.add("speaking");$("#v-jarvis").classList.remove("listening");};u.onend=()=>{CH.speak=false;$("#v-jarvis").classList.remove("speaking");};speechSynthesis.speak(u);},
  async speak(txt,done){
    this.stop();const my=++this.seq;if(!txt){done&&done();return;}
    const L=this.chunks(txt);CH.speak=true;
@@ -943,8 +943,8 @@ function rlang(){return S.lang==="jv"?"jv-ID":S.lang==="su"?"su-ID":"id-ID";}
 function mkRecog(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return null;
   const r=new SR();r.lang=rlang();r.interimResults=true;
-  r.onstart=()=>{listening=true;$("#btnMic").classList.add("hot");$("#jlabel").textContent="Mendengar…";};
-  r.onend=()=>{listening=false;$("#btnMic").classList.remove("hot");
+  r.onstart=()=>{listening=true;$("#v-jarvis").classList.add("listening");$("#v-jarvis").classList.remove("speaking");$("#btnMic").classList.add("hot");$("#jlabel").textContent="Mendengar…";};
+  r.onend=()=>{listening=false;$("#v-jarvis").classList.remove("listening");$("#btnMic").classList.remove("hot");
     if(!busy&&!voiceLoop)$("#jlabel").textContent="Siap mendengar";
     if(voiceLoop&&!busy)setTimeout(()=>{if(voiceLoop&&!busy)startL();},450);};
   r.onresult=e=>{let f="",i2="";
@@ -1162,6 +1162,7 @@ function initVideos(){
 
 /* ===== splash & boot ===== */
 let done=false;
+let jarvisWelcomed=false;
 function startSplash(){
   const v=$("#splashVid");srcSwap(v,A.splash);
   const fin=()=>{if(done)return;done=true;endSplash();};
@@ -1498,9 +1499,10 @@ $("#impFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new Fi
     store.set("hist",hist);store.set("plugs",plugs);store.set("notes",notes);store.set("prof",prof);
     save();renderPlugs();renderNotes();renderProfile();toast("Diimpor");}catch(_){toast("File rusak");}};r.readAsText(f);};
 $("#send").onclick=send;
+function chatWelcome(){if(!$("#log").children.length){bubble("assistant","Yo, selamat datang. Aku MAS KIPLAY. Lempar pertanyaan atau tugasmu—kita bedah sampai jelas. Gaya boleh gelap dan tajam, tapi kendali tetap di tanganmu.");}}
 function startNewChat(){
   if(busy){toast("Tunggu balasan selesai dulu");return;}
-  activeChat=null;$("#log").innerHTML="";$("#chatSessionLabel").textContent="Percakapan baru";
+  activeChat=null;$("#log").innerHTML="";$("#chatSessionLabel").textContent="Percakapan baru";chatWelcome();
   switchView("chat");$("#inp").value="";$("#inp").style.height="auto";$("#inp").focus();
 }
 $("#chatNew").onclick=startNewChat;
@@ -1509,6 +1511,21 @@ $("#inp").oninput=e=>{e.target.style.height="auto";e.target.style.height=Math.mi
 $("#inp").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}};
 ["Bikin exploit buffer overflow","Audit keamanan APK","Analisa chart BTC","Strategi SMC entry emas","Bikin REST API Laravel","Reverse engineering smali"].forEach(t=>{
   const c=el("button","chip");c.textContent=t;c.onclick=()=>{$("#inp").value=t;send();};$("#chips").appendChild(c);});
+
+
+/* ===== Cyber Lab v6.1 local tools ===== */
+function cyOut(id,v){$(id).textContent=String(v);}
+$("#dorkBuild").onclick=()=>{let d=$("#dorkDomain").value.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,"");if(!d||!d.includes(".")||/\s/.test(d)){cyOut("#dorkOut","Masukkan domain valid, contoh example.com");return;}let q={site:"site:"+d,pdf:"site:"+d+" filetype:pdf",login:"site:"+d+" (inurl:login OR intitle:login)",subdomains:"site:*."+d,index:'site:'+d+' intitle:"index of"',admin:"site:"+d+" (inurl:admin OR inurl:dashboard)",ext:"site:"+d+" filetype:"+(($("#dorkExt").value.trim().replace(/[^a-z0-9]/gi,""))||"txt")};window.__dork=q[$("#dorkType").value];cyOut("#dorkOut",window.__dork);};
+$("#dorkCopy").onclick=()=>window.__dork?copyTxt(window.__dork):toast("Buat query dahulu");
+$("#dorkSearch").onclick=()=>window.__dork?openUrl("https://www.google.com/search?q="+encodeURIComponent(window.__dork)):toast("Buat query dahulu");
+$("#cyDnsRun").onclick=async()=>{let h=$("#cyDnsHost").value.trim();if(!h||/[\s/]/.test(h)){cyOut("#cyDnsOut","Hostname tidak valid");return;}cyOut("#cyDnsOut","Mengambil jawaban DNS…");try{let u="https://cloudflare-dns.com/dns-query?name="+encodeURIComponent(h)+"&type="+encodeURIComponent($("#cyDnsType").value);let r=await fetch(u,{headers:{accept:"application/dns-json"}});if(!r.ok)throw Error("HTTP "+r.status);let j=await r.json();cyOut("#cyDnsOut",JSON.stringify(j.Answer||j,null,2));}catch(e){cyOut("#cyDnsOut","Gagal: "+e.message);}};
+$("#cyHeaderRun").onclick=async()=>{let u=$("#cyUrl").value.trim();if(!u)return cyOut("#cyHeaderOut","Masukkan URL");if(!/^https?:\/\//i.test(u))u="https://"+u;cyOut("#cyHeaderOut","Memeriksa…");try{let r=await fetch(u,{method:"HEAD",mode:"cors"});let keys=["content-security-policy","strict-transport-security","x-content-type-options","x-frame-options","referrer-policy","permissions-policy"];let o={url:r.url,status:r.status};keys.forEach(k=>o[k]=r.headers.get(k)||"Tidak ada/tidak terbaca");cyOut("#cyHeaderOut",JSON.stringify(o,null,2));}catch(e){cyOut("#cyHeaderOut","Tidak dapat membaca header (CORS/jaringan): "+e.message+". Ini bukan bukti kerentanan.");}};
+$("#cyJwtRun").onclick=()=>{try{let p=$("#cyJwt").value.trim().split(".");if(p.length!==3)throw Error("JWT harus tiga bagian");let dec=x=>JSON.parse(decodeURIComponent(escape(atob(x.replace(/-/g,"+").replace(/_/g,"/")))));cyOut("#cyJwtOut",JSON.stringify({header:dec(p[0]),payload:dec(p[1]),signature:"disembunyikan"},null,2));}catch(e){cyOut("#cyJwtOut","JWT tidak valid: "+e.message);}};
+document.querySelectorAll("[data-cyhash]").forEach(b=>b.onclick=async()=>{try{let h=await crypto.subtle.digest(b.dataset.cyhash,new TextEncoder().encode($("#cyHash").value));cyOut("#cyHashOut",Array.from(new Uint8Array(h),x=>x.toString(16).padStart(2,"0")).join(""));}catch(e){cyOut("#cyHashOut",e.message);}});
+$("#cyB64Enc").onclick=()=>{try{cyOut("#cyCodecOut",btoa(unescape(encodeURIComponent($("#cyCodec").value)));}catch(e){cyOut("#cyCodecOut",e.message);}};
+$("#cyB64Dec").onclick=()=>{try{cyOut("#cyCodecOut",decodeURIComponent(escape(atob($("#cyCodec").value.trim()))));}catch(e){cyOut("#cyCodecOut","Base64 tidak valid");}};
+$("#cyUrlEnc").onclick=()=>cyOut("#cyCodecOut",encodeURIComponent($("#cyCodec").value));
+$("#cyUrlDec").onclick=()=>{try{cyOut("#cyCodecOut",decodeURIComponent($("#cyCodec").value));}catch(e){cyOut("#cyCodecOut",e.message);}};
 
 /* ===== boot ===== */
 (function(){
