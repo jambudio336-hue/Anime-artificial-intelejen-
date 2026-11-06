@@ -220,11 +220,14 @@ jobs:
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           SIGNATURE=$("$APKSIGNER" verify --verbose --print-certs "$APK")
           printf '%s\n' "$SIGNATURE"
-          EXPECTED_CERT="ff:fa:7c:f7:7d:ad:05:2c:87:9d:7c:36:48:da:3a:da:c9:62:76:23:a5:df:ff:91:2b:be:1e:89:c8:83:ba:f6"
-          printf '%s\n' "$SIGNATURE" | grep -Fqi "$EXPECTED_CERT" || {
+          EXPECTED_CERT="fffa7cf77dad052c879d7c3648da3adac9627623a5dfff912bbe1e89c883baf6"
+          ACTUAL_CERT=$(printf '%s\n' "$SIGNATURE" | sed -n 's/.*certificate SHA-256 digest: *//Ip' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          if [ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]; then
             echo "::error::Fingerprint sertifikat APK tidak cocok dengan keystore release yang disiapkan."
+            echo "Expected: $EXPECTED_CERT"
+            echo "Actual:   $ACTUAL_CERT"
             exit 1
-          }
+          fi
           mkdir -p keluar
           cp "$APK" "keluar/MasKiplay-v${{ env.VERSION }}.apk"
           rm -f "$RUNNER_TEMP/kiplay-release.keystore"
