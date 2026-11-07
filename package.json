@@ -1,8 +1,8 @@
 {
   "name": "mas-kiplay",
-  "version": "7.1.0",
+  "version": "8.0.0",
   "private": true,
-  "description": "Mas Kiplay Dark Brutal Edition — AI agent Android dengan Jarvis suara, Chat, Cyber Lab, dan kendali perangkat berbasis izin.",
+  "description": "Mas Kiplay Dark Brutal — agent AI Android dengan otomasi perangkat, Jarvis suara, shell root, dan Cyber Lab.",
   "author": "jambudio336-hue",
   "license": "MIT",
   "dependencies": {
