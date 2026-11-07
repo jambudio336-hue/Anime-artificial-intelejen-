@@ -118,7 +118,9 @@ jobs:
           test -s "$D/Bridge.kt"
           test -s "$D/KiplayAccessibility.kt"
           grep -q "Bridge(this, web)" "$D/MainActivity.kt"
+          grep -q "addJavascriptInterface(nativeBridge, \"MK\")" "$D/MainActivity.kt"
           grep -q "KiplayAccessibility" "$D/Bridge.kt"
+          grep -q "class KiplayAccessibility" "$D/KiplayAccessibility.kt"
 
       - name: Tulis resource service dan provider
         run: |
