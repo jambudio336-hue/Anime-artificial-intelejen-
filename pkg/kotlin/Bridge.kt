@@ -341,7 +341,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         tts = TextToSpeech(activity) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 try {
-                    tts?.language = Locale("id", "ID")
+                    // Pilih Bahasa Indonesia bila tersedia; jika paket suara ID belum
+                    // terpasang, gunakan bahasa default perangkat agar TTS tetap hidup.
+                    val idResult = tts?.setLanguage(Locale("id", "ID")) ?: TextToSpeech.LANG_NOT_SUPPORTED
+                    if (idResult < TextToSpeech.LANG_AVAILABLE) {
+                        tts?.setLanguage(Locale.getDefault())
+                    }
                     tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                         override fun onStart(utteranceId: String?) {
                             js("MK_onTTS", JSONObject().put("id", utteranceId).put("ok", 1).toString())
@@ -377,9 +382,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     private fun speakNow(text: String, id: String) {
         try {
-            tts?.setSpeechRate(rate)
-            tts?.setPitch(pitch)
-            tts?.speak(text, TextToSpeech.QUEUE_ADD, null, id)
+            tts?.setSpeechRate(rate.coerceIn(0.65f, 1.8f))
+            tts?.setPitch(pitch.coerceIn(0.5f, 2.0f))
+            val result = tts?.speak(text, TextToSpeech.QUEUE_ADD, null, id)
+            if (result == null || result == TextToSpeech.ERROR) {
+                js("MK_onTTS", JSONObject().put("id", id).put("ok", 0).put("end", true).toString())
+            }
         } catch (e: Exception) {
             js("MK_onTTS", JSONObject().put("id", id).put("ok", 0).put("end", true).toString())
         }
