@@ -45,8 +45,6 @@ class KiplayAccessibility : AccessibilityService() {
 
     override fun onInterrupt() {}
 
-    // ---------- gerakan ----------
-
     fun tap(x: Float, y: Float): Boolean = try {
         val path = Path().apply { moveTo(x, y) }
         val g = GestureDescription.Builder()
@@ -68,8 +66,6 @@ class KiplayAccessibility : AccessibilityService() {
 
     fun global(action: Int): Boolean = try { performGlobalAction(action) } catch (e: Exception) { false }
 
-    // ---------- pohon UI ----------
-
     private fun walk(node: AccessibilityNodeInfo?, depth: Int, out: MutableList<String>, counter: IntArray) {
         if (node == null || counter[0] > 240) return
         val visible = try { node.isVisibleToUser } catch (e: Exception) { true }
@@ -85,13 +81,13 @@ class KiplayAccessibility : AccessibilityService() {
             if (node.isClickable) append("klik ")
             if (node.isEditable) append("edit ")
             if (node.isScrollable) append("geser ")
-            if (node.isCheckable) append("cek ")
         }.trim()
         val id = node.viewIdResourceName?.substringAfterLast('/') ?: ""
         if (label.isNotBlank() || flags.isNotBlank() || id.isNotBlank()) {
             out.add(
-                "${"  ".repeat(depth.coerceAtMost(6))}[${node.className?.toString()?.substringAfterLast('.') ?: "?"}]" +
-                    " @${r.left},${r.top},${r.right},${r.bottom}" +
+                "  ".repeat(depth.coerceAtMost(6)) +
+                    "[" + (node.className?.toString()?.substringAfterLast('.') ?: "?") + "]" +
+                    " @" + r.left + "," + r.top + "," + r.right + "," + r.bottom +
                     (if (flags.isNotBlank()) " {$flags}" else "") +
                     (if (id.isNotBlank()) " #$id" else "") +
                     (if (label.isNotBlank()) " \"$label\"" else "")
@@ -104,8 +100,7 @@ class KiplayAccessibility : AccessibilityService() {
         val root = rootInActiveWindow ?: return "err: pohon UI kosong"
         val out = mutableListOf<String>()
         walk(root, 0, out, intArrayOf(0))
-        if (out.isEmpty()) "err: tidak ada elemen terbaca"
-        else out.joinToString("\n").take(20000)
+        if (out.isEmpty()) "err: tidak ada elemen terbaca" else out.joinToString("\n").take(20000)
     } catch (e: Exception) { "err: ${e.message}" }
 
     fun clickText(needle: String): Boolean = try {
@@ -120,9 +115,7 @@ class KiplayAccessibility : AccessibilityService() {
                 var c: AccessibilityNodeInfo? = n
                 var guard = 0
                 while (c != null && guard < 8) {
-                    if (c.isClickable) {
-                        if (c.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
-                    }
+                    if (c.isClickable && c.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
                     c = c.parent
                     guard++
                 }
@@ -136,18 +129,17 @@ class KiplayAccessibility : AccessibilityService() {
     fun setText(text: String): String = try {
         val root = rootInActiveWindow ?: return "err: pohon UI kosong"
         val focus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-        val editable = focus?.takeIf { it.isEditable }
-            ?: run {
-                val queue = ArrayDeque<AccessibilityNodeInfo>()
-                queue.add(root)
-                var found: AccessibilityNodeInfo? = null
-                while (queue.isNotEmpty() && found == null) {
-                    val n = queue.removeFirst()
-                    if (n.isEditable && n.isVisibleToUser) found = n
-                    for (i in 0 until n.childCount) n.getChild(i)?.let { queue.add(it) }
-                }
-                found
+        val editable = focus?.takeIf { it.isEditable } ?: run {
+            val queue = ArrayDeque<AccessibilityNodeInfo>()
+            queue.add(root)
+            var found: AccessibilityNodeInfo? = null
+            while (queue.isNotEmpty() && found == null) {
+                val n = queue.removeFirst()
+                if (n.isEditable && n.isVisibleToUser) found = n
+                for (i in 0 until n.childCount) n.getChild(i)?.let { queue.add(it) }
             }
+            found
+        }
         if (editable == null) return "err: tidak ada kolom teks aktif"
         editable.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
         val args = Bundle().apply {
@@ -176,51 +168,41 @@ class KiplayAccessibility : AccessibilityService() {
         false
     } catch (e: Exception) { false }
 
-    // ---------- tangkapan layar ----------
-
     @RequiresApi(Build.VERSION_CODES.R)
     private fun shot30(): String? {
         val latch = CountDownLatch(1)
         var result: String? = null
         try {
-            takeScreenshot(Display.DEFAULT_DISPLAY, mainExecutor,
-                object : TakeScreenshotCallback {
-                    override fun onSuccess(shot: ScreenshotResult) {
-                        try {
-                            val buffer = shot.hardwareBuffer
-                            val raw = Bitmap.wrapHardwareBuffer(buffer, shot.colorSpace)
-                            buffer.close()
-                            if (raw != null) {
-                                val scale = 900f / raw.width.coerceAtLeast(1)
-                                val w = if (scale < 1f) (raw.width * scale).toInt() else raw.width
-                                val h = if (scale < 1f) (raw.height * scale).toInt() else raw.height
-                                val soft = Bitmap.createScaledBitmap(raw, w, h, true)
-                                val bos = ByteArrayOutputStream()
-                                soft.compress(Bitmap.CompressFormat.JPEG, 62, bos)
-                                result = Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP)
-                            }
-                        } catch (_: Exception) {
-                        } finally {
-                            latch.countDown()
+            takeScreenshot(Display.DEFAULT_DISPLAY, mainExecutor, object : TakeScreenshotCallback {
+                override fun onSuccess(shot: ScreenshotResult) {
+                    try {
+                        val buffer = shot.hardwareBuffer
+                        val raw = Bitmap.wrapHardwareBuffer(buffer, shot.colorSpace)
+                        buffer.close()
+                        if (raw != null) {
+                            val scale = 900f / raw.width.coerceAtLeast(1)
+                            val w = if (scale < 1f) (raw.width * scale).toInt() else raw.width
+                            val h = if (scale < 1f) (raw.height * scale).toInt() else raw.height
+                            val soft = Bitmap.createScaledBitmap(raw, w, h, true)
+                            val bos = ByteArrayOutputStream()
+                            soft.compress(Bitmap.CompressFormat.JPEG, 62, bos)
+                            result = Base64.encodeToString(bos.toByteArray(), Base64.NO_WRAP)
                         }
-                    }
-
-                    override fun onFailure(errorCode: Int) {
+                    } catch (_: Exception) {
+                    } finally {
                         latch.countDown()
                     }
-                })
+                }
+
+                override fun onFailure(errorCode: Int) { latch.countDown() }
+            })
             latch.await(5, TimeUnit.SECONDS)
-        } catch (e: Exception) {
-            return null
-        }
+        } catch (e: Exception) { return null }
         return result
     }
 
     fun shot(): String = try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            shot30() ?: "err: tangkapan layar gagal"
-        } else {
-            "err: butuh Android 11+"
-        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) shot30() ?: "err: tangkapan layar gagal"
+        else "err: butuh Android 11+"
     } catch (e: Exception) { "err: ${e.message}" }
 }
