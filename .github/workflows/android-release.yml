@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       versi:
-        description: "Versi rilis, contoh 7.0.0"
+        description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "7.1.0"
+        default: "8.0.0"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '7.1.0' }}
+      VERSION: ${{ inputs.versi || '8.0.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +39,7 @@ jobs:
 
       - name: Siapkan folder web
         run: |
+          set -euo pipefail
           mkdir -p www
           cp index.html www/
           cp manifest.webmanifest www/ 2>/dev/null || true
@@ -47,6 +48,7 @@ jobs:
           cp *.mp4 www/ 2>/dev/null || true
           cp *.png www/ 2>/dev/null || true
           sed -i "s/const VER=\"[^\"]*\"/const APP_VER=\"${{ env.VERSION }}\"/" www/index.html
+          grep -q "APP_VER" www/index.html
 
       - name: Pasang Capacitor
         run: |
@@ -98,32 +100,62 @@ jobs:
           (values / "launcher_icon_background.xml").write_text(
               '''<?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <color name="launcher_icon_background">#101014</color>
+              <color name="launcher_icon_background">#050506</color>
           </resources>
           ''', encoding="utf-8")
           print("Ikon launcher selesai.")
           PY
 
-      - name: Tulis bridge native
+      - name: Pasang sumber native
         run: |
+          set -euo pipefail
           D=android/app/src/main/java/com/kiplay/agent
           mkdir -p "$D"
-          cat > "$D/MainActivity.kt" <<'KOTLIN'
-          package com.kiplay.agent
-
-          import android.os.Bundle
-          import com.getcapacitor.BridgeActivity
-
-          class MainActivity : BridgeActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  bridge.webView.addJavascriptInterface(Bridge(this), "MK")
-              }
-          }
-          KOTLIN
+          cp pkg/kotlin/MainActivity.kt "$D/MainActivity.kt"
           cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
+          cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
+          test -s "$D/MainActivity.kt"
+          test -s "$D/Bridge.kt"
+          test -s "$D/KiplayAccessibility.kt"
+          grep -q "Bridge(this, web)" "$D/MainActivity.kt"
+          grep -q "KiplayAccessibility" "$D/Bridge.kt"
 
-      - name: Tambah izin Android
+      - name: Tulis resource service dan provider
+        run: |
+          set -euo pipefail
+          RES=android/app/src/main/res
+          mkdir -p "$RES/xml"
+          cat > "$RES/xml/kiplay_a11y.xml" <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+              android:accessibilityEventTypes="typeAllMask"
+              android:accessibilityFeedbackType="feedbackGeneric"
+              android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds|flagIncludeNotImportantViews"
+              android:canPerformGestures="true"
+              android:canRetrieveWindowContent="true"
+              android:canTakeScreenshot="true"
+              android:description="@string/kiplay_a11y_desc"
+              android:notificationTimeout="100"
+              android:summary="@string/kiplay_a11y_desc" />
+          XML
+          cat > "$RES/xml/file_paths.xml" <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths>
+              <files-path name="files" path="." />
+              <cache-path name="cache" path="." />
+              <external-path name="ext" path="." />
+          </paths>
+          XML
+          cat > "$RES/values/kiplay_strings.xml" <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="kiplay_a11y_desc">Kendali penuh perangkat untuk agent Mas Kiplay: tap, geser, ketik, baca layar, tangkapan layar.</string>
+          </resources>
+          XML
+          test -s "$RES/xml/kiplay_a11y.xml"
+          test -s "$RES/xml/file_paths.xml"
+
+      - name: Tambah izin, service, dan provider ke manifest
         run: |
           python3 - <<'PY'
           import xml.etree.ElementTree as ET
@@ -145,6 +177,8 @@ jobs:
               "android.permission.VIBRATE",
               "android.permission.POST_NOTIFICATIONS",
               "android.permission.QUERY_ALL_PACKAGES",
+              "android.permission.REQUEST_INSTALL_PACKAGES",
+              "android.permission.FOREGROUND_SERVICE",
               "com.termux.permission.RUN_COMMAND",
           ]
           for permission in permissions:
@@ -153,7 +187,8 @@ jobs:
               root.insert(0, node)
 
           queries = ET.Element("queries")
-          for package_name in ("com.termux", "com.whatsapp", "com.tradingview", "com.android.chrome"):
+          for package_name in ("com.termux", "com.whatsapp", "com.tradingview",
+                               "com.android.chrome", "com.shizuku", "moe.shizuku.privileged.api"):
               package = ET.SubElement(queries, "package")
               package.set(ns + "name", package_name)
           root.insert(len(permissions), queries)
@@ -163,13 +198,73 @@ jobs:
               raise RuntimeError("Elemen <application> tidak ditemukan")
           application.set(ns + "usesCleartextTraffic", "true")
 
+          service = ET.SubElement(application, "service")
+          service.set(ns + "name", ".KiplayAccessibility")
+          service.set(ns + "exported", "true")
+          service.set(ns + "label", "Otomasi Mas Kiplay")
+          service.set(ns + "permission", "android.permission.BIND_ACCESSIBILITY_SERVICE")
+          intent = ET.SubElement(service, "intent-filter")
+          action = ET.SubElement(intent, "action")
+          action.set(ns + "name", "android.accessibilityservice.AccessibilityService")
+          meta = ET.SubElement(service, "meta-data")
+          meta.set(ns + "name", "android.accessibilityservice")
+          meta.set(ns + "resource", "@xml/kiplay_a11y")
+
+          provider = ET.SubElement(application, "provider")
+          provider.set(ns + "name", "androidx.core.content.FileProvider")
+          provider.set(ns + "authorities", "${applicationId}.files")
+          provider.set(ns + "exported", "false")
+          provider.set(ns + "grantUriPermissions", "true")
+          pmeta = ET.SubElement(provider, "meta-data")
+          pmeta.set(ns + "name", "android.support.FILE_PROVIDER_PATHS")
+          pmeta.set(ns + "resource", "@xml/file_paths")
+
           ET.indent(tree, space="    ")
           tree.write(path, encoding="utf-8", xml_declaration=True)
           ET.parse(path)
-          print("AndroidManifest.xml valid.")
+
+          text = open(path, encoding="utf-8").read()
+          for token in ("KiplayAccessibility", "FileProvider", "BIND_ACCESSIBILITY_SERVICE",
+                        "REQUEST_INSTALL_PACKAGES", "kiplay_a11y", "file_paths"):
+              if token not in text:
+                  raise SystemExit(f"manifest tidak memuat {token}")
+          print("AndroidManifest.xml valid dan lengkap.")
           PY
+
+      - name: Naikkan minSdk dan set versi
+        run: |
+          set -euo pipefail
+          if [ -f android/variables.gradle ]; then
+            sed -i -E 's/minSdkVersion = [0-9]+/minSdkVersion = 26/' android/variables.gradle
+          fi
+          sed -i -E 's/minSdkVersion [0-9]+/minSdkVersion 26/' android/app/build.gradle
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
           sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
+          grep -q "minSdkVersion 26" android/app/build.gradle
+          grep -q "versionName \"${{ env.VERSION }}\"" android/app/build.gradle
+
+      - name: Tambah dependency androidx dan aturan proguard
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          path = "android/app/build.gradle"
+          text = open(path, encoding="utf-8").read()
+          if "androidx.core:core" not in text:
+              text = text.replace(
+                  "dependencies {",
+                  'dependencies {\n    implementation "androidx.core:core:1.13.1"',
+                  1,
+              )
+              open(path, "w", encoding="utf-8").write(text)
+          print("dependencies diperiksa.")
+          PY
+          cat > android/app/proguard-rules.pro <<'PRO'
+          -keepclassmembers class com.kiplay.agent.** {
+              @android.webkit.JavascriptInterface <methods>;
+          }
+          -keep class com.kiplay.agent.** { *; }
+          -keep class androidx.core.content.FileProvider { *; }
+          PRO
 
       - name: Validasi secret signing
         env:
@@ -203,7 +298,7 @@ jobs:
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
             -Pandroid.injected.signing.key.password="$KEY_PASS"
 
-      - name: Verifikasi tanda tangan APK
+      - name: Verifikasi APK
         run: |
           set -euo pipefail
           APK=$(find android/app/build/outputs/apk -name "*.apk" -print -quit)
@@ -217,15 +312,13 @@ jobs:
             echo "::error::Fingerprint tidak cocok. Expected $EXPECTED_CERT / Actual $ACTUAL_CERT"
             exit 1
           fi
+          if ! unzip -l "$APK" | grep -q "res/xml/kiplay_a11y"; then
+            echo "::error::Resource service otomasi tidak masuk APK."
+            exit 1
+          fi
           mkdir -p keluar
           cp "$APK" "keluar/MasKiplay-v${{ env.VERSION }}.apk"
           rm -f "$RUNNER_TEMP/kiplay-release.keystore"
-
-      - name: Periksa APK hasil build
-        run: |
-          set -euo pipefail
-          test -s "keluar/MasKiplay-v${{ env.VERSION }}.apk"
-          ls -lh keluar
 
       - name: Simpan artifact
         uses: actions/upload-artifact@v4
@@ -242,7 +335,9 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            APK Mas Kiplay v${{ env.VERSION }}
+            APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
+
+            Setelah pasang: buka **Setelan → Aksesibilitas → Otomasi Mas Kiplay → aktifkan** supaya fitur agent jalan.
           files: keluar/*.apk
