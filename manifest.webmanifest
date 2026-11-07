@@ -1,76 +1,15 @@
 {
-  "name": "Mas Kiplay — Agent AI & Jarvis",
-  "short_name": "Mas Kiplay",
-  "description": "Agent AI dengan Jarvis suara, Cyber Lab, Chat, Al-Qur'an, dan otomasi perangkat berbasis izin.",
-  "id": "/Anime-artificial-intelejen-/",
-  "start_url": "./index.html",
+  "name": "Mas Kiplay",
+  "short_name": "Kiplay",
+  "description": "Agent AI brutal, Jarvis suara, cyber security, kendali perangkat.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "fullscreen",
-    "minimal-ui"
-  ],
   "orientation": "portrait",
-  "background_color": "#02040a",
-  "theme_color": "#02040a",
-  "lang": "id",
-  "dir": "ltr",
-  "categories": [
-    "productivity",
-    "utilities",
-    "developer"
-  ],
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
   "icons": [
-    {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Jarvis",
-      "url": "./index.html#/jarvis",
-      "icons": [
-        {
-          "src": "icon.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "Chat",
-      "url": "./index.html#/chat",
-      "icons": [
-        {
-          "src": "icon.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "Al-Qur'an",
-      "url": "./index.html#/quran",
-      "icons": [
-        {
-          "src": "icon.png",
-          "sizes": "96x96"
-        }
-      ]
-    }
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
