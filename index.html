@@ -473,33 +473,46 @@ const TTS={q:[],run:false,seq:0,aud:null,wait:null,
   return S.eng===0
    ?"https://api.streamelements.com/kappa/v2/speech?voice="+v+"&text="+encodeURIComponent(t)
    :"https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=id&q="+encodeURIComponent(t);},
- one(t){
-  return new Promise(res=>{
-    const n=mk();
-    if(n&&n.say){
-      const id="u"+Math.random().toString(36).slice(2);
-      this.wait={id,res};
-      const tn=this.tone(t);
-      if(n.ttsConf)try{n.ttsConf(S.gender==="male"?tn.r*.92:tn.r,tn.p);}catch(e){}
-      const r=n.say(t,id);
-      if(String(r).startsWith("err")){this.wait=null;return res(0);}
-      setTimeout(()=>{if(this.wait&&this.wait.id===id){this.wait=null;res(0);}},18000);
-      return;
-    }
-    const a=new Audio();a.preservesPitch=true;const tn=this.tone(t);
-    a.playbackRate=S.gender==="male"?tn.r*.92:tn.r;this.aud=a;let d=false;
-    const f=v=>{if(d)return;d=true;res(v);};
-    a.onplay=()=>{setState("spk");};
-    a.onended=()=>{setState("");f(1);};
-    a.onerror=()=>{setState("");f(0);};
-    a.src=this.url(t);a.play().catch(()=>f(0));
-    setTimeout(()=>{if(!d&&a.paused)f(0);},9000);
+ async web(t){
+  if(!("speechSynthesis" in window)||!("SpeechSynthesisUtterance" in window))return 0;
+  return new Promise(resolve=>{
+    let done=false;const finish=v=>{if(done)return;done=true;setState("");resolve(v);};
+    try{
+      const u=new SpeechSynthesisUtterance(t),vs=window.speechSynthesis.getVoices()||[];
+      const v=vs.find(x=>/^id(-|$)/i.test(x.lang||""))||vs.find(x=>/indones/i.test(x.name||""));
+      if(v)u.voice=v;u.lang=v?v.lang:"id-ID";
+      const tn=this.tone(t);u.rate=tn.r;u.pitch=(S.gender==="male"?.82:1.08)*tn.p;
+      u.onstart=()=>setState("spk");u.onend=()=>finish(1);u.onerror=()=>finish(0);
+      window.speechSynthesis.cancel();window.speechSynthesis.resume();window.speechSynthesis.speak(u);
+      setTimeout(()=>finish(0),12000);
+    }catch(e){finish(0);}
   });
  },
- web(t){const u=new SpeechSynthesisUtterance(t);const vs=speechSynthesis.getVoices();
-  const v=vs.find(x=>x.lang&&x.lang.toLowerCase().startsWith("id"))||vs.find(x=>/id/i.test(x.lang));
-  if(v)u.voice=v;u.lang=v?v.lang:"id-ID";const tn=this.tone(t);u.rate=tn.r;
-  u.pitch=(S.gender==="male"?.72:1.12)*tn.p;speechSynthesis.speak(u);},
+ async one(t){
+  const n=mk();
+  if(n&&n.say){
+    const nativeOK=await new Promise(resolve=>{
+      const id="u"+Math.random().toString(36).slice(2);let done=false;
+      const finish=v=>{if(done)return;done=true;if(this.wait&&this.wait.id===id)this.wait=null;resolve(v);};
+      this.wait={id,res:finish};const tn=this.tone(t);
+      try{if(n.ttsConf)n.ttsConf(S.gender==="male"?tn.r*.92:tn.r,tn.p);}catch(e){}
+      try{const r=n.say(t,id);if(String(r).startsWith("err"))finish(0);}
+      catch(e){finish(0);}
+      setTimeout(()=>finish(0),10000);
+    });
+    if(nativeOK)return 1;
+  }
+  // Web Speech didahulukan agar tidak bergantung pada endpoint MP3 pihak ketiga.
+  if(await this.web(t))return 1;
+  return await new Promise(resolve=>{
+    const a=new Audio();a.preservesPitch=true;const tn=this.tone(t);
+    a.playbackRate=S.gender==="male"?tn.r*.92:tn.r;this.aud=a;let done=false;
+    const finish=v=>{if(done)return;done=true;setState("");resolve(v);};
+    a.onplay=()=>setState("spk");a.onended=()=>finish(1);a.onerror=()=>finish(0);
+    a.src=this.url(t);a.play().then(()=>setState("spk")).catch(()=>finish(0));
+    setTimeout(()=>{if(a.paused)finish(0);},10000);
+  });
+ },
  push(t){const c=this.cut(t);if(!c)return;
   this.q.push(...c.split(/(?<=[.!?…;])\s+/).filter(Boolean));
   if(!this.run)this.drain();},
@@ -900,31 +913,47 @@ function setState(s){
   if(s)v.classList.add(s);
 }
 
-function startL(){
+async function startL(){
   if(busy||aBusy)return;
   const n=mk();
-  if(n&&n.srStart&&CAPS&&CAPS.sr!==false){
-    if(CAPS.mic===false){n.micPerm();toast("Izinkan mikrofon lalu tekan lagi");return;}
-    setState("lis");setLab("Mendengar…");$("#jMic").classList.add("hot");
-    const r=n.srStart();
-    if(String(r).startsWith("err")){toast(String(r).slice(5));setState("");setLab("Siap mendengar");$("#jMic").classList.remove("hot");}
+  // Jangan memakai CAPS.mic sebagai sumber kebenaran: nilainya bisa stale
+  // setelah pengguna mengubah izin dari Settings Android.
+  if(n&&n.srStart&&(!CAPS||CAPS.sr!==false)){
+    setState("lis");setLab("Meminta akses mikrofon…");$("#jMic").classList.add("hot");
+    try{
+      const r=await n.srStart();
+      if(String(r).startsWith("err")){
+        const msg=String(r).slice(5);
+        setState("");$("#jMic").classList.remove("hot");
+        if(/permission|denied|not.?allowed|izin|microphone|record_audio/i.test(msg)){
+          setLab("Izin mikrofon diperlukan");
+          try{if(n.micPerm)await n.micPerm();}catch(e){}
+          toast("Periksa izin Mikrofon aplikasi, lalu tekan mikrofon lagi");
+        }else{setLab("Siap mendengar");toast(msg);}
+      }
+    }catch(e){
+      setState("");$("#jMic").classList.remove("hot");setLab("Gagal membuka mikrofon");toast("Mikrofon: "+(e.message||e));
+    }
     return;
   }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toast("Mikrofon tak didukung");return;}
+  if(!SR){toast("Speech Recognition tidak tersedia di WebView ini");return;}
   if(!recog){
-    recog=new SR();recog.lang="id-ID";recog.interimResults=true;
+    recog=new SR();recog.lang="id-ID";recog.interimResults=true;recog.continuous=false;
     recog.onstart=()=>{setState("lis");$("#jMic").classList.add("hot");setLab("Mendengar…");};
     recog.onend=()=>{setState("");$("#jMic").classList.remove("hot");
-      if(!busy){setLab("Siap mendengar");if(loopOn)setTimeout(()=>{if(loopOn&&!busy)startL();},500);}};
-    recog.onerror=e=>{$("#jMic").classList.remove("hot");if(e.error==="not-allowed")toast("Izin mikrofon ditolak");};
+      if(!busy){setLab("Siap mendengar");if(loopOn)setTimeout(()=>{if(loopOn&&!busy)startL();},700);}};
+    recog.onerror=e=>{
+      $("#jMic").classList.remove("hot");setState("");setLab("Mikrofon bermasalah");
+      toast(e.error==="not-allowed"?"Akses mikrofon ditolak oleh WebView":e.error==="service-not-allowed"?"Layanan pengenalan suara Android tidak tersedia":"Mic: "+e.error);
+    };
     recog.onresult=e=>{
       let f="";
       for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)f+=e.results[i][0].transcript;
       if(f.trim()){TTS.stop();turn(f.trim());}
     };
   }
-  try{recog.start();}catch(e){}
+  try{recog.start();}catch(e){toast("Gagal memulai mikrofon: "+e.message);}
 }
 function stopL(){const n=mk();if(n&&n.srStop){try{n.srStop();}catch(e){}}try{recog&&recog.abort();}catch(e){}}
 
