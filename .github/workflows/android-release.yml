@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       versi:
-        description: "Versi rilis, contoh 6.0.0"
+        description: "Versi rilis, contoh 7.0.0"
         required: true
-        default: "6.1.0"
+        default: "7.0.0"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '6.1.0' }}
+      VERSION: ${{ inputs.versi || '7.0.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          # The legacy 'tools' SDK package was removed; install only supported tools.
           packages: platform-tools
 
       - name: Siapkan folder web
@@ -52,8 +51,6 @@ jobs:
       - name: Pasang Capacitor
         run: |
           npm install --no-audit --no-fund
-          # The repository contains only a native source stub, not a complete Gradle project.
-          # Regenerate the Capacitor Android platform before copying the maintained bridge sources.
           rm -rf android
           npx cap add android
           npx cap sync android
@@ -69,26 +66,16 @@ jobs:
           from PIL import Image, ImageOps
 
           source = Image.open("icon.png").convert("RGBA")
-          densities = {
-              "mdpi": 48,
-              "hdpi": 72,
-              "xhdpi": 96,
-              "xxhdpi": 144,
-              "xxxhdpi": 192,
-          }
+          densities = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
           res = Path("android/app/src/main/res")
           for density, size in densities.items():
               folder = res / f"mipmap-{density}"
               folder.mkdir(parents=True, exist_ok=True)
-
-              # Legacy launcher icon: retain the full square artwork.
               legacy = ImageOps.contain(source, (size, size), method=Image.Resampling.LANCZOS)
               canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
               canvas.alpha_composite(legacy, ((size - legacy.width) // 2, (size - legacy.height) // 2))
               canvas.save(folder / "ic_launcher.png")
               canvas.save(folder / "ic_launcher_round.png")
-
-              # Adaptive foreground: keep artwork inside Android's safe zone.
               safe = max(1, int(size * 0.68))
               foreground = ImageOps.contain(source, (safe, safe), method=Image.Resampling.LANCZOS)
               adaptive = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -113,10 +100,8 @@ jobs:
           <resources>
               <color name="launcher_icon_background">#101014</color>
           </resources>
-          ''',
-              encoding="utf-8",
-          )
-          print("Ikon launcher legacy dan adaptive berhasil dibuat dari root icon.png.")
+          ''', encoding="utf-8")
+          print("Ikon launcher selesai.")
           PY
 
       - name: Tulis bridge native
@@ -147,30 +132,36 @@ jobs:
           ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
           tree = ET.parse(path)
           root = tree.getroot()
-          android_ns = "{http://schemas.android.com/apk/res/android}"
+          ns = "{http://schemas.android.com/apk/res/android}"
 
           permissions = [
               "android.permission.RECORD_AUDIO",
               "android.permission.READ_MEDIA_IMAGES",
+              "android.permission.READ_EXTERNAL_STORAGE",
+              "android.permission.WRITE_EXTERNAL_STORAGE",
               "android.permission.CAMERA",
               "android.permission.SET_ALARM",
+              "android.permission.SET_WALLPAPER",
               "android.permission.VIBRATE",
+              "android.permission.POST_NOTIFICATIONS",
+              "android.permission.QUERY_ALL_PACKAGES",
+              "com.termux.permission.RUN_COMMAND",
           ]
           for permission in permissions:
               node = ET.Element("uses-permission")
-              node.set(android_ns + "name", permission)
+              node.set(ns + "name", permission)
               root.insert(0, node)
 
           queries = ET.Element("queries")
-          for package_name in ("com.termux", "com.whatsapp", "com.tradingview"):
+          for package_name in ("com.termux", "com.whatsapp", "com.tradingview", "com.android.chrome"):
               package = ET.SubElement(queries, "package")
-              package.set(android_ns + "name", package_name)
+              package.set(ns + "name", package_name)
           root.insert(len(permissions), queries)
 
           application = root.find("application")
           if application is None:
-              raise RuntimeError("Elemen <application> tidak ditemukan di AndroidManifest.xml")
-          application.set(android_ns + "usesCleartextTraffic", "true")
+              raise RuntimeError("Elemen <application> tidak ditemukan")
+          application.set(ns + "usesCleartextTraffic", "true")
 
           ET.indent(tree, space="    ")
           tree.write(path, encoding="utf-8", xml_declaration=True)
@@ -190,14 +181,14 @@ jobs:
           set -euo pipefail
           for name in KEYSTORE_BASE64 KEYSTORE_PASS KEY_ALIAS KEY_PASS; do
             if [ -z "${!name}" ]; then
-              echo "::error::GitHub Secret $name belum diatur. Build publik wajib memakai keystore pribadi."
+              echo "::error::Secret $name belum diatur."
               exit 1
             fi
           done
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/kiplay-release.keystore"
           test -s "$RUNNER_TEMP/kiplay-release.keystore"
 
-      - name: Build APK release (keystore pribadi)
+      - name: Build APK release
         working-directory: android
         env:
           KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASS }}
@@ -223,9 +214,7 @@ jobs:
           EXPECTED_CERT="fffa7cf77dad052c879d7c3648da3adac9627623a5dfff912bbe1e89c883baf6"
           ACTUAL_CERT=$(printf '%s\n' "$SIGNATURE" | sed -n 's/.*certificate SHA-256 digest: *//Ip' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
           if [ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]; then
-            echo "::error::Fingerprint sertifikat APK tidak cocok dengan keystore release yang disiapkan."
-            echo "Expected: $EXPECTED_CERT"
-            echo "Actual:   $ACTUAL_CERT"
+            echo "::error::Fingerprint tidak cocok. Expected $EXPECTED_CERT / Actual $ACTUAL_CERT"
             exit 1
           fi
           mkdir -p keluar
@@ -255,5 +244,5 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }}
 
-            Unduh berkas `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
+            Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
           files: keluar/*.apk
