@@ -238,7 +238,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     } catch (e: Exception) { "err: ${e.message}" }
 
     @JavascriptInterface
-    fun installApk(path: String): String = try {
+    fun installApk(path: String): String { return try {
         val f = if (path.startsWith("/")) File(path) else File(activity.filesDir, path)
         if (!f.exists()) return "err: file tidak ada: " + f.absolutePath
         val uri = FileProvider.getUriForFile(activity, activity.packageName + ".files", f)
@@ -248,7 +248,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
         )
         "installer dibuka: " + f.name
-    } catch (e: Exception) { "err: ${e.message}" }
+    } catch (e: Exception) { "err: ${e.message}" } }
 
     @JavascriptInterface
     fun openUrl(u: String): String = try {
