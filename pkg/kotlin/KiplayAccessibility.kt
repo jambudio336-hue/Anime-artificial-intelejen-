@@ -96,14 +96,14 @@ class KiplayAccessibility : AccessibilityService() {
         for (i in 0 until node.childCount) walk(node.getChild(i), depth + 1, out, counter)
     }
 
-    fun dump(): String = try {
+    fun dump(): String { return try {
         val root = rootInActiveWindow ?: return "err: pohon UI kosong"
         val out = mutableListOf<String>()
         walk(root, 0, out, intArrayOf(0))
         if (out.isEmpty()) "err: tidak ada elemen terbaca" else out.joinToString("\n").take(20000)
-    } catch (e: Exception) { "err: ${e.message}" }
+    } catch (e: Exception) { "err: ${e.message}" } }
 
-    fun clickText(needle: String): Boolean = try {
+    fun clickText(needle: String): Boolean { return try {
         val root = rootInActiveWindow ?: return false
         val queue = ArrayDeque<AccessibilityNodeInfo>()
         queue.add(root)
@@ -124,9 +124,9 @@ class KiplayAccessibility : AccessibilityService() {
             for (i in 0 until n.childCount) n.getChild(i)?.let { queue.add(it) }
         }
         false
-    } catch (e: Exception) { false }
+    } catch (e: Exception) { false } }
 
-    fun setText(text: String): String = try {
+    fun setText(text: String): String { return try {
         val root = rootInActiveWindow ?: return "err: pohon UI kosong"
         val focus = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
         val editable = focus?.takeIf { it.isEditable } ?: run {
@@ -150,9 +150,9 @@ class KiplayAccessibility : AccessibilityService() {
         cm.setPrimaryClip(ClipData.newPlainText("mk", text))
         editable.performAction(AccessibilityNodeInfo.ACTION_PASTE)
         "ok (tempel)"
-    } catch (e: Exception) { "err: ${e.message}" }
+    } catch (e: Exception) { "err: ${e.message}" } }
 
-    fun scroll(dir: String): Boolean = try {
+    fun scroll(dir: String): Boolean { return try {
         val root = rootInActiveWindow ?: return false
         val queue = ArrayDeque<AccessibilityNodeInfo>()
         queue.add(root)
@@ -166,7 +166,7 @@ class KiplayAccessibility : AccessibilityService() {
             for (i in 0 until n.childCount) n.getChild(i)?.let { queue.add(it) }
         }
         false
-    } catch (e: Exception) { false }
+    } catch (e: Exception) { false } }
 
     @RequiresApi(Build.VERSION_CODES.R)
     private fun shot30(): String? {
