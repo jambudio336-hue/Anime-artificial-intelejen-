@@ -25,17 +25,31 @@ import java.net.URL
 class Bridge(private val activity: Activity) {
 
     private fun exec(cmd: String, root: Boolean): String = try {
+        if (cmd.isBlank()) return "err: perintah kosong"
         val argv = if (root) arrayOf("su", "-c", cmd) else arrayOf("sh", "-c", cmd)
-        val p = Runtime.getRuntime().exec(argv)
-        val out = StringBuilder()
-        BufferedReader(InputStreamReader(p.inputStream)).use { r ->
-            r.lineSequence().take(400).forEach { out.appendLine(it) }
+        val process = ProcessBuilder(*argv).redirectErrorStream(true).start()
+        val output = StringBuilder()
+        val reader = Thread {
+            try {
+                BufferedReader(InputStreamReader(process.inputStream)).use { stream ->
+                    var count = 0
+                    while (count < 400) {
+                        val line = stream.readLine() ?: break
+                        output.appendLine(line)
+                        count++
+                    }
+                }
+            } catch (_: Exception) { }
         }
-        BufferedReader(InputStreamReader(p.errorStream)).use { r ->
-            r.lineSequence().take(80).forEach { out.appendLine("! $it") }
+        reader.start()
+        if (!process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)) {
+            process.destroyForcibly()
+            reader.join(1000)
+            return "err: timeout setelah 30 detik"
         }
-        p.waitFor()
-        out.toString().ifBlank { "(tanpa output)" }
+        reader.join(1500)
+        val result = output.toString().ifBlank { "(tanpa output)" }
+        if (result.length > 24000) result.take(24000) + "\n… output dipotong" else result
     } catch (e: Exception) { "err: ${e.message}" }
 
     @JavascriptInterface fun shell(cmd: String): String = exec(cmd, false)
