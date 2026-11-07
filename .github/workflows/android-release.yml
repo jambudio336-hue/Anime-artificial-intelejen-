@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 7.0.0"
         required: true
-        default: "7.0.0"
+        default: "7.1.0"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '7.0.0' }}
+      VERSION: ${{ inputs.versi || '7.1.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
           cp icon.png www/ 2>/dev/null || true
           cp *.mp4 www/ 2>/dev/null || true
           cp *.png www/ 2>/dev/null || true
-          sed -i "s/const APP_VER=\"[^\"]*\"/const APP_VER=\"${{ env.VERSION }}\"/" www/index.html
+          sed -i "s/const VER=\"[^\"]*\"/const APP_VER=\"${{ env.VERSION }}\"/" www/index.html
 
       - name: Pasang Capacitor
         run: |
