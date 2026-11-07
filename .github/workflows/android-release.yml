@@ -242,7 +242,11 @@ jobs:
           sed -i -E 's/minSdkVersion [0-9]+/minSdkVersion 26/' android/app/build.gradle
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
           sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
-          grep -q "minSdkVersion 26" android/app/build.gradle
+          if [ -f android/variables.gradle ]; then
+            grep -q "minSdkVersion = 26" android/variables.gradle
+          else
+            grep -q "minSdkVersion 26" android/app/build.gradle
+          fi
           grep -q "versionName \"${{ env.VERSION }}\"" android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
