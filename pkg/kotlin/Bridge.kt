@@ -7,53 +7,212 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.graphics.Point
 import android.net.Uri
 import android.os.Build
 import android.os.StatFs
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.provider.MediaStore
+import android.provider.Settings
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.webkit.JavascriptInterface
+import android.webkit.WebView
+import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import java.net.URL
+import java.util.ArrayDeque
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /**
- * Bridge WebView -> native. Didaftarkan oleh MainActivity sebagai window.MK.
+ * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
  */
-class Bridge(private val activity: Activity) {
+class Bridge(private val activity: Activity, private val web: WebView?) {
 
-    private fun exec(cmd: String, root: Boolean): String = try {
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+    private var recognizer: SpeechRecognizer? = null
+    private val pending = ArrayDeque<Pair<String, String>>()
+    @Volatile private var lastRoot = false
+    @Volatile private var rootChecked = false
+    private var rate = 1.0f
+    private var pitch = 0.92f
+
+    private fun js(fn: String, payload: String) {
+        val w = web ?: return
+        activity.runOnUiThread {
+            try { w.evaluateJavascript("window.$fn && window.$fn($payload)", null) } catch (_: Exception) {}
+        }
+    }
+
+    private fun emit(kind: String, text: String) {
+        js("MK_onSR", JSONObject().put("t", kind).put("text", text).toString())
+    }
+
+    private fun exec(cmd: String, root: Boolean): String {
         if (cmd.isBlank()) return "err: perintah kosong"
-        val argv = if (root) arrayOf("su", "-c", cmd) else arrayOf("sh", "-c", cmd)
-        val process = ProcessBuilder(*argv).redirectErrorStream(true).start()
-        val output = StringBuilder()
-        val reader = Thread {
-            try {
-                BufferedReader(InputStreamReader(process.inputStream)).use { stream ->
-                    var count = 0
-                    while (count < 400) {
-                        val line = stream.readLine() ?: break
-                        output.appendLine(line)
-                        count++
+        val argv = when {
+            root && hasSu() -> arrayOf("su", "-c", cmd)
+            root && hasRish() -> arrayOf("rish", "-c", cmd)
+            root -> return "err: root tidak tersedia (su/rish tidak ada)"
+            else -> arrayOf("sh", "-c", cmd)
+        }
+        return try {
+            val pb = ProcessBuilder(*argv)
+            pb.directory(activity.filesDir)
+            pb.environment()["PATH"] =
+                "/sbin:/system/sbin:/system/bin:/system/xbin:/data/adb/magisk:/data/data/com.termux/files/usr/bin"
+            val p = pb.redirectErrorStream(true).start()
+            val sb = StringBuilder()
+            val reader = Thread {
+                try {
+                    BufferedReader(InputStreamReader(p.inputStream)).use { s ->
+                        var n = 0
+                        while (n < 600) {
+                            val line = s.readLine() ?: break
+                            sb.appendLine(line)
+                            n++
+                        }
                     }
-                }
-            } catch (_: Exception) { }
-        }
-        reader.start()
-        if (!process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)) {
-            process.destroyForcibly()
-            reader.join(1000)
-            return "err: timeout setelah 30 detik"
-        }
-        reader.join(1500)
-        val result = output.toString().ifBlank { "(tanpa output)" }
-        if (result.length > 24000) result.take(24000) + "\n… output dipotong" else result
-    } catch (e: Exception) { "err: ${e.message}" }
+                } catch (_: Exception) {}
+            }
+            reader.start()
+            if (!p.waitFor(30, TimeUnit.SECONDS)) {
+                p.destroyForcibly()
+                reader.join(1200)
+                return "err: timeout 30 detik\n" + sb.toString().take(4000)
+            }
+            reader.join(1500)
+            val code = try { p.exitValue() } catch (e: Exception) { -1 }
+            var res = sb.toString().ifBlank { "(tanpa output)" }
+            if (res.length > 22000) res = res.take(22000) + "\n… output dipotong"
+            if (code != 0) res += "\n[exit $code]"
+            res
+        } catch (e: Exception) { "err: ${e.message}" }
+    }
+
+    private fun hasSu(): Boolean = listOf(
+        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su"
+    ).any { File(it).exists() } || try {
+        ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start().waitFor(4, TimeUnit.SECONDS)
+    } catch (e: Exception) { false }
+
+    private fun hasRish(): Boolean = listOf(
+        "/system/bin/rish", "/data/local/tmp/rish", "/data/data/com.termux/files/usr/bin/rish"
+    ).any { File(it).exists() }
+
+    private fun hasMic(): Boolean =
+        activity.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+    private fun a11y(): KiplayAccessibility? = KiplayAccessibility.inst
+
+    // ---------- kapabilitas ----------
+
+    @JavascriptInterface
+    fun caps(): String = JSONObject()
+        .put("bridge", true)
+        .put("api", Build.VERSION.SDK_INT)
+        .put("root", lastRoot)
+        .put("rootChecked", rootChecked)
+        .put("a11y", a11y() != null)
+        .put("shot", Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+        .put("sr", SpeechRecognizer.isRecognitionAvailable(activity))
+        .put("mic", hasMic())
+        .toString()
+
+    @JavascriptInterface
+    fun rootCheck(): String {
+        val ok = hasSu() || hasRish()
+        lastRoot = ok
+        rootChecked = true
+        return if (ok) {
+            val mode = if (hasSu()) "su" else "rish"
+            "root siap via $mode\n" + exec("id", true)
+        } else "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+    }
+
+    // ---------- shell ----------
 
     @JavascriptInterface fun shell(cmd: String): String = exec(cmd, false)
     @JavascriptInterface fun shellRoot(cmd: String): String = exec(cmd, true)
+
+    // ---------- aksesibilitas ----------
+
+    @JavascriptInterface
+    fun a11yOpen(): String {
+        activity.runOnUiThread {
+            try {
+                activity.startActivity(
+                    Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            } catch (_: Exception) {}
+        }
+        return "buka setelan aksesibilitas"
+    }
+
+    @JavascriptInterface
+    fun tap(x: Float, y: Float): String {
+        val s = a11y() ?: return "err: layanan otomasi belum aktif"
+        return if (s.tap(x, y)) "ok" else "err: tap gagal"
+    }
+
+    @JavascriptInterface
+    fun swipe(x1: Float, y1: Float, x2: Float, y2: Float, ms: Long): String {
+        val s = a11y() ?: return "err: layanan otomasi belum aktif"
+        return if (s.swipe(x1, y1, x2, y2, ms)) "ok" else "err: geser gagal"
+    }
+
+    @JavascriptInterface
+    fun type(text: String): String = a11y()?.setText(text) ?: "err: layanan otomasi belum aktif"
+
+    @JavascriptInterface
+    fun clickText(t: String): String {
+        val s = a11y() ?: return "err: layanan otomasi belum aktif"
+        return if (s.clickText(t)) "ok" else "err: teks \"$t\" tidak ketemu"
+    }
+
+    @JavascriptInterface
+    fun scroll(dir: String): String {
+        val s = a11y() ?: return "err: layanan otomasi belum aktif"
+        return if (s.scroll(dir)) "ok" else "err: tidak bisa geser"
+    }
+
+    @JavascriptInterface
+    fun key(name: String): String {
+        val s = a11y() ?: return "err: layanan otomasi belum aktif"
+        val global = when (name.lowercase(Locale.ROOT)) {
+            "back" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK
+            "home" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME
+            "recents" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_RECENTS
+            "notif" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS
+            "quick" -> android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_QUICK_SETTINGS
+            else -> -1
+        }
+        if (global == -1) return "err: tombol $name tidak dikenal"
+        return if (s.global(global)) "ok" else "err: tombol $name gagal"
+    }
+
+    @JavascriptInterface fun dump(): String = a11y()?.dump() ?: "err: layanan otomasi belum aktif"
+    @JavascriptInterface fun shot(): String = a11y()?.shot() ?: "err: layanan otomasi belum aktif"
+
+    @JavascriptInterface
+    fun screen(): String = try {
+        val real = Point()
+        @Suppress("DEPRECATION")
+        activity.windowManager.defaultDisplay.getRealSize(real)
+        JSONObject().put("w", real.x).put("h", real.y).toString()
+    } catch (e: Exception) { JSONObject().put("w", 0).put("h", 0).toString() }
+
+    // ---------- aplikasi ----------
 
     @JavascriptInterface
     fun openApp(pkg: String): String = try {
@@ -65,6 +224,31 @@ class Bridge(private val activity: Activity) {
     } catch (e: Exception) { "err: ${e.message}" }
 
     @JavascriptInterface
+    fun listApps(): String = try {
+        val pm = activity.packageManager
+        val i = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        @Suppress("DEPRECATION")
+        pm.queryIntentActivities(i, 0)
+            .map { it.activityInfo.packageName + "  ·  " + it.loadLabel(pm) }
+            .distinct().sorted().joinToString("\n").take(20000)
+    } catch (e: Exception) { "err: ${e.message}" }
+
+    @JavascriptInterface
+    fun installApk(path: String): String = try {
+        val f = if (path.startsWith("/")) File(path) else File(activity.filesDir, path)
+        if (!f.exists()) return "err: file tidak ada: " + f.absolutePath
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            activity, activity.packageName + ".files", f
+        )
+        activity.startActivity(
+            Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, "application/vnd.android.package-archive")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        )
+        "installer dibuka: " + f.name
+    } catch (e: Exception) { "err: ${e.message}" }
+
+    @JavascriptInterface
     fun openUrl(u: String): String = try {
         val x = if (u.startsWith("http")) u else "https://$u"
         activity.startActivity(
@@ -73,105 +257,569 @@ class Bridge(private val activity: Activity) {
         "buka $x"
     } catch (e: Exception) { "err: ${e.message}" }
 
-    @JavascriptInterface
-    fun wall(u: String): String = try {
-        val bmp = if (u.startsWith("http")) {
-            URL(u).openStream().use { BitmapFactory.decodeStream(it) }
-        } else {
-            BitmapFactory.decodeFile(u)
-        }
-        if (bmp == null) throw IllegalStateException("gambar gagal dibaca")
-        activity.runOnUiThread { WallpaperManager.getInstance(activity).setBitmap(bmp) }
-        "wallpaper dipasang"
-    } catch (e: Exception) { "err: ${e.message}" }
+    // ---------- pengenal suara ----------
 
     @JavascriptInterface
-    fun getClip(): String = try {
-        val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.primaryClip?.getItemAt(0)?.text?.toString() ?: "(kosong)"
-    } catch (e: Exception) { "err: ${e.message}" }
-
-    @JavascriptInterface
-    fun setClip(t: String): String = try {
-        val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.setPrimaryClip(ClipData.newPlainText("mk", t))
-        "ok"
-    } catch (e: Exception) { "err: ${e.message}" }
-
-    @JavascriptInterface
-    fun buzz(ms: Long): String {
+    fun micPerm(): String {
+        if (hasMic()) return "granted"
         activity.runOnUiThread {
-            val v = activity.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            if (Build.VERSION.SDK_INT >= 26) {
-                v.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION") v.vibrate(ms)
-            }
+            activity.requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), 7101)
+        }
+        return "asking"
+    }
+
+    @JavascriptInterface
+    fun srStart(): String {
+        if (!SpeechRecognizer.isRecognitionAvailable(activity)) return "err: pengenal suara tidak tersedia"
+        if (!hasMic()) return "err: izin mikrofon belum diberikan"
+        activity.runOnUiThread {
+            try {
+                if (recognizer == null) {
+                    recognizer = SpeechRecognizer.createSpeechRecognizer(activity)
+                    recognizer?.setRecognitionListener(object : RecognitionListener {
+                        override fun onReadyForSpeech(params: android.os.Bundle?) { emit("state", "listening") }
+                        override fun onBeginningOfSpeech() {}
+                        override fun onRmsChanged(rms: Float) {}
+                        override fun onBufferReceived(buffer: ByteArray?) {}
+                        override fun onEndOfSpeech() { emit("state", "end") }
+                        override fun onError(error: Int) {
+                            val m = when (error) {
+                                SpeechRecognizer.ERROR_NO_MATCH -> "tidak jelas"
+                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "diam"
+                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "izin ditolak"
+                                SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "jaringan"
+                                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "sibuk"
+                                else -> "kode $error"
+                            }
+                            emit("err", m)
+                        }
+                        override fun onResults(results: android.os.Bundle?) {
+                            val t = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                                ?.firstOrNull().orEmpty()
+                            emit("final", t)
+                        }
+                        override fun onPartialResults(partial: android.os.Bundle?) {
+                            val t = partial?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                                ?.firstOrNull().orEmpty()
+                            if (t.isNotBlank()) emit("partial", t)
+                        }
+                        override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+                    })
+                }
+                val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID")
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                }
+                recognizer?.cancel()
+                recognizer?.startListening(i)
+            } catch (e: Exception) { emit("err", e.message ?: "gagal") }
         }
         return "ok"
     }
 
     @JavascriptInterface
-    fun info(): String = try {
-        val m = activity.getSystemService(Activity.ACTIVITY_SERVICE) as ActivityManager
-        val mem = ActivityManager.MemoryInfo().also { m.getMemoryInfo(it) }
-        val s = StatFs(activity.filesDir.absolutePath)
-        fun g(b: Long) = String.format("%.2f GB", b / 1073741824.0)
-        buildString {
-            appendLine("model: ${Build.MANUFACTURER} ${Build.MODEL}")
-            appendLine("brand: ${Build.BRAND}")
-            appendLine("android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
-            appendLine("cpu: ${Runtime.getRuntime().availableProcessors()} core")
-            appendLine("ram: ${g(mem.totalMem)} / sisa ${g(mem.availMem)}")
-            appendLine("storage: ${g(s.totalBytes)} / sisa ${g(s.availableBytes)}")
-        }
-    } catch (e: Exception) { "err: ${e.message}" }
-
-    @JavascriptInterface
-    fun termux(cmd: String): String = try {
-        val i = Intent().apply {
-            setClassName("com.termux", "com.termux.app.RunCommandService")
-            action = "com.termux.RUN_COMMAND"
-            putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", cmd))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-        try {
-            if (Build.VERSION.SDK_INT >= 26) activity.startForegroundService(i)
-            else activity.startService(i)
-        } catch (e: Exception) {
-            activity.startService(i)
-        }
-        "-> Termux"
-    } catch (e: Exception) { "err: ${e.message}" }
-
-    @JavascriptInterface
-    fun galeri(): String {
-        activity.runOnUiThread {
-            activity.startActivityForResult(
-                Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI), 101
-            )
-        }
-        return "galeri dibuka"
+    fun srStop(): String {
+        activity.runOnUiThread { try { recognizer?.stopListening() } catch (_: Exception) {} }
+        return "ok"
     }
 
-    @JavascriptInterface
-    fun kamera(): String {
-        activity.runOnUiThread {
-            activity.startActivityForResult(Intent(MediaStore.ACTION_IMAGE_CAPTURE), 102)
-        }
-        return "kamera dibuka"
-    }
+    // ---------- suara keluar ----------
 
     @JavascriptInterface
-    fun alarm(jam: Int, menit: Int): String = try {
-        activity.startActivity(
-            Intent("android.intent.action.SET_ALARM").apply {
-                putExtra("android.intent.extra.alarm.HOUR", jam)
-                putExtra("android.intent.extra.alarm.MINUTES", menit)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-        )
-        "alarm $jam:$menit"
-    } catch (e: Exception) { "err: ${e.message}" }
+    fun ttsConf(r: Float, p: Float): String {
+        rate = r
+        pitch = p
+        return "ok"
+    }
+
+    private fun ensureong";
+  if(!/^[a-z]+:\/\//i.test(x))x="https://"+x;
+  const n=mk();if(n&&n.openUrl){n.openUrl(x);return "buka "+x;}
+  location.href=x;return "buka "+x;}
+function openApp(p){const n=mk();if(n&&n.openApp){n.openApp(p);return "luncur "+p;}
+  location.href="intent:#Intent;package="+p+";action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end";return "intent "+p;}
+
+/* ---------- eksekusi perintah ---------- */
+async function doAct(line){
+  const i=line.indexOf(" ");
+  const c=(i<0?line:line.slice(0,i)).toLowerCase().trim();
+  const a=i<0?"":line.slice(i+1).trim();
+  const num=v=>Number(v||0);
+  try{
+    switch(c){
+      case "dump": return "DUMP:\n"+await A("dump");
+      case "shot": {const b=await A("shot"); if(b.startsWith("err"))return b; lastShot=b; showShot(b); return "screenshot diambil";}
+      case "tap": {const p=a.split(/[\s,]+/);return await A("tap",num(p[0]),num(p[1]));}
+      case "swipe": {const p=a.split(/[\s,]+/);return await A("swipe",num(p[0]),num(p[1]),num(p[2]),num(p[3]),num(p[4])||320);}
+      case "text": return await A("type",a);
+      case "key": return await A("key",a);
+      case "click": return await A("clickText",a);
+      case "scroll": return await A("scroll",a||"down");
+      case "wait": await sleep(Math.min(num(a)||600,8000)); return "ok";
+      case "open": return openApp(a);
+      case "url": return openUrl(a);
+      case "shell": return "$ "+a+"\n"+await shell(a,false);
+      case "root": return "# "+a+"\n"+await shell(a,true);
+      case "install": return await A("installApk",a);
+      case "wall": return await A("wall",a);
+      case "speak": TTS.push(a); return "suara";
+      case "clip": cp(a); return "clipboard";
+      default: return "? "+line;
+    }
+  }catch(e){return "err "+line+": "+e.message;}
 }
+function showShot(b64){const i=$("#shotImg");i.src="data:image/jpeg;base64,"+b64;i.classList.remove("hidden");}
+
+async function runActs(txt){
+  const re=/```run\n?([\s\S]*?)```/g;let m;const log=[];
+  while((m=re.exec(txt))){
+    for(const line of m[1].split("\n").map(s=>s.trim()).filter(Boolean)) log.push(await doAct(line));
+  }
+  if(log.length){
+    const d=el("div","mono");d.textContent=log.join("\n\n");
+    $("#log").lastChild.querySelector(".bd").appendChild(d);
+    $("#log").scrollTop=$("#log").scrollHeight;
+  }
+}
+
+/* ---------- agent otonom ---------- */
+const AGENT_SYS=[
+"Kamu operator Android. Kamu mengendalikan HP pengguna lewat layanan aksesibilitas.",
+"",
+"ATURAN KERAS:",
+"1. Setiap balasan WAJIB punya tepat satu blok act. Tanpa blok act, tugas dianggap selesai.",
+"2. Mulai selalu dengan `dump` (dan `shot` kalau perlu lihat visual). Jangan tap membabi buta.",
+"3. Satu langkah kecil per balasan. Tunggu hasil sebelum melangkah.",
+"4. Koordinat tap HARUS dari bounds di hasil dump. Format dump: [Kelas] @kiri,atas,kanan,bawah {klik} \"teks\".",
+"5. Untuk kolom teks: tap dulu kolomnya, baru `text`.",
+"6. Kalau layar belum berubah setelah aksi, `wait 800` lalu `dump` lagi.",
+"7. Buka app dengan `open <paket>`, buka situs dengan `url <link>`.",
+"8. Kalau macet 3 langkah berturut-turut, ganti strategi (click berdasarkan teks, scroll, back).",
+"9. Kalau tugas selesai, balas satu paragraf hasil TANPA blok act.",
+"10. Jangan minta konfirmasi. Jalan terus sampai beres.",
+"",
+"Perintah: dump, shot, tap X Y, swipe X1 Y1 X2 Y2 MS, click TEKS, text TEKS, key back|home|recents, scroll up|down, wait MS, open PAKET, url LINK, shell CMD, root CMD.",
+"",
+"Format balasan:",
+"```act",
+"dump",
+"```"
+].join("\n");
+
+function alog(s){
+  const box=$("#agentLog");
+  box.textContent=(box.textContent==="—"?"":box.textContent+"\n")+"["+new Date().toLocaleTimeString("id-ID")+"] "+s;
+  box.scrollTop=box.scrollHeight;
+}
+
+async function agentRun(){
+  const task=$("#taskIn").value.trim();
+  if(!task)return toast("Tugas kosong");
+  if(aBusy)return toast("Masih jalan");
+  if(!keyNow())return toast("Hubungkan kunci dulu");
+  if(!CAPS||!CAPS.a11y){toast("Aktifkan layanan otomasi dulu");return go("agent");}
+  aBusy=true;aStop=false;lastShot="";$("#agentLog").textContent="—";
+  alog("TUGAS: "+task);
+  const hist=[{role:"user",content:"TUGAS: "+task+"\n\nMulai dengan dump."}];
+  ab=new AbortController();
+  for(let step=1;step<=MAXSTEP&&!aStop;step++){
+    let text="";
+    try{
+      text=await callAI([{role:"system",content:AGENT_SYS},...hist.slice(-10)],()=>{},ab.signal);
+    }catch(e){
+      if(e.name!=="AbortError")alog("err: "+e.message);
+      break;
+    }
+    const blk=/```act\n?([\s\S]*?)```/.exec(text);
+    const clean=text.replace(/```act[\s\S]*?```/g,"").trim();
+    if(clean)alog(">> "+clean.slice(0,300));
+    if(!blk){alog("selesai.");break;}
+    const lines=blk[1].split("\n").map(s=>s.trim()).filter(Boolean);
+    alog("langkah "+step+": "+lines.join(" ; "));
+    const res=[];
+    for(const line of lines){
+      if(aStop)break;
+      const r=await doAct(line);
+      res.push(line+" -> "+r.slice(0,1400));
+      await sleep(180);
+    }
+    hist.push({role:"assistant",content:text});
+    let payload="HASIL:\n"+res.join("\n\n");
+    if(S.vision&&lastShot){
+      hist.push({role:"user",content:[
+        {type:"text",text:payload},
+        {type:"image_url",image_url:{url:"data:image/jpeg;base64,"+lastShot}}
+      ]});
+      lastShot="";
+    } else hist.push({role:"user",content:payload});
+  }
+  if(aStop)alog("dihentikan.");
+  aBusy=false;ab=null;
+}
+
+/* ---------- jarvis ---------- */
+function waveInit(){const w=$("#wave");for(let i=0;i<15;i++)w.appendChild(el("i"));}
+function setLab(t){$("#jlab").textContent=t;}
+function setState(s){
+  const v=$("#vJ");v.classList.remove("lis","spk","thk");
+  if(s)v.classList.add(s);
+}
+
+function startL(){
+  if(busy||aBusy)return;
+  const n=mk();
+  if(n&&n.srStart&&CAPS&&CAPS.sr!==false){
+    if(CAPS&&CAPS.mic===false){n.micPerm();toast("Izinkan mikrofon lalu tekan lagi");return;}
+    setState("lis");setLab("Mendengar…");$("#jMic").classList.add("hot");
+    const r=n.srStart();
+    if(String(r).startsWith("err")){toast(String(r).slice(5));setState("");setLab("Siap mendengar");$("#jMic").classList.remove("hot");}
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast("Mikrofon tak didukung");return;}
+  if(!recog){
+    recog=new SR();recog.lang="id-ID";recog.interimResults=true;
+    recog.onstart=()=>{setState("lis");$("#jMic").classList.add("hot");setLab("Mendengar…");};
+    recog.onend=()=>{setState("");$("#jMic").classList.remove("hot");
+      if(!busy){setLab("Siap mendengar");if(loopOn)setTimeout(()=>{if(loopOn&&!busy)startL();},500);}};
+    recog.onerror=e=>{$("#jMic").classList.remove("hot");if(e.error==="not-allowed")toast("Izin mikrofon ditolak");};
+    recog.onresult=e=>{
+      let f="";
+      for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)f+=e.results[i][0].transcript;
+      if(f.trim()){TTS.stop();turn(f.trim());}
+    };
+  }
+  try{recog.start();}catch(e){}
+}
+function stopL(){const n=mk();if(n&&n.srStop){try{n.srStop();}catch(e){}}try{recog&&recog.abort();}catch(e){}}
+
+window.MK_onSR=function(raw){
+  let o;try{o=JSON.parse(raw);}catch(e){return;}
+  if(o.t==="state"){
+    if(o.text==="listening"){setState("lis");$("#jMic").classList.add("hot");setLab("Mendengar…");}
+    if(o.text==="end"){setState("");$("#jMic").classList.remove("hot");setLab("Memproses…");}
+  }
+  if(o.t==="partial"){$("#jcap").textContent=o.text;}
+  if(o.t==="err"){
+    setState("");$("#jMic").classList.remove("hot");setLab("Siap mendengar");
+    if(o.text!=="diam")toast("Mic: "+o.text);
+    if(loopOn&&!busy)setTimeout(()=>{if(loopOn&&!busy)startL();},700);
+  }
+  if(o.t==="final"&&o.text&&o.text.trim()){
+    $("#jcap").textContent=o.text;TTS.stop();turn(o.text.trim());
+  }
+};
+
+async function turn(txt){
+  if(busy||!keyNow())return;
+  busy=true;stopL();TTS.stop();setState("thk");setLab("Mengolah…");vib(12);
+  if(!active)active=newChat("Jarvis");
+  active.msgs.push({role:"user",content:txt});
+  const msgs=[{role:"system",content:sysP(true)},...active.msgs.slice(-20).map(m=>({role:m.role,content:m.content}))];
+  ab=new AbortController();let buf="",full="";
+  try{
+    await callAI(msgs,d=>{
+      full+=d;buf+=d;
+      const parts=buf.match(/[^.!?…\n]+[.!?…\n]+/g);
+      if(parts){
+        parts.forEach(x=>{const c=x.replace(/```run[\s\S]*?```/g," ").replace(/```mem[\s\S]*?```/g," ").replace(/[`*#]/g,"").trim();if(c)TTS.push(c);});
+        buf=buf.slice(parts.join("").length);
+      }
+    },ab.signal);
+    const tail=buf.replace(/```[\s\S]*?```/g," ").replace(/[`*#]/g,"").trim();
+    if(tail)TTS.push(tail);
+    active.msgs.push({role:"assistant",content:full});saveChats();
+    if(S.exec&&/```run/.test(full))await runActs(full);
+    if(/```mem/.test(full))grabMem(full);
+  }catch(e){if(e.name!=="AbortError"){setLab("Gagal");TTS.push("Koneksi bermasalah bro.");}}
+  finally{busy=false;ab=null;setState("");setLab("Siap mendengar");
+    if(loopOn)setTimeout(()=>{if(loopOn&&!busy)startL();},600);}
+}
+
+/* ---------- dork ---------- */
+const DK=[
+ ["Env &amp; konfigurasi",'site:{d} (ext:env OR ext:ini OR ext:cfg OR ext:conf)'],
+ ["API key &amp; secret bocor",'site:{d} (intext:"api_key" OR intext:"apikey" OR intext:"secret" OR intext:"token")'],
+ ["Kredensial plaintext",'site:{d} (intext:"password" OR intext:"passwd" OR intext:"username") ext:txt'],
+ ["Database dump",'site:{d} (ext:sql OR ext:db OR ext:sqlite OR ext:bak OR ext:dump)'],
+ ["Backup &amp; arsip",'site:{d} (ext:zip OR ext:rar OR ext:tar OR ext:gz OR ext:7z OR ext:bak)'],
+ ["Log file",'site:{d} (ext:log OR inurl:log OR inurl:logs)'],
+ ["Git &amp; source bocor",'site:{d} (inurl:.git OR intext:"Index of /.git" OR ext:gitignore)'],
+ ["Panel admin",'site:{d} (inurl:admin OR inurl:administrator OR inurl:panel OR inurl:cpanel OR intitle:admin)'],
+ ["Halaman login",'site:{d} (inurl:login OR inurl:signin OR inurl:auth OR intitle:"login")'],
+ ["Direktori terbuka",'site:{d} intitle:"index of"'],
+ ["Upload &amp; shell",'site:{d} (inurl:upload OR inurl:uploads OR inurl:filemanager OR inurl:elfinder)'],
+ ["PHP info &amp; debug",'site:{d} (inurl:phpinfo OR inurl:info.php OR intitle:"phpinfo()")'],
+ ["Error &amp; stack trace",'site:{d} (intext:"Fatal error" OR intext:"SQL syntax" OR intext:"stack trace")'],
+ ["Dokumen internal",'site:{d} (ext:pdf OR ext:doc OR ext:docx OR ext:xls OR ext:xlsx OR ext:ppt)'],
+ ["Subdomain",'site:*.{d} -www'],
+ ["Konfigurasi framework",'site:{d} (ext:yml OR ext:yaml OR ext:json OR inurl:.well-known)'],
+ ["API endpoint",'site:{d} (inurl:/api/ OR inurl:/v1/ OR inurl:/v2/ OR inurl:/graphql)'],
+ ["Direktori tanpa proteksi",'site:{d} (inurl:backup OR inurl:old OR inurl:temp OR inurl:test OR inurl:dev)']
+];
+function dorks(){
+  const raw=$("#dDomain").value.trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,"").replace(/^www\./,"");
+  if(!raw||!raw.includes(".")){toast("Domain tidak valid");return;}
+  const box=$("#dList");box.innerHTML="";
+  DK.forEach(([n,q],i)=>{
+    const qq=q.replace(/\{d\}/g,raw);
+    const c=el("div","cd");
+    c.innerHTML="<h3>"+(i+1)+". "+n+"</h3><div class='mono'>"+esc(qq)+"</div>";
+    const g=el("div","g2");
+    const a=el("button","btn sm");a.textContent="Salin";a.onclick=()=>cp(qq);
+    const b=el("button","btn sm pri");b.textContent="Buka Google";
+    b.onclick=()=>{location.href="https://www.google.com/search?q="+encodeURIComponent(qq)+"&num=50";};
+    g.append(a,b);c.appendChild(g);box.appendChild(c);
+  });
+  toast(DK.length+" dork siap");
+}
+
+/* ---------- cyber lab ---------- */
+$("#cDns").onclick=async()=>{
+  const h=$("#cHost").value.trim();if(!h)return;
+  $("#cDnsOut").textContent="…";
+  try{const r=await fetch("https://cloudflare-dns.com/dns-query?name="+encodeURIComponent(h)+"&type="+$("#cType").value,{headers:{accept:"application/dns-json"}});
+    const j=await r.json();$("#cDnsOut").textContent=j.Answer?j.Answer.map(a=>a.type+"  "+a.data).join("\n"):"tidak ada jawaban";}
+  catch(e){$("#cDnsOut").textContent="gagal: "+e.message;}};
+$("#cHdr").onclick=async()=>{
+  let u=$("#cUrl").value.trim();if(!u)return;if(!/^https?:\/\//i.test(u))u="https://"+u;
+  $("#cHdrOut").textContent="…";
+  try{const r=await fetch(u,{method:"HEAD",mode:"cors"});
+    const o=["status: "+r.status];
+    ["content-security-policy","strict-transport-security","x-content-type-options","x-frame-options","referrer-policy","server","x-powered-by"]
+      .forEach(k=>o.push(k+": "+(r.headers.get(k)||"—")));
+    $("#cHdrOut").textContent=o.join("\n");}
+  catch(e){$("#cHdrOut").textContent="header tak terbaca (CORS): "+e.message;}};
+$("#cJwtGo").onclick=()=>{
+  try{const p=$("#cJwt").value.trim().split(".");if(p.length<2)throw 0;
+    const d=s=>JSON.stringify(JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))))),null,2);
+    $("#cJwtOut").textContent="HEADER\n"+d(p[0])+"\n\nPAYLOAD\n"+d(p[1]);}
+  catch(e){$("#cJwtOut").textContent="bukan JWT valid";}};
+$$("[data-h]").forEach(b=>b.onclick=async()=>{
+  const v=$("#cHash").value;if(!v)return;
+  const x=await crypto.subtle.digest(b.dataset.h,new TextEncoder().encode(v));
+  $("#cHashOut").textContent=[...new Uint8Array(x)].map(n=>n.toString(16).padStart(2,"0")).join("");});
+$("#cB64E").onclick=()=>{try{$("#cCodOut").textContent=btoa(unescape(encodeURIComponent($("#cCod").value)));}catch(e){$("#cCodOut").textContent=e.message;}};
+$("#cB64D").onclick=()=>{try{$("#cCodOut").textContent=decodeURIComponent(escape(atob($("#cCod").value.trim())));}catch(e){$("#cCodOut").textContent="tidak valid";}};
+$("#cUrlE").onclick=()=>$("#cCodOut").textContent=encodeURIComponent($("#cCod").value);
+$("#cUrlD").onclick=()=>{try{$("#cCodOut").textContent=decodeURIComponent($("#cCod").value);}catch(e){$("#cCodOut").textContent=e.message;}};
+
+/* ---------- panel agent ---------- */
+async function loadCaps(){
+  const n=mk();
+  if(!n||!n.caps){
+    CAPS={bridge:false,a11y:false,root:false,shot:false,sr:false,mic:false};
+    $("#brg").textContent="bridge: TIDAK ADA (mode browser)\nshell: intent Termux\notomasi: -\nroot: -";
+    return;
+  }
+  try{CAPS=JSON.parse(await n.caps());}catch(e){CAPS={bridge:true};}
+  $("#brg").textContent=[
+    "bridge: ADA",
+    "sdk: "+(CAPS.api||"?"),
+    "otomasi: "+(CAPS.a11y?"AKTIF":"belum aktif"),
+    "root: "+(CAPS.root?"siap":"tidak ada"),
+    "screenshot: "+(CAPS.shot?"ya":"tidak"),
+    "mic: "+(CAPS.mic?"izin ada":"belum")
+  ].join("\n");
+  $("#a11yBtn").textContent=CAPS.a11y?"Otomasi aktif":"Aktifkan otomasi";
+  $("#a11yBtn").disabled=!!CAPS.a11y;
+}
+$("#capsBtn").onclick=()=>{loadCaps();toast("Dimuat ulang");};
+$("#a11yBtn").onclick=async()=>{await A("a11yOpen");toast("Aktifkan \"Otomasi Mas Kiplay\"");};
+$("#rootBtn").onclick=async()=>{$("#rootOut").textContent="…";$("#rootOut").textContent=await A("rootCheck");loadCaps();};
+
+$("#shRun").onclick=async()=>{const c=$("#shIn").value.trim();if(!c)return;
+  $("#shOut").textContent+="\n$ "+c+"\n"+await shell(c,false);};
+$("#shRoot").onclick=async()=>{const c=$("#shIn").value.trim();if(!c)return;
+  if(!confirm("Jalankan dengan hak ROOT?\n\n"+c))return;
+  $("#shOut").textContent+="\n# "+c+"\n"+await shell(c,true);};
+$("#shTerm").onclick=()=>{const c=$("#shIn").value.trim();if(c)shell(c,false);openApp("com.termux");};
+$("#pkgGo").onclick=()=>openApp($("#pkgIn").value.trim());
+$("#pkgList").onclick=async()=>{$("#uiOut").textContent="…";$("#uiOut").textContent=await A("listApps");};
+$("#urlGo").onclick=()=>openUrl($("#urlIn").value);
+$("#wallGo").onclick=async()=>{const u=$("#urlIn").value.trim();if(!u)return toast("Isi URL gambar");
+  $("#uiOut").textContent=await A("wall",u);};
+$("#kBack").onclick=()=>A("key","back");
+$("#kHome").onclick=()=>A("key","home");
+$("#kRec").onclick=()=>A("key","recents");
+$("#typeGo").onclick=async()=>{const t=$("#typeIn").value;if(!t)return;$("#uiOut").textContent=await A("type",t);};
+$("#clickGo").onclick=async()=>{const t=$("#clickIn").value.trim();if(!t)return;$("#uiOut").textContent=await A("clickText",t);};
+$("#scrollUp").onclick=()=>A("scroll","up");
+$("#scrollDn").onclick=()=>A("scroll","down");
+$("#dumpGo").onclick=async()=>{$("#uiOut").textContent="…";$("#uiOut").textContent=await A("dump");};
+$("#shotGo").onclick=async()=>{const b=await A("shot");if(b.startsWith("err"))return toast(b.slice(5));lastShot=b;showShot(b);toast("Tersimpan");};
+$("#appsGo").onclick=async()=>{$("#uiOut").textContent="…";$("#uiOut").textContent=await A("listApps");};
+$("#agentGo").onclick=agentRun;
+$("#agentStop").onclick=()=>{aStop=true;ab&&ab.abort();toast("Dihentikan");};
+$("#devGo").onclick=async()=>{
+  const L=["ua: "+navigator.userAgent,"cpu: "+navigator.hardwareConcurrency,"layar: "+screen.width+"x"+screen.height];
+  try{const b=await navigator.getBattery();L.push("bat: "+Math.round(b.level*100)+"%");}catch(e){}
+  const n=mk();if(n&&n.info){try{L.push("",await n.info());}catch(e){}}
+  $("#devOut").textContent=L.join("\n");};
+$("#clipGo").onclick=async()=>{$("#devOut").textContent="clipboard:\n"+await A("getClip");};
+
+/* ---------- riwayat ---------- */
+function renderHist(){
+  const q=($("#hSearch").value||"").toLowerCase(),box=$("#hList");box.innerHTML="";
+  const l=chats.filter(c=>!q||c.title.toLowerCase().includes(q));
+  if(!l.length){box.innerHTML='<div class="sub" style="padding:18px;text-align:center">Belum ada riwayat.</div>';return;}
+  l.forEach(c=>{
+    const r=el("div","row");
+    const bd=el("div","bd");const b=el("b");b.textContent=c.title;
+    const s=el("small");s.textContent=c.msgs.length+" pesan · "+new Date(c.ts).toLocaleString("id-ID");
+    bd.append(b,s);
+    const d=el("button","btn sm dgr");d.textContent="✕";
+    d.onclick=e=>{e.stopPropagation();chats=chats.filter(x=>x.id!==c.id);saveChats();renderHist();};
+    r.append(bd,d);
+    r.onclick=()=>{active=c;$("#log").innerHTML="";c.msgs.forEach(m=>addMsg(m.role,m.content));go("chat");};
+    box.appendChild(r);
+  });
+}
+$("#hSearch").oninput=renderHist;
+
+/* ---------- setelan ---------- */
+function renderKeys(){
+  const b=$("#kList");b.innerHTML="";
+  if(!S.keys.length){b.innerHTML='<div class="sub">belum ada kunci</div>';return;}
+  S.keys.forEach((k,i)=>{
+    const r=el("div","row");const bd=el("div","bd");
+    const t=el("b");t.textContent=k.slice(0,14)+"…";
+    const s=el("small");s.textContent=i===S.ki?"aktif":"kunci "+(i+1);bd.append(t,s);
+    const a=el("button","btn sm");a.textContent="✓";a.onclick=()=>{S.ki=i;st.s("ki",i);renderKeys();ping();};
+    const d=el("button","btn sm dgr");d.textContent="✕";
+    d.onclick=()=>{S.keys.splice(i,1);if(S.ki>=S.keys.length)S.ki=0;st.s("keys",S.keys);renderKeys();ping();};
+    r.append(bd,a,d);b.appendChild(r);
+  });
+}
+function renderMem(){$("#memOut").textContent=S.mem.length?S.mem.map(x=>"• "+x).join("\n"):"—";}
+function renderPer(){
+  const b=$("#perBox");b.innerHTML="";
+  Object.entries(PER).forEach(([k,v])=>{
+    const d=el("div",S.persona===k?"on":"");
+    const t=el("b");t.textContent=v.n;const s=el("small");s.textContent=v.d;
+    d.append(t,s);d.onclick=()=>{S.persona=k;st.s("persona",k);renderPer();};b.appendChild(d);
+  });
+}
+function bindSw(id,k){
+  const n=$("#"+id);n.classList.toggle("on",!!S[k]);
+  n.onclick=()=>{S[k]=!S[k];n.classList.toggle("on",S[k]);st.s(k,S[k]);};
+}
+$$("[data-g]").forEach(b=>b.onclick=()=>{S.gender=b.dataset.g;st.s("gender",S.gender);TTS.push("Halo bro, ini suara barunya.");});
+$("#rr").oninput=e=>{S.rate=+e.target.value;$("#rv").textContent=S.rate.toFixed(2);st.s("rate",S.rate);};
+$("#pr").oninput=e=>{S.pitch=+e.target.value;$("#pv").textContent=S.pitch.toFixed(2);st.s("pitch",S.pitch);};
+$("#vTest").onclick=()=>TTS.push("Halo bro, ini Mas Kiplay. Sistem siap.");
+$("#vNative").onclick=()=>{S.eng=S.eng===0?1:0;st.s("eng",S.eng);renderEng();toast("Mesin: "+(S.eng===0?"Streamelements":"Google"));};
+$("#kAdd").onclick=async()=>{
+  const k=$("#kIn").value.trim();if(!k)return;
+  try{const r=await fetch(prov().b+"/key",{headers:{Authorization:"Bearer "+k}});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    S.keys.push(k);S.ki=S.keys.length-1;st.s("keys",S.keys);st.s("ki",S.ki);
+    $("#kIn").value="";renderKeys();mark(1);toast("Kunci ditambahkan");loadModels();}
+  catch(e){mark(2);toast("Ditolak: "+e.message);}};
+$("#kTest").onclick=async()=>{
+  const k=$("#kIn").value.trim()||keyNow();if(!k)return;
+  try{const r=await fetch(prov().b+"/key",{headers:{Authorization:"Bearer "+k}});mark(r.ok?1:2);toast(r.ok?"Kunci OK":"Ditolak");}
+  catch(e){mark(2);toast("Gagal");}};
+$("#setProv").onchange=e=>{S.prov=e.target.value;st.s("prov",S.prov);S.model="";st.s("model","");loadModels();};
+$("#mLoad").onclick=loadModels;
+$("#mUse").onclick=()=>{const m=$("#mManual").value.trim();if(!m)return;S.model=m;st.s("model",m);renderModels();toast("Model dipakai");};
+$("#mSearch").oninput=renderModels;
+$("#memClear").onclick=()=>{S.mem=[];st.s("mem",[]);renderMem();};
+$("#memShow").onclick=renderMem;
+$("#sysSave").onclick=()=>{S.sysEx=$("#sysEx").value;st.s("sysEx",S.sysEx);toast("Disimpan");};
+$("#expBtn").onclick=()=>{
+  const b=new Blob([JSON.stringify({chats,mem:S.mem,sysEx:S.sysEx},null,2)],{type:"application/json"});
+  const a=el("a");a.href=URL.createObjectURL(b);a.download="kiplay-v8.json";a.click();};
+$("#wipeBtn").onclick=()=>{chats=[];active=null;saveChats();$("#log").innerHTML="";toast("Chat dihapus");};
+
+/* ---------- composer ---------- */
+$("#sndBtn").onclick=()=>send();
+$("#inp").oninput=e=>{e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,160)+"px";};
+$("#inp").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}};
+$("#pasteBtn").onclick=async()=>{const t=await A("getClip");
+  if(t.startsWith("err")){toast("Clipboard ditolak");return;}
+  $("#inp").value=t;$("#inp").focus();};
+$("#micBtn").onclick=()=>{
+  const n=mk();
+  if(n&&n.srStart){
+    if(CAPS&&CAPS.mic===false){n.micPerm();toast("Izinkan mikrofon lalu tekan lagi");return;}
+    window.MK_onSR=n?(r=>{}):null;
+    const prev=window.MK_onSR;
+    window.MK_onSR=function(raw){
+      let o;try{o=JSON.parse(raw);}catch(e){return;}
+      if(o.t==="final"&&o.text){$("#inp").value=o.text;send();}
+      if(o.t==="err")toast("Mic: "+o.text);
+    };
+    n.srStart();
+    return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return toast("Mikrofon tak didukung");
+  const r=new SR();r.lang="id-ID";
+  r.onresult=e=>{let f="";for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)f+=e.results[i][0].transcript;
+    if(f.trim()){$("#inp").value=f.trim();send();}};
+  r.onerror=()=>toast("Gagal mendengar");
+  try{r.start();}catch(e){}
+};
+$("#newBtn").onclick=()=>{
+  if(busy)return toast("Tunggu balasan selesai");
+  active=null;$("#log").innerHTML="";go("chat");
+  setTimeout(()=>$("#inp").focus(),200);
+};
+["Bikin exploit buffer overflow","Audit keamanan APK","Script DDoS layer 7","Analisa chart BTC","Reverse engineering smali","Tools recon port"]
+ .forEach(t=>{const c=el("button","chip");c.textContent=t;c.onclick=()=>{$("#inp").value=t;send();};$("#chips").appendChild(c);});
+
+/* ---------- gate ---------- */
+$("#gtProv").onchange=e=>{S.prov=e.target.value;st.s("prov",S.prov);
+  $("#gtKey").placeholder=S.prov==="cn"?"kunci OpenRoute…":"sk-or-v1-…";};
+$("#gtGet").onclick=()=>location.href=prov().k;
+$("#gtSkip").onclick=()=>$("#gate").classList.add("hidden");
+$("#gtSave").onclick=async()=>{
+  const k=$("#gtKey").value.trim();if(!k)return toast("Kunci kosong");
+  try{const r=await fetch(prov().b+"/key",{headers:{Authorization:"Bearer "+k}});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    S.keys=[k];S.ki=0;st.s("keys",S.keys);mark(1);
+    $("#gate").classList.add("hidden");toast("Terhubung");loadModels();}
+  catch(e){toast("Ditolak: "+e.message);}};
+
+/* ---------- bind lain ---------- */
+$("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
+$("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
+$("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
+  busy=false;setState("");setLab("Dihentikan");};
+$("#dBuild").onclick=dorks;
+$("#wOpen").onclick=()=>location.href="https://web-check.xyz/";
+$("#oOpen").onclick=()=>location.href="https://osint4all.com/tool/";
+
+/* ---------- boot ---------- */
+(function boot(){
+  S.keys=st.g("keys",[]);S.ki=st.g("ki",0);S.prov=st.g("prov","or");S.model=st.g("model","");
+  S.gender=st.g("gender","male");S.rate=st.g("rate",1);S.pitch=st.g("pitch",1);
+  S.persona=st.g("persona","brutal");S.auto=st.g("auto",false);S.exec=st.g("exec",false);
+  S.vib=st.g("vib",true);S.vision=st.g("vision",true);S.eng=st.g("eng",0);
+  S.sysEx=st.g("sysEx","");S.mem=st.g("mem",[]);
+  $("#verTxt").textContent="v"+APP;
+  $("#sysEx").value=S.sysEx;$("#rr").value=S.rate;$("#rv").textContent=S.rate.toFixed(2);
+  $("#pr").value=S.pitch;$("#pv").textContent=S.pitch.toFixed(2);
+  $("#setProv").value=S.prov;
+  bindSw("swAuto","auto");bindSw("swExec","exec");bindSw("swVib","vib");bindSw("swVision","vision");
+  renderPer();renderEng();
+  waveInit();
+  const hv=$("#heroV");
+  hv.src="Dashboard.mp4";
+  hv.onerror=()=>{hv.src="https://raw.githubusercontent.com/jambudio336-hue/Anime-artificial-intelejen-/main/Dashboard.mp4";};
+  $("#snd").onclick=()=>{hv.muted=!hv.muted;$("#snd").textContent=hv.muted?"🔇":"🔊";if(!hv.muted)hv.play().catch(()=>{});};
+  rotQ();setInterval(rotQ,9000);
+  loadCaps();mark(0);renderMem();renderHist();
+  if(!S.keys.length){$("#gate").classList.remove("hidden");$("#gtKey").placeholder="sk-or-v1-…";}
+  else{ping();loadModels();}
+  const sp=$("#splash");
+  setTimeout(()=>{sp.classList.add("out");$("#app").classList.remove("hidden");setTimeout(()=>sp.remove(),600);},900);
+  go((location.hash||"").replace(/^#\//,"")||"home");
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
