@@ -318,10 +318,10 @@ jobs:
             echo "::error::Fingerprint tidak cocok. Expected $EXPECTED_CERT / Actual $ACTUAL_CERT"
             exit 1
           fi
-          if ! unzip -l "$APK" | grep -q "res/xml/kiplay_a11y"; then
-            echo "::error::Resource service otomasi tidak masuk APK."
-            exit 1
-          fi
+          AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
+          test -n "$AAPT"
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "KiplayAccessibility"
+          "$AAPT" dump resources "$APK" | grep -q "kiplay_a11y"
           mkdir -p keluar
           cp "$APK" "keluar/MasKiplay-v${{ env.VERSION }}.apk"
           rm -f "$RUNNER_TEMP/kiplay-release.keystore"
