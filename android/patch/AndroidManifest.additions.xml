@@ -1,0 +1,19 @@
+<!-- di dalam <manifest> -->
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED"/>
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
+<!-- di dalam <application> -->
+<service
+    android:name=".MasKiplayVpnService"
+    android:exported="false"
+    android:permission="android.permission.BIND_VPN_SERVICE"
+    android:foregroundServiceType="systemExempted">
+    <intent-filter>
+        <action android:name="android.net.VpnService"/>
+    </intent-filter>
+</service>
