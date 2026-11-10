@@ -341,6 +341,10 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         return "asking"
     }
 
+    fun onMicPermissionResult(granted: Boolean) {
+        emit("permission", if (granted) "granted" else "denied")
+    }
+
     @JavascriptInterface
     fun srStart(): String {
         if (!SpeechRecognizer.isRecognitionAvailable(activity)) return "err: pengenal suara tidak tersedia"
