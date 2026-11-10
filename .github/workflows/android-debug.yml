@@ -1,0 +1,142 @@
+name: Android Debug Build
+
+on:
+  push:
+    branches:
+      - feature/vpngate-openvpn3
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+
+      - name: Install web dependencies and create Capacitor Android project
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          mkdir -p www
+          cp index.html www/
+          cp manifest.webmanifest www/ 2>/dev/null || true
+          cp sw.js www/ 2>/dev/null || true
+          cp icon.png www/
+          cp *.mp4 www/
+          npx cap add android
+          npx cap sync android
+
+      - name: Install native Kotlin sources
+        run: |
+          set -euo pipefail
+          D=android/app/src/main/java/ai/maskiplay/app
+          mkdir -p "$D"
+          cp pkg/kotlin/MainActivity.kt "$D/MainActivity.kt"
+          cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
+          cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
+          cp pkg/kotlin/MasKiplayVpnService.kt "$D/MasKiplayVpnService.kt"
+          cp pkg/kotlin/VpnGateRepository.kt "$D/VpnGateRepository.kt"
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+          if "androidx.core:core" not in text:
+              text = text.replace("dependencies {", 'dependencies {\n    implementation "androidx.core:core:1.13.1"', 1)
+          gradle.write_text(text)
+          variables = Path("android/variables.gradle")
+          if variables.exists():
+              text = re.sub(r"minSdkVersion = \\d+", "minSdkVersion = 26", variables.read_text())
+              variables.write_text(text)
+          else:
+              text = re.sub(r"minSdkVersion \\d+", "minSdkVersion 26", gradle.read_text())
+              gradle.write_text(text)
+          PY
+          mkdir -p android/app/src/main/res/xml android/app/src/main/res/values
+          cat > android/app/src/main/res/xml/kiplay_a11y.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+              android:accessibilityEventTypes="typeAllMask"
+              android:accessibilityFeedbackType="feedbackGeneric"
+              android:canPerformGestures="true"
+              android:canRetrieveWindowContent="true"
+              android:notificationTimeout="100"
+              android:description="@string/kiplay_a11y_desc" />
+          XML
+          cat > android/app/src/main/res/values/kiplay_strings.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="kiplay_a11y_desc">Otomasi perangkat Mas Kiplay yang diaktifkan secara eksplisit oleh pengguna.</string>
+          </resources>
+          XML
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          p="android/app/src/main/AndroidManifest.xml"
+          ET.register_namespace("android","http://schemas.android.com/apk/res/android")
+          tree=ET.parse(p); root=tree.getroot()
+          a="{http://schemas.android.com/apk/res/android}"
+          existing={x.get(a+"name") for x in root.findall("uses-permission")}
+          for name in ["android.permission.INTERNET","android.permission.ACCESS_NETWORK_STATE",
+                       "android.permission.RECORD_AUDIO","android.permission.FOREGROUND_SERVICE",
+                       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE","android.permission.POST_NOTIFICATIONS"]:
+              if name not in existing:
+                  node=ET.Element("uses-permission"); node.set(a+"name",name); root.insert(0,node)
+          app=root.find("application")
+          if app is None: raise SystemExit("application element missing")
+          names={x.get(a+"name") for x in app.findall("service")}
+          if ".KiplayAccessibility" not in names:
+              s=ET.SubElement(app,"service"); s.set(a+"name",".KiplayAccessibility")
+              s.set(a+"exported","true"); s.set(a+"permission","android.permission.BIND_ACCESSIBILITY_SERVICE")
+              intent=ET.SubElement(s,"intent-filter")
+              action=ET.SubElement(intent,"action"); action.set(a+"name","android.accessibilityservice.AccessibilityService")
+              meta=ET.SubElement(s,"meta-data"); meta.set(a+"name","android.accessibilityservice"); meta.set(a+"resource","@xml/kiplay_a11y")
+          if ".MasKiplayVpnService" not in names:
+              s=ET.SubElement(app,"service"); s.set(a+"name",".MasKiplayVpnService")
+              s.set(a+"exported","true"); s.set(a+"permission","android.permission.BIND_VPN_SERVICE")
+              s.set(a+"foregroundServiceType","specialUse")
+              intent=ET.SubElement(s,"intent-filter")
+              action=ET.SubElement(intent,"action"); action.set(a+"name","android.net.VpnService")
+              prop=ET.SubElement(s,"property"); prop.set(a+"name","android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE")
+              prop.set(a+"value","VPN service; tunnel implementation is under development")
+          ET.indent(tree,space="    "); tree.write(p,encoding="utf-8",xml_declaration=True)
+          ET.parse(p)
+          PY
+          test -s "$D/VpnGateRepository.kt"
+          grep -q "fun vpnGateRefresh" "$D/Bridge.kt"
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MasKiplay-debug-${{ github.run_number }}
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
