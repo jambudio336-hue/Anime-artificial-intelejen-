@@ -87,7 +87,7 @@ object VpnGateRepository {
         if (headerIndex < 0) throw IllegalStateException("Header CSV VPN Gate tidak ditemukan")
 
         val headers = rows[headerIndex].mapIndexed { index, value ->
-            val normalized = value.trim().removePrefix("#").trim().lowercase()
+            val normalized = value.trim().removePrefix("\uFEFF").removePrefix("#").trim().lowercase()
             normalized to index
         }.toMap()
 
@@ -121,7 +121,7 @@ object VpnGateRepository {
                     countryCode = value(row, "countryshort").take(8),
                     score = value(row, "score").toLongOrNull() ?: 0L,
                     reportedPingMs = value(row, "ping").toLongOrNull() ?: -1L,
-                    probeMs = if (transport == "TCP") probeTcp(endpointHost, endpointPort) else null,
+                    probeMs = null,
                     speedMbps = ((value(row, "speed").toDoubleOrNull() ?: 0.0) / 1_000_000.0).coerceAtLeast(0.0),
                     sessions = value(row, "numvpnsessions").toIntOrNull() ?: 0,
                     uptimeSeconds = value(row, "uptime").toLongOrNull() ?: 0L,
@@ -138,6 +138,11 @@ object VpnGateRepository {
         }.filter { it.profileAvailable && it.port in 1..65535 }
             .sortedBy { it.rankingScore() }
             .take(MAX_CANDIDATES)
+            .map { relay ->
+                if (relay.transport == "TCP") relay.copy(probeMs = probeTcp(relay.ip, relay.port))
+                else relay
+            }
+            .sortedBy { it.rankingScore() }
 
         return parsed
     }
