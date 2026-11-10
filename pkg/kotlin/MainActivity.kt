@@ -83,6 +83,7 @@ class MainActivity : BridgeActivity() {
     }
 
     override fun onDestroy() {
+        nativeBridge?.shutdown()
         nativeBridge = null
         super.onDestroy()
     }
