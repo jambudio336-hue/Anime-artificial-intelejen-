@@ -9,38 +9,66 @@ import java.util.Locale
 
 class NativeBridge(private val act: Activity) : TextToSpeech.OnInitListener {
 
-    private var tts: TextToSpeech? = null
+    companion object {
+        const val REQ_VPN = 991
+    }
 
-    init { tts = TextToSpeech(act, this) }
+    private var tts: TextToSpeech? = null
+    private var pendingHost: String? = null
+
+    init {
+        tts = TextToSpeech(act, this)
+    }
 
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) tts?.language = Locale("id", "ID")
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale("id", "ID")
+        }
     }
 
     @JavascriptInterface
     fun vpnStart(host: String, port: Int) {
-        val prep = VpnService.prepare(act)
-        if (prep != null) { act.startActivityForResult(prep, 991); pending = host; return }
-        launch(host)
+        val target = if (host.isBlank()) "1.1.1.1" else host
+        val prep = try { VpnService.prepare(act) } catch (e: Exception) { null }
+        if (prep != null) {
+            pendingHost = target
+            try {
+                act.startActivityForResult(prep, REQ_VPN)
+            } catch (e: Exception) {
+                pendingHost = null
+            }
+        } else {
+            launch(target)
+        }
     }
 
-    private var pending: String? = null
-
-    fun onActivityResult(code: Int) {
-        if (code == 991) pending?.let { launch(it) }
+    fun onActivityResult(resultCode: Int) {
+        val host = pendingHost
+        pendingHost = null
+        if (resultCode == Activity.RESULT_OK && host != null) launch(host)
     }
 
     private fun launch(host: String) {
-        val i = Intent(act, MasKiplayVpnService::class.java)
-            .setAction(MasKiplayVpnService.ACTION_START)
-            .putExtra("host", host)
-        act.startForegroundService(i)
+        try {
+            val i = Intent(act, MasKiplayVpnService::class.java)
+                .setAction(MasKiplayVpnService.ACTION_START)
+                .putExtra(MasKiplayVpnService.EXTRA_HOST, host)
+            act.startForegroundService(i)
+        } catch (e: Exception) {
+            try {
+                act.startService(Intent(act, MasKiplayVpnService::class.java)
+                    .setAction(MasKiplayVpnService.ACTION_START)
+                    .putExtra(MasKiplayVpnService.EXTRA_HOST, host))
+            } catch (ignored: Exception) {}
+        }
     }
 
     @JavascriptInterface
     fun vpnStop() {
-        act.startService(Intent(act, MasKiplayVpnService::class.java)
-            .setAction(MasKiplayVpnService.ACTION_STOP))
+        try {
+            act.startService(Intent(act, MasKiplayVpnService::class.java)
+                .setAction(MasKiplayVpnService.ACTION_STOP))
+        } catch (e: Exception) {}
     }
 
     @JavascriptInterface
@@ -48,11 +76,22 @@ class NativeBridge(private val act: Activity) : TextToSpeech.OnInitListener {
 
     @JavascriptInterface
     fun speak(text: String) {
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mk")
+        try {
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "mk")
+        } catch (e: Exception) {}
     }
 
     @JavascriptInterface
-    fun stopSpeak() { tts?.stop() }
+    fun stopSpeak() {
+        try { tts?.stop() } catch (e: Exception) {}
+    }
 
-    fun destroy() { tts?.shutdown() }
+    @JavascriptInterface
+    fun appVersion(): String = "9.0.0"
+
+    fun destroy() {
+        try { tts?.stop() } catch (e: Exception) {}
+        try { tts?.shutdown() } catch (e: Exception) {}
+        tts = null
+    }
 }
