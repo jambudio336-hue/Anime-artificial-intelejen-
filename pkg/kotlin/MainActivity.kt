@@ -22,7 +22,7 @@ class MainActivity : BridgeActivity() {
             allowFileAccess = true
             allowContentAccess = true
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            userAgentString = "$userAgentString MasKiplay/8.0"
+            userAgentString = "$userAgentString MasKiplay/9.0.1"
         }
 
         web.webChromeClient = object : WebChromeClient() {

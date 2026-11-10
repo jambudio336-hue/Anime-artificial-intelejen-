@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.0.0"
+        default: "9.0.1"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '9.0.0' }}
+      VERSION: ${{ inputs.versi || '9.0.1' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -118,6 +118,8 @@ jobs:
           test -s "$D/MainActivity.kt"
           test -s "$D/Bridge.kt"
           test -s "$D/KiplayAccessibility.kt"
+          grep -q "^package ai.maskiplay.app" "$D/Bridge.kt"
+          grep -q "^package ai.maskiplay.app" "$D/MainActivity.kt"
           grep -q "Bridge(this, web)" "$D/MainActivity.kt"
           grep -q "addJavascriptInterface(nativeBridge, \"MK\")" "$D/MainActivity.kt"
           grep -q "KiplayAccessibility" "$D/Bridge.kt"
@@ -281,10 +283,10 @@ jobs:
           print("dependencies diperiksa.")
           PY
           cat > android/app/proguard-rules.pro <<'PRO'
-          -keepclassmembers class com.kiplay.agent.** {
+          -keepclassmembers class ai.maskiplay.app.** {
               @android.webkit.JavascriptInterface <methods>;
           }
-          -keep class com.kiplay.agent.** { *; }
+          -keep class ai.maskiplay.app.** { *; }
           -keep class androidx.core.content.FileProvider { *; }
           PRO
 
