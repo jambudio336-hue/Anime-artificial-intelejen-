@@ -69,10 +69,10 @@ jobs:
           gradle.write_text(text)
           variables = Path("android/variables.gradle")
           if variables.exists():
-              text = re.sub(r"minSdkVersion = \\d+", "minSdkVersion = 26", variables.read_text())
+              text = re.sub(r"minSdkVersion = \d+", "minSdkVersion = 26", variables.read_text())
               variables.write_text(text)
           else:
-              text = re.sub(r"minSdkVersion \\d+", "minSdkVersion 26", gradle.read_text())
+              text = re.sub(r"minSdkVersion \d+", "minSdkVersion 26", gradle.read_text())
               gradle.write_text(text)
           PY
           mkdir -p android/app/src/main/res/xml android/app/src/main/res/values
