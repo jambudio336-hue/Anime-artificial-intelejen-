@@ -662,11 +662,15 @@ function mark(v){CONN=v;const d=$("#stDot");d.className="dot"+(v===1?" on":v===2
   $("#kStat").textContent=v===1?"terhubung":v===2?"ditolak":"belum terhubung";}
 async function proofreadAI(text, signal){
   const blocks=[];
-  const masked=String(text).replace(/```[\s\S]*?```/g, block=>{
+  const keep=block=>{
     const token="MKBLOCKTOKEN"+blocks.length+"END";
     blocks.push({token,block});
     return token;
-  });
+  };
+  const masked=String(text)
+    .replace(/```[\s\S]*?```/g,keep)
+    .replace(/\x60[^\x60\n]+\x60/g,keep)
+    .replace(/https?:\/\/[^\s<>"')\]]+/g,keep);
   if(!masked.trim())return text;
   const instruction="Kamu editor bahasa profesional. Koreksi typo, ejaan, tata bahasa, tanda baca, dan kalimat janggal pada teks berikut. Pertahankan makna, fakta, struktur Markdown, urutan, nada, dan panjang sedekat mungkin. Jangan menambah fakta, klaim, atau penjelasan. Jangan mengubah placeholder MKBLOCKTOKEN...END. Jangan menulis komentar atau pengantar; keluarkan hanya teks hasil koreksi.";
   const corrected=await callAI([{role:"system",content:instruction},{role:"user",content:masked}],null,signal);
