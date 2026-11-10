@@ -45,6 +45,7 @@ jobs:
           cp sw.js www/ 2>/dev/null || true
           cp icon.png www/
           cp *.mp4 www/
+          rm -rf android
           npx cap add android
           npx cap sync android
 
