@@ -1,1 +1,39 @@
 
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+local.properties
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Log
+*.log
+
+# Kunci
+keystore.properties
+*.jks
+*.keystore
+
+# Sementara
+tmp/
+dist/
