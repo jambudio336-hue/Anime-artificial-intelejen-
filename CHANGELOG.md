@@ -1,5 +1,17 @@
 # Changelog
 
+## [9.0.3] — 2026-11-10
+
+### Diperbaiki
+- Splash awal memakai video lokal `video.mp4`; dashboard tetap memakai `Dashboard.mp4`.
+- Tombol kembali di header dan tombol Back Android mengembalikan pengguna ke dashboard dari setiap modul.
+- Web Check dan OSINT dibuka melalui browser eksternal, bukan iframe pihak ketiga di WebView yang memegang native bridge.
+- Pipeline memeriksa keberadaan kedua video, ID paket, dan launcher activity sebelum menerbitkan APK.
+
+### Dipertahankan
+- Modul Chat, Jarvis, Agent, Cyber Lab, Dork, Web Check, OSINT, DNS VPN, Riwayat, dan Setelan.
+
+
 ## [8.0.0] — 2026-11-07
 
 ### Ditambah

@@ -53,6 +53,16 @@ class MainActivity : BridgeActivity() {
     }
 
     @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        val web = bridge.webView
+        web.evaluateJavascript(
+            "(function(){try{return !!(window.mkBack && window.mkBack())}catch(e){return false}})()"
+        ) { handled ->
+            if (handled != "true") super@MainActivity.onBackPressed()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == Bridge.REQ_VPN) nativeBridge?.onActivityResult(resultCode)
