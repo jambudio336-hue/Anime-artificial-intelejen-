@@ -345,6 +345,7 @@ $('#jarStop').addEventListener('click',()=>{try{speechSynthesis.cancel()}catch(e
 /* VPN */
 let vpnOn=false;
 const native=()=>window.MasKiplayNative||null;
+window.MK_onVPN=function(state){if(state&&state.active){vpnOn=true;paintVpn();toast('DNS VPN aktif')}else if(state&&state.error){vpnOn=false;paintVpn();toast(state.error)}else{vpnOn=false;paintVpn()}};
 function paintVpn(){
   $('#vpnState').textContent=vpnOn?'Aktif':'Nonaktif';
   $('#vpnState').classList.toggle('on',vpnOn);
@@ -369,12 +370,12 @@ async function toggleVpn(){
     vpnOn=false;paintVpn();toast('VPN dimatikan');return;
   }
   const host=S.vpnProvider==='custom'?($('#vpnCustom').value||'1.1.1.1'):S.vpnProvider;
-  vpnOn=true;paintVpn();
   if(S.vpnMode==='native'&&native()){
-    try{native().vpnStart(host.split(':')[0],parseInt(host.split(':')[1]||'443',10));toast('Meminta izin VpnService')}
+    try{native().vpnStart(host.split(':')[0],parseInt(host.split(':')[1]||'53',10));toast('Meminta izin VpnService')}
     catch(e){toast('Native gagal, pakai DNS Shield')}
   }else{
-    toast('Tunnel '+S.vpnMode+' aktif');
+    vpnOn=true;paintVpn();
+    toast('Mode '+S.vpnMode+' belum menjalankan tunnel native. Pilih Native VpnService.');
   }
   checkIp();
 }

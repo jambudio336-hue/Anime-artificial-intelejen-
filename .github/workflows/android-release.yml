@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "8.0.1"
+        default: "9.0.0"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '8.0.1' }}
+      VERSION: ${{ inputs.versi || '9.0.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -109,11 +109,12 @@ jobs:
       - name: Pasang sumber native
         run: |
           set -euo pipefail
-          D=android/app/src/main/java/com/kiplay/agent
+          D=android/app/src/main/java/ai/maskiplay/app
           mkdir -p "$D"
           cp pkg/kotlin/MainActivity.kt "$D/MainActivity.kt"
           cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
           cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
+          cp pkg/kotlin/MasKiplayVpnService.kt "$D/MasKiplayVpnService.kt"
           test -s "$D/MainActivity.kt"
           test -s "$D/Bridge.kt"
           test -s "$D/KiplayAccessibility.kt"
@@ -121,6 +122,8 @@ jobs:
           grep -q "addJavascriptInterface(nativeBridge, \"MK\")" "$D/MainActivity.kt"
           grep -q "KiplayAccessibility" "$D/Bridge.kt"
           grep -q "class KiplayAccessibility" "$D/KiplayAccessibility.kt"
+          grep -q "class MasKiplayVpnService" "$D/MasKiplayVpnService.kt"
+          grep -q "vpnStart" "$D/Bridge.kt"
 
       - name: Tulis resource service dan provider
         run: |
@@ -181,6 +184,7 @@ jobs:
               "android.permission.QUERY_ALL_PACKAGES",
               "android.permission.REQUEST_INSTALL_PACKAGES",
               "android.permission.FOREGROUND_SERVICE",
+              "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
               "com.termux.permission.RUN_COMMAND",
           ]
           for permission in permissions:
@@ -212,6 +216,18 @@ jobs:
           meta.set(ns + "name", "android.accessibilityservice")
           meta.set(ns + "resource", "@xml/kiplay_a11y")
 
+          vpn_service = ET.SubElement(application, "service")
+          vpn_service.set(ns + "name", ".MasKiplayVpnService")
+          vpn_service.set(ns + "exported", "true")
+          vpn_service.set(ns + "permission", "android.permission.BIND_VPN_SERVICE")
+          vpn_service.set(ns + "foregroundServiceType", "specialUse")
+          vpn_intent = ET.SubElement(vpn_service, "intent-filter")
+          vpn_action = ET.SubElement(vpn_intent, "action")
+          vpn_action.set(ns + "name", "android.net.VpnService")
+          vpn_property = ET.SubElement(vpn_service, "property")
+          vpn_property.set(ns + "name", "android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE")
+          vpn_property.set(ns + "value", "VPN DNS tunnel untuk perlindungan resolusi DNS pengguna")
+
           provider = ET.SubElement(application, "provider")
           provider.set(ns + "name", "androidx.core.content.FileProvider")
           provider.set(ns + "authorities", "${applicationId}.files")
@@ -226,7 +242,7 @@ jobs:
           ET.parse(path)
 
           text = open(path, encoding="utf-8").read()
-          for token in ("KiplayAccessibility", "FileProvider", "BIND_ACCESSIBILITY_SERVICE",
+          for token in ("KiplayAccessibility", "MasKiplayVpnService", "FileProvider", "BIND_ACCESSIBILITY_SERVICE", "BIND_VPN_SERVICE",
                         "REQUEST_INSTALL_PACKAGES", "kiplay_a11y", "file_paths"):
               if token not in text:
                   raise SystemExit(f"manifest tidak memuat {token}")
@@ -321,6 +337,7 @@ jobs:
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           test -n "$AAPT"
           "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "KiplayAccessibility"
+          "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "MasKiplayVpnService"
           "$AAPT" dump resources "$APK" | grep -q "kiplay_a11y"
           mkdir -p keluar
           cp "$APK" "keluar/MasKiplay-v${{ env.VERSION }}.apk"

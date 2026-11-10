@@ -1,4 +1,4 @@
-package com.kiplay.agent
+package ai.maskiplay.app
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription

@@ -1,4 +1,4 @@
-package com.kiplay.agent
+package ai.maskiplay.app
 
 import android.os.Bundle
 import android.webkit.PermissionRequest
@@ -43,6 +43,13 @@ class MainActivity : BridgeActivity() {
 
         nativeBridge = Bridge(this, web)
         web.addJavascriptInterface(nativeBridge, "MK")
+        web.addJavascriptInterface(nativeBridge, "MasKiplayNative")
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == Bridge.REQ_VPN) nativeBridge?.onActivityResult(resultCode)
     }
 
     override fun onDestroy() {

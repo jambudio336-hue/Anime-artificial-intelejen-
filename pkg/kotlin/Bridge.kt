@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Point
 import android.net.Uri
+import android.net.VpnService
 import android.os.Build
 import android.os.StatFs
 import android.os.VibrationEffect
@@ -39,6 +40,10 @@ import java.util.concurrent.TimeUnit
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
  */
 class Bridge(private val activity: Activity, private val web: WebView?) {
+    companion object { const val REQ_VPN = 991 }
+    @Volatile private var pendingVpnHost: String? = null
+    @Volatile private var pendingVpnPort: Int = 53
+
 
     private var tts: TextToSpeech? = null
     private var ttsReady = false
@@ -48,6 +53,72 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     @Volatile private var rootChecked = false
     private var rate = 1.0f
     private var pitch = 0.92f
+
+    // ---------- VPN DNS tunnel ----------
+
+    @JavascriptInterface
+    fun vpnStart(host: String, port: Int): String {
+        val resolver = host.trim().ifBlank { "1.1.1.1" }
+        val dnsPort = port.coerceIn(1, 65535)
+        activity.runOnUiThread {
+            try {
+                val permissionIntent = VpnService.prepare(activity)
+                if (permissionIntent != null) {
+                    pendingVpnHost = resolver
+                    pendingVpnPort = dnsPort
+                    activity.startActivityForResult(permissionIntent, REQ_VPN)
+                } else launchVpn(resolver, dnsPort)
+            } catch (e: Exception) {
+                js("MK_onVPN", JSONObject().put("active", false)
+                    .put("error", e.message ?: "izin VPN gagal").toString())
+            }
+        }
+        return "requesting"
+    }
+
+    fun onActivityResult(resultCode: Int) {
+        val host = pendingVpnHost
+        val port = pendingVpnPort
+        pendingVpnHost = null
+        if (resultCode == Activity.RESULT_OK && host != null) launchVpn(host, port)
+        else js("MK_onVPN", JSONObject().put("active", false)
+            .put("error", "izin VPN ditolak").toString())
+    }
+
+    private fun launchVpn(host: String, port: Int) {
+        try {
+            val intent = Intent(activity, MasKiplayVpnService::class.java)
+                .setAction(MasKiplayVpnService.ACTION_START)
+                .putExtra(MasKiplayVpnService.EXTRA_HOST, host)
+                .putExtra(MasKiplayVpnService.EXTRA_PORT, port)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) activity.startForegroundService(intent)
+            else activity.startService(intent)
+            activity.window.decorView.postDelayed({
+                val active = MasKiplayVpnService.isRunning
+                val payload = JSONObject().put("active", active)
+                if (!active) payload.put("error", "VPN gagal diinisialisasi")
+                js("MK_onVPN", payload.toString())
+            }, 900L)
+        } catch (e: Exception) {
+            js("MK_onVPN", JSONObject().put("active", false)
+                .put("error", e.message ?: "VPN gagal dimulai").toString())
+        }
+    }
+
+    @JavascriptInterface
+    fun vpnStop(): String {
+        activity.runOnUiThread {
+            try {
+                activity.startService(Intent(activity, MasKiplayVpnService::class.java)
+                    .setAction(MasKiplayVpnService.ACTION_STOP))
+            } catch (_: Exception) {}
+            js("MK_onVPN", JSONObject().put("active", false).toString())
+        }
+        return "stopping"
+    }
+
+    @JavascriptInterface
+    fun vpnStatus(): Boolean = MasKiplayVpnService.isRunning
 
     // ---------- utilitas ----------
 
