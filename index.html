@@ -653,7 +653,7 @@ function mark(v){CONN=v;const d=$("#stDot");d.className="dot"+(v===1?" on":v===2
   $("#kStat").textContent=v===1?"terhubung":v===2?"ditolak":"belum terhubung";}
 async function proofreadAI(text, signal){
   const blocks=[];
-  const masked=String(text).replace(/```[\\s\\S]*?```/g, block=>{
+  const masked=String(text).replace(/```[\s\S]*?```/g, block=>{
     const token="MKBLOCKTOKEN"+blocks.length+"END";
     blocks.push({token,block});
     return token;
