@@ -169,6 +169,17 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         try { vpnGateExecutor.shutdownNow() } catch (_: Exception) {}
     }
 
+    fun shutdown() {
+        shutdownVpnGate()
+        try { recognizer?.cancel() } catch (_: Exception) {}
+        try { recognizer?.destroy() } catch (_: Exception) {}
+        recognizer = null
+        try { tts?.stop() } catch (_: Exception) {}
+        try { tts?.shutdown() } catch (_: Exception) {}
+        tts = null
+        pending.clear()
+    }
+
     // ---------- utilitas ----------
 
     private fun js(fn: String, payload: String) {
