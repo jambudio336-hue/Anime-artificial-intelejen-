@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.0.2"
+        default: "9.0.3"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '9.0.2' }}
+      VERSION: ${{ inputs.versi || '9.0.3' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +46,8 @@ jobs:
           cp sw.js www/ 2>/dev/null || true
           cp icon.png www/ 2>/dev/null || true
           cp *.mp4 www/ 2>/dev/null || true
+          test -s www/video.mp4
+          test -s www/Dashboard.mp4
           cp *.png www/ 2>/dev/null || true
           sed -i -E "s/MK · [0-9.]+/MK · ${VERSION}/" www/index.html
           grep -q "MK · ${VERSION}" www/index.html
@@ -69,9 +71,13 @@ jobs:
                   if self.inside: self.js.append(data)
           p=Check(); p.feed(Path("index.html").read_text(encoding="utf-8")); p.close()
           if p.scripts != 1: raise SystemExit(f"Diharapkan 1 script inline, ditemukan {p.scripts}")
-          required={"gate","app","menu","vChat","vJ","vAgent","vVpn","vpnToggle","vpnStatus","inp","sndBtn","jMic","agentGo"}
+          required={"gate","app","menu","backBtn","vChat","vJ","vAgent","vVpn","vpnToggle","vpnStatus","inp","sndBtn","jMic","agentGo"}
           missing=required-p.ids
           if missing: raise SystemExit("Elemen penting hilang: "+", ".join(sorted(missing)))
+          html=Path("index.html").read_text(encoding="utf-8")
+          for token in ("video.mp4","Dashboard.mp4","window.mkBack","backBtn"):
+              if token not in html: raise SystemExit("Komponen wajib hilang: "+token)
+          if "<iframe" in html.lower(): raise SystemExit("Iframe pihak ketiga tidak boleh mendapat native bridge.")
           Path("/tmp/maskiplay-inline.js").write_text("\n".join(p.js),encoding="utf-8")
           print(f"HTML valid secara struktural; {len(p.ids)} ID dan {p.scripts} script ditemukan.")
           PY
@@ -368,6 +374,9 @@ jobs:
           fi
           AAPT=$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -1)
           test -n "$AAPT"
+          BADGING=$("$AAPT" dump badging "$APK")
+          echo "$BADGING" | grep -q "ai.maskiplay.app"
+          echo "$BADGING" | grep -q "launchable-activity"
           "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "KiplayAccessibility"
           "$AAPT" dump xmltree "$APK" AndroidManifest.xml | grep -q "MasKiplayVpnService"
           "$AAPT" dump resources "$APK" | grep -q "kiplay_a11y"
@@ -391,6 +400,8 @@ jobs:
           generate_release_notes: true
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
+
+            Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package pada pipeline release.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 
