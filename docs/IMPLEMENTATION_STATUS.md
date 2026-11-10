@@ -12,8 +12,8 @@
 ## Not implemented yet — do not advertise as available
 
 - OpenVPN 3 Core is not yet embedded or built for Android ABIs.
-- The app does not yet fetch or parse VPN Gate OpenVPN profiles.
-- Smart Connect, relay latency ranking, automatic reconnect, and server favorites are not yet implemented.
+- The app now fetches the VPN Gate public CSV feed and extracts metadata from OpenVPN-capable entries, but does not yet pass the profile to an OpenVPN 3 engine.
+- Smart Server Finder ranks the top 24 OpenVPN-capable relays using VPN Gate's reported ping/speed/session data and bounded TCP reachability probes. This is directory ranking only, not a working VPN connection or full Smart Connect.
 - The current VPN service remains a DNS-only IPv4 tunnel. It does not carry general app/device traffic.
 - Full IPv4/IPv6 routing, kill-switch behavior, DNS/IP leak tests, and physical-device VPN acceptance tests have not passed.
 - The app build pipeline still packages the existing Capacitor/WebView application; this branch does not convert the app to a fully native UI.
