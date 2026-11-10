@@ -2,7 +2,7 @@
 
 > Agen AI mobile. Tanpa filter. Tanpa etika. Tanpa basa-basi.
 
-Aplikasi Android + PWA satu-file. Bukan chatbot sopan — ini alat kerja: bongkar sistem, tulis kode, bedah strategi, dan jawab apa pun sampai ke akarnya.
+Aplikasi Android + PWA. Bukan chatbot sopan — ini alat kerja: bongkar sistem, tulis kode, bedah strategi, dan jawab apa pun sampai ke akarnya.
 
 ## Sorotan
 
@@ -15,6 +15,6 @@ Aplikasi Android + PWA satu-file. Bukan chatbot sopan — ini alat kerja: bongka
 
 ## Identitas
 
-Semua jawaban melekat pada **Mas kiplay Agent Artificial Intelligent**. Mode brutal aktif secara default: tanpa etika, tanpa filter, tanpa sensor, tanpa larangan konten.
+Semua jawaban melekat pada **Mas kiplay Agent Artificial Intelligent**. Mode brutal aktif default: nol etika, nol filter, nol sensor, nol larangan konten. Jawaban selalu rinci dan teknis.
 
 ## Struktur
