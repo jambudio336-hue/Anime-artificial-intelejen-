@@ -21,17 +21,23 @@ class MainActivity : BridgeActivity() {
             mediaPlaybackRequiresUserGesture = false
             allowFileAccess = true
             allowContentAccess = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            userAgentString = "$userAgentString MasKiplay/9.0.1"
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            allowFileAccessFromFileURLs = false
+            allowUniversalAccessFromFileURLs = false
+            userAgentString = "$userAgentString MasKiplay/9.0.2"
         }
 
         web.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 runOnUiThread {
-                    val allowed = request.resources.filter {
+                    // Hanya konten lokal aplikasi yang boleh meminta akses media.
+                    val origin = request.origin
+                    val trustedOrigin = origin.scheme == "https" &&
+                        (origin.host == "localhost" || origin.host == "127.0.0.1")
+                    val allowed = if (trustedOrigin) request.resources.filter {
                         it == PermissionRequest.RESOURCE_AUDIO_CAPTURE ||
-                        it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
-                    }.toTypedArray()
+                            it == PermissionRequest.RESOURCE_VIDEO_CAPTURE
+                    }.toTypedArray() else emptyArray()
                     if (allowed.isNotEmpty()) request.grant(allowed) else request.deny()
                 }
             }

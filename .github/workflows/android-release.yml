@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.0.1"
+        default: "9.0.2"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '9.0.1' }}
+      VERSION: ${{ inputs.versi || '9.0.2' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +49,33 @@ jobs:
           cp *.png www/ 2>/dev/null || true
           sed -i -E "s/MK · [0-9.]+/MK · ${VERSION}/" www/index.html
           grep -q "MK · ${VERSION}" www/index.html
+
+      - name: Validasi HTML dan JavaScript
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Check(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.scripts=0; self.inside=False; self.js=[]; self.ids=set()
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if "id" in a: self.ids.add(a["id"])
+                  if tag == "script": self.scripts += 1; self.inside=True
+              def handle_endtag(self, tag):
+                  if tag == "script": self.inside=False
+              def handle_data(self, data):
+                  if self.inside: self.js.append(data)
+          p=Check(); p.feed(Path("index.html").read_text(encoding="utf-8")); p.close()
+          if p.scripts != 1: raise SystemExit(f"Diharapkan 1 script inline, ditemukan {p.scripts}")
+          required={"gate","app","menu","vChat","vJ","vAgent","vVpn","vpnToggle","vpnStatus","inp","sndBtn","jMic","agentGo"}
+          missing=required-p.ids
+          if missing: raise SystemExit("Elemen penting hilang: "+", ".join(sorted(missing)))
+          Path("/tmp/maskiplay-inline.js").write_text("\n".join(p.js),encoding="utf-8")
+          print(f"HTML valid secara struktural; {len(p.ids)} ID dan {p.scripts} script ditemukan.")
+          PY
+          node --check /tmp/maskiplay-inline.js
 
       - name: Pasang Capacitor
         run: |
@@ -125,6 +152,8 @@ jobs:
           grep -q "KiplayAccessibility" "$D/Bridge.kt"
           grep -q "class KiplayAccessibility" "$D/KiplayAccessibility.kt"
           grep -q "class MasKiplayVpnService" "$D/MasKiplayVpnService.kt"
+          grep -q "fun vpnStart" "$D/Bridge.kt"
+          grep -q "fun vpnStop" "$D/Bridge.kt"
           grep -q "vpnStart" "$D/Bridge.kt"
 
       - name: Tulis resource service dan provider
@@ -204,7 +233,8 @@ jobs:
           application = root.find("application")
           if application is None:
               raise RuntimeError("Elemen <application> tidak ditemukan")
-          application.set(ns + "usesCleartextTraffic", "true")
+          application.set(ns + "usesCleartextTraffic", "false")
+          application.set(ns + "allowBackup", "false")
 
           service = ET.SubElement(application, "service")
           service.set(ns + "name", ".KiplayAccessibility")
