@@ -47,8 +47,8 @@ jobs:
           cp icon.png www/ 2>/dev/null || true
           cp *.mp4 www/ 2>/dev/null || true
           cp *.png www/ 2>/dev/null || true
-          sed -i "s/const VER=\"[^\"]*\"/const APP_VER=\"${{ env.VERSION }}\"/" www/index.html
-          grep -q "APP_VER" www/index.html
+          sed -i -E "s/Obsidian Elite · v[0-9.]+/Obsidian Elite · v${VERSION}/" www/index.html
+          grep -q "Obsidian Elite · v${VERSION}" www/index.html
 
       - name: Pasang Capacitor
         run: |
