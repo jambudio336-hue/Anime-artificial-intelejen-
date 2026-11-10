@@ -618,7 +618,7 @@ function sysP(voice){
   const b=(PER[S.persona]||PER.brutal).p;
   const v=voice?"\n\nMODE SUARA: jawaban dibacakan. Maks 5 kalimat, tanpa markdown, tanpa blok kode.":"\n\nMODE TEKS: detail penuh, markdown penuh.";
   const mem=S.mem.length?"\n\n## MEMORI TENTANG PENGGUNA\n"+S.mem.map(x=>"- "+x).join("\n"):"";
-  return IDENT+"\n\n"+b+v+mem+CTRL+(S.sysEx?"\n\n## TAMBAHAN\n"+S.sysEx:"");
+  const quality="\n\n## KUALITAS JAWABAN WAJIB\nSebelum mengirim jawaban, periksa ulang ejaan, typo, tata bahasa, tanda baca, konsistensi istilah, dan fakta. Gunakan Bahasa Indonesia yang alami sesuai konteks. Jangan mengulang kata atau kalimat tanpa alasan. Pertahankan maksud pengguna. Jangan mengubah isi kode, URL, nama API, identifier, command, atau kutipan literal saat proofreading. Jika tidak yakin, nyatakan ketidakpastian daripada mengarang.";\n  return IDENT+"\n\n"+b+v+quality+mem+CTRL+(S.sysEx?"\n\n## TAMBAHAN\n"+S.sysEx:"");
 }
 
 /* API */
@@ -633,7 +633,7 @@ async function callAI(msgs,cb,sig,model){
     try{
       const r=await fetch(P.b+"/chat/completions",{method:"POST",signal:sig,
         headers:{"Content-Type":"application/json",Authorization:"Bearer "+k,"HTTP-Referer":location.origin,"X-Title":"Mas Kiplay"},
-        body:JSON.stringify({model:model||S.model,messages:msgs,stream:true,temperature:.9,max_tokens:6000})});
+        body:JSON.stringify({model:model||S.model,messages:msgs,stream:true,temperature:.45,max_tokens:6000})});
       if([401,402,403,429].includes(r.status)){last=new Error("kunci "+r.status);if(S.keys.length>1)S.ki=(S.ki+1)%S.keys.length;continue;}
       if(!r.ok){last=new Error("HTTP "+r.status);continue;}
       mark(1);
@@ -925,7 +925,7 @@ async function agentRun(){
   aBusy=false;ab=null;
 }
 
-/* jarvis */
+/* jarvis */\nlet micPurpose = "";
 function waveInit(){const w=$("#wave");for(let i=0;i<15;i++)w.appendChild(el("i"));}
 function setLab(t){$("#jlab").textContent=t;}
 function setState(s){
@@ -983,6 +983,14 @@ window.MK_onSR=function(raw){
     if(o.text==="listening"){setState("lis");$("#jMic").classList.add("hot");setLab("Mendengar…");}
     if(o.text==="end"){setState("");$("#jMic").classList.remove("hot");setLab("Memproses…");}
   }
+  if(o.t==="permission"){
+    if(o.text==="granted"){
+      const n=mk();
+      if(n&&n.srStart){try{const r=await n.srStart();if(String(r).startsWith("err"))toast(String(r).slice(5));}
+        catch(e){toast("Mikrofon: "+(e.message||e));}}
+    } else {setState("");$("#jMic").classList.remove("hot");setLab("Izin mikrofon ditolak");toast("Izinkan mikrofon di Setelan Android.");}
+    return;
+  }
   if(o.t==="partial"){$("#jcap").textContent=o.text;}
   if(o.t==="err"){
     setState("");$("#jMic").classList.remove("hot");setLab("Siap mendengar");
@@ -990,7 +998,9 @@ window.MK_onSR=function(raw){
     if(loopOn&&!busy)setTimeout(()=>{if(loopOn&&!busy)startL();},700);
   }
   if(o.t==="final"&&o.text&&o.text.trim()){
-    $("#jcap").textContent=o.text;TTS.stop();turn(o.text.trim());
+    $("#jcap").textContent=o.text;TTS.stop();
+    if(micPurpose==="chat"){ $("#inp").value=o.text.trim(); send(); }
+    else turn(o.text.trim());
   }
 };
 
@@ -1227,13 +1237,16 @@ $("#pasteBtn").onclick=async()=>{const t=await A("getClip");
 $("#micBtn").onclick=()=>{
   const n=mk();
   if(n&&n.srStart){
-    if(CAPS&&CAPS.mic===false){n.micPerm();toast("Izinkan mikrofon lalu tekan lagi");return;}
-    window.MK_onSR=function(raw){
-      let o;try{o=JSON.parse(raw);}catch(e){return;}
-      if(o.t==="final"&&o.text){$("#inp").value=o.text;send();}
-      if(o.t==="err")toast("Mic: "+o.text);
-    };
-    n.srStart();
+    micPurpose="chat";
+    const startNative=async()=>{try{const r=await n.srStart();if(String(r).startsWith("err")){
+      const msg=String(r).slice(5);
+      if(/izin|permission|record_audio/i.test(msg)){const p=await n.micPerm();if(p==="granted")startNative();}
+      else toast(msg);
+    }}catch(e){toast("Mic: "+(e.message||e));}};
+    const p=n.micPerm?n.micPerm():"granted";
+    if(p==="granted")startNative();
+    else if(p==="asking")toast("Izinkan mikrofon pada dialog Android.");
+    else startNative();
     return;
   }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1241,8 +1254,8 @@ $("#micBtn").onclick=()=>{
   const r=new SR();r.lang="id-ID";
   r.onresult=e=>{let f="";for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)f+=e.results[i][0].transcript;
     if(f.trim()){$("#inp").value=f.trim();send();}};
-  r.onerror=()=>toast("Gagal mendengar");
-  try{r.start();}catch(e){}
+  r.onerror=e=>toast("Mic: "+(e.error||"gagal mendengar"));
+  try{r.start();}catch(e){toast("Gagal memulai mikrofon");}
 };
 $("#newBtn").onclick=()=>{
   if(busy)return toast("Tunggu balasan selesai");
