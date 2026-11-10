@@ -4,7 +4,7 @@
   "private": true,
   "description": "Mas Kiplay Dark Brutal — agent AI Android dengan otomasi perangkat, Jarvis suara, shell root, dan Cyber Lab.",
   "author": "jambudio336-hue",
-  "license": "MIT",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "@capacitor/android": "^6.1.2",
     "@capacitor/core": "^6.1.2"
