@@ -977,7 +977,7 @@ async function startL(){
 }
 function stopL(){const n=mk();if(n&&n.srStop){try{n.srStop();}catch(e){}}try{recog&&recog.abort();}catch(e){}}
 
-window.MK_onSR=function(raw){
+window.MK_onSR=async function(raw){
   let o;try{o=JSON.parse(raw);}catch(e){return;}
   if(o.t==="state"){
     if(o.text==="listening"){setState("lis");$("#jMic").classList.add("hot");setLab("Mendengar…");}
