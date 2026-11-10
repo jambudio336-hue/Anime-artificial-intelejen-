@@ -314,6 +314,14 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="g2"><button class="btn sm pri" id="vpnToggle">Aktifkan VPN</button><button class="btn sm" id="vpnStatus">Periksa status</button></div>
         <div class="mono" id="vpnInfo">Status: Nonaktif</div>
       </div>
+      <div class="cd">
+        <h3>VPN Gate · Smart Server Finder</h3>
+        <p class="sub">Memuat relay OpenVPN publik dari VPN Gate, mengurutkan berdasarkan ping dan kualitas, serta menguji port TCP kandidat. Daftar server bukan status koneksi VPN.</p>
+        <button class="btn sm pri" id="vpnGateRefresh">Muat server &amp; ukur kualitas</button>
+        <div class="mono" id="vpnGateInfo">Belum memuat daftar server.</div>
+        <div id="vpnGateList"></div>
+        <p class="sub">Relay dikelola sukarelawan. Periksa kebijakan log masing-masing operator. Mesin OpenVPN 3 belum terpasang, jadi server di sini belum bisa dikoneksikan dari aplikasi.</p>
+      </div>
     </div></section>
 
     <section class="v" id="vHist"><div class="sc">
@@ -1346,6 +1354,35 @@ function paintVpn(){
   if(info)info.textContent="Status: "+(vpnActive?"Aktif":"Nonaktif")+" · DNS resolver "+($("#vpnResolver")?.value||"1.1.1.1");
   if(btn)btn.textContent=vpnActive?"Matikan VPN":"Aktifkan VPN";
 }
+window.MK_onVPNGateServers=function(raw){
+  let data=raw;
+  if(typeof raw==="string"){try{data=JSON.parse(raw)}catch(e){data={ok:false,error:"Respons server tidak valid"}}}
+  const info=$("#vpnGateInfo"),list=$("#vpnGateList"),btn=$("#vpnGateRefresh");
+  if(!info||!list)return;
+  list.replaceChildren();
+  if(!data||!data.ok){info.textContent="Gagal memuat server: "+((data&&data.error)||"tidak diketahui");if(btn)btn.disabled=false;return;}
+  const servers=Array.isArray(data.servers)?data.servers:[];
+  info.textContent="Ditemukan "+servers.length+" relay · diperbarui "+new Date(data.updatedAt||Date.now()).toLocaleTimeString("id-ID");
+  if(!servers.length){list.textContent="Belum ada relay yang menyediakan profil OpenVPN valid.";if(btn)btn.disabled=false;return;}
+  servers.forEach((server,index)=>{
+    const card=document.createElement("div");card.className="cd";
+    const title=document.createElement("strong");
+    title.textContent=(index===0?"★ Rekomendasi · ":"")+((server.country||"Lokasi tidak diketahui")+" ("+(server.countryCode||"--")+")");
+    const details=document.createElement("div");details.className="mono";
+    const latency=server.probeMs!==null&&server.probeMs!==undefined
+      ? server.probeMs+" ms TCP probe"
+      : (Number(server.reportedPingMs)>=0?server.reportedPingMs+" ms ping laporan":"ping tidak tersedia");
+    const speed=Number(server.speedMbps||0);
+    details.textContent=server.ip+":"+server.port+" · "+server.transport+" · "+latency+
+      " · "+(speed>0?speed.toFixed(1)+" Mbps":"throughput n/a")+
+      " · "+Number(server.sessions||0)+" sesi";
+    const operator=document.createElement("div");operator.className="sub";
+    operator.textContent="Operator: "+(server.operator||"tidak dicantumkan")+
+      " · kode log: "+(server.logType||"tidak dicantumkan");
+    card.append(title,details,operator);list.append(card);
+  });
+  if(btn)btn.disabled=false;
+};
 window.MK_onVPN=function(raw){
   let data=raw;
   if(typeof raw==="string"){try{data=JSON.parse(raw)}catch(e){data={active:false,error:raw}}}
@@ -1353,6 +1390,14 @@ window.MK_onVPN=function(raw){
   paintVpn();
   if(data&&data.error)toast("VPN: "+data.error);
   else toast(vpnActive?"DNS VPN aktif":"DNS VPN nonaktif");
+};
+$("#vpnGateRefresh").onclick=()=>{
+  const n=mk();
+  if(!n||!n.vpnGateRefresh){toast("Pencarian server tersedia di APK Android");return;}
+  $("#vpnGateRefresh").disabled=true;
+  $("#vpnGateInfo").textContent="Mengambil daftar resmi VPN Gate dan menguji kandidat…";
+  const result=n.vpnGateRefresh();
+  if(String(result).startsWith("err")){$("#vpnGateInfo").textContent=String(result);$("#vpnGateRefresh").disabled=false;}
 };
 $("#vpnToggle").onclick=()=>{
   const n=mk();
