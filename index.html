@@ -651,6 +651,22 @@ async function callAI(msgs,cb,sig,model){
 }
 function mark(v){CONN=v;const d=$("#stDot");d.className="dot"+(v===1?" on":v===2?" no":"");
   $("#kStat").textContent=v===1?"terhubung":v===2?"ditolak":"belum terhubung";}
+async function proofreadAI(text, signal){
+  const blocks=[];
+  const masked=String(text).replace(/```[\\s\\S]*?```/g, block=>{
+    const token="MKBLOCKTOKEN"+blocks.length+"END";
+    blocks.push({token,block});
+    return token;
+  });
+  if(!masked.trim())return text;
+  const instruction="Kamu editor bahasa profesional. Koreksi typo, ejaan, tata bahasa, tanda baca, dan kalimat janggal pada teks berikut. Pertahankan makna, fakta, struktur Markdown, urutan, nada, dan panjang sedekat mungkin. Jangan menambah fakta, klaim, atau penjelasan. Jangan mengubah placeholder MKBLOCKTOKEN...END. Jangan menulis komentar atau pengantar; keluarkan hanya teks hasil koreksi.";
+  const corrected=await callAI([{role:"system",content:instruction},{role:"user",content:masked}],null,signal);
+  if(!corrected.trim()||blocks.some(x=>!corrected.includes(x.token)))return text;
+  let output=corrected.trim();
+  for(const item of blocks)output=output.replace(item.token,item.block);
+  return output||text;
+}
+
 async function ping(){
   if(!keyNow()){mark(0);return;}
   try{const r=await fetch(prov().b+"/key",{headers:{Authorization:"Bearer "+keyNow()}});mark(r.ok?1:2);}
@@ -776,7 +792,10 @@ async function send(){
       if(first){first=false;bd.innerHTML="";tp=typer(bd);}
       tp.push(d);
     },ab.signal);
-    const full=await tp.done();
+    const streamed=await tp.done();
+    let full=streamed;
+    try{full=await proofreadAI(streamed,ab.signal);}catch(e){if(e.name==="AbortError")throw e;}
+    bd.innerHTML=md(full);
     active.msgs.push({role:"assistant",content:full});saveChats();
     if(S.auto)TTS.push(full);
     if(S.exec&&/```run/.test(full))await runActs(full);
