@@ -216,7 +216,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="cmp">
         <button class="ib" id="pasteBtn">📋</button>
         <button class="ib" id="micBtn">🎙</button>
-        <textarea id="inp" rows="1" placeholder="Tanya apa saja…"></textarea>
+        <textarea id="inp" spellcheck="true" autocapitalize="sentences" autocomplete="on" rows="1" placeholder="Tanya apa saja…"></textarea>
         <button id="sndBtn">➤</button>
       </div>
     </section>
@@ -935,6 +935,7 @@ function setState(s){
 
 async function startL(){
   if(busy||aBusy)return;
+  micPurpose = "jarvis";
   const n=mk();
   // Jangan memakai CAPS.mic sebagai sumber kebenaran: nilainya bisa stale
   // setelah pengguna mengubah izin dari Settings Android.
