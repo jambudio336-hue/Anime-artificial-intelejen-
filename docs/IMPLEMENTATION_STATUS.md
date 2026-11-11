@@ -9,6 +9,17 @@
 - Chat answers receive a second proofreading pass before being saved and rendered. Fenced code/action blocks are masked and restored so code, URLs, commands, and machine-readable blocks are not intentionally rewritten.
 - Chat composer enables the platform spellchecker for user input.
 
+
+## Additional changes in the OpenVPN 3 preparation branch
+
+- WebCheck and OSINT now open in a native in-app dialog WebView instead of launching the external browser.
+- Google Dork result actions open Google results in the same isolated in-app browser.
+- The in-app browser accepts HTTPS URLs only, blocks mixed content and invalid TLS certificates, disables file/content access and pop-up windows, and does not expose the app's JavaScript/native bridge to remote pages.
+- Jarvis speech recognition now creates a fresh Android `SpeechRecognizer` per listening session, tags callbacks with a generation counter, ignores stale callbacks, and cancels/destroys the recognizer when stopped or when the bridge shuts down.
+- CI now checks that WebCheck, OSINT, and dork actions are wired to the isolated in-app browser.
+
+These changes have been committed to `feat/openvpn3-core-android`. They still require the GitHub Actions checks and physical-device verification before a public release.
+
 ## Not implemented yet — do not advertise as available
 
 - OpenVPN 3 Core is not yet embedded or built for Android ABIs.
