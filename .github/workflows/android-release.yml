@@ -403,11 +403,11 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
-Status fitur jaringan: VPN Gate server directory dan pengukuran kandidat tersedia. OpenVPN 3 Core/full-tunnel IPv4+IPv6 belum terintegrasi; layanan yang tersedia saat ini hanya DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
+            Status fitur jaringan: VPN Gate server directory dan pengukuran kandidat tersedia. OpenVPN 3 Core/full-tunnel IPv4+IPv6 belum terintegrasi; layanan yang tersedia saat ini hanya DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
 
             Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package serta sertifikat penandatanganan pada pipeline release.
 
-Catatan transparansi: katalog VPN Gate hanya melakukan penemuan server. OpenVPN 3 dan full-tunnel belum tersedia pada versi ini; layanan VPN saat ini adalah DNS-only IPv4.
+            Catatan transparansi: katalog VPN Gate hanya melakukan penemuan server. OpenVPN 3 dan full-tunnel belum tersedia pada versi ini; layanan VPN saat ini adalah DNS-only IPv4.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 
