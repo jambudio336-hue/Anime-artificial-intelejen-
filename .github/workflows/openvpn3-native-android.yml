@@ -59,13 +59,13 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --manifest-path native/openvpn3/Cargo.toml --release --target aarch64-linux-android
-          test -s target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
-          file target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
-          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h target/aarch64-linux-android/release/libmaskiplay_openvpn3.so | grep -E 'AArch64|Machine'
+          test -s native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          file native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so | grep -E 'AArch64|Machine'
 
       - name: Upload native core artifact
         uses: actions/upload-artifact@v4
         with:
           name: maskiplay-openvpn3-arm64
-          path: target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          path: native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
           if-no-files-found: error
