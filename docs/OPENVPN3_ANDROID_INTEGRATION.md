@@ -18,13 +18,21 @@ Upstream references:
 
 ## Current repository status
 
-This document records the implementation decision and acceptance contract. It
-does **not** mean OpenVPN 3 has already been linked into the APK.
+Implementation stage (current branch):
 
-The currently shipped `MasKiplayVpnService` is a DNS-only IPv4 tunnel. VPN Gate
-server discovery is only a catalogue operation. Neither feature is a full
-OpenVPN connection. Keep the UI honest until the runtime acceptance gate below
-passes.
+- A source-built Android arm64 native target now uses the pinned
+  `networks-rs/openvpn-connect-rs` binding and its pinned OpenVPN 3 Core /
+  Asio submodules.
+- A JNI capability probe and guarded Kotlin loader are present. The APK build
+  workflow is being updated to package the native library.
+- This is **not yet a working OpenVPN session**: no Android `TunBuilder`
+  adapter, `VpnService.protect(fd)` callback, session lifecycle, or live
+  profile-to-Core connection is wired.
+
+The currently usable `MasKiplayVpnService` remains a DNS-only IPv4 tunnel.
+VPN Gate server discovery remains a catalogue operation. Do not label the
+native library probe or DNS Shield as a full VPN. Keep the UI honest until the
+runtime acceptance gate below passes.
 
 ## Target architecture
 
