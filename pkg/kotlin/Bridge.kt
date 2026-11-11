@@ -192,6 +192,9 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         browser.loadUrl(url)
     }
 
+    @JavascriptInterface
+    fun openVpn3CoreStatus(): String = OpenVpn3Native.status()
+
     // ---------- VPN DNS tunnel ----------
 
     @JavascriptInterface
