@@ -39,7 +39,9 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: platform-tools, ndk;27.2.12479018
+          packages: |
+            platform-tools
+            ndk;27.2.12479018
 
 
       - name: Setup Rust toolchain for OpenVPN 3
@@ -54,7 +56,7 @@ jobs:
 
       - name: Fetch pinned OpenVPN 3 sources and build Android arm64 library
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
           ANDROID_PLATFORM: android-24
           CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
           CC_aarch64_linux_android: ${{ env.ANDROID_HOME }}/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
