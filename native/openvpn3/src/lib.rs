@@ -5,7 +5,7 @@
 //! only a capability probe; VPN connection remains disabled until the Android
 //! TunBuilder and VpnService socket-protection callbacks are implemented.
 
-use jni::objects::JObject;
+use jni::objects::{JClass, JObject};
 use jni::sys::{jboolean, jstring, JNI_FALSE, JNI_TRUE};
 use jni::JNIEnv;
 
