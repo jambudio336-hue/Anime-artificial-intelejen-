@@ -282,11 +282,11 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     </div></section>
 
     <section class="v" id="vWCheck"><div class="sc">
-      <div class="cd"><h3>Web Check</h3><p class="sub">Analisis konfigurasi dan permukaan web melalui layanan eksternal. Situs dibuka di browser terpisah agar halaman pihak ketiga tidak mendapat akses ke native bridge aplikasi.</p><div class="mono">Layanan: web-check.xyz\nMode: browser eksternal\nTarget: masukkan URL di layanan</div><button class="btn pri" id="wOpen">Buka Web Check di browser</button></div>
+      <div class="cd"><h3>Web Check · In-App</h3><p class="sub">Buka layanan pemeriksaan situs langsung di dalam Mas Kiplay. Browser internal terisolasi, tanpa akses ke native bridge aplikasi.</p><input class="f" id="wTarget" value="https://web-check.xyz/" placeholder="https://domain-milikmu.com" autocapitalize="off" spellcheck="false"><button class="btn pri" id="wOpen">Buka Web Check di aplikasi</button><div class="mono">HTTPS only · JavaScript aktif · tautan tetap di dalam aplikasi · sertifikat TLS wajib valid</div></div>
     </div></section>
 
     <section class="v" id="vOsint"><div class="sc">
-      <div class="cd"><h3>OSINT</h3><p class="sub">Toolkit open-source intelligence. Layanan dibuka di browser terpisah untuk menjaga isolasi WebView dan native bridge.</p><div class="mono">Layanan: osint4all.com/tool\nMode: browser eksternal</div><button class="btn pri" id="oOpen">Buka OSINT di browser</button></div>
+      <div class="cd"><h3>OSINT · In-App</h3><p class="sub">Akses toolkit OSINT melalui browser internal Mas Kiplay. Gunakan hanya untuk riset sumber terbuka yang sah dan target yang memang boleh kamu analisis.</p><input class="f" id="oTarget" value="https://osint4all.com/tool/" placeholder="https://layanan-osint.example" autocapitalize="off" spellcheck="false"><button class="btn pri" id="oOpen">Buka OSINT di aplikasi</button><div class="mono">HTTPS only · browser terisolasi · tidak menerima akses native bridge</div></div>
     </div></section>
 
     <section class="v" id="vCyber"><div class="sc">
@@ -1096,7 +1096,7 @@ function dorks(){
     const g=el("div","g2");
     const a=el("button","btn sm");a.textContent="Salin";a.onclick=()=>cp(qq);
     const b=el("button","btn sm pri");b.textContent="Buka Google";
-    b.onclick=()=>{location.href="https://www.google.com/search?q="+encodeURIComponent(qq)+"&num=50";};
+    b.onclick=async()=>{const u="https://www.google.com/search?q="+encodeURIComponent(qq)+"&num=50";const r=await A("openInAppBrowser",u,"Google Dork");if(r.startsWith("err:"))toast(r);};
     g.append(a,b);c.appendChild(g);box.appendChild(c);
   });
   toast(DK.length+" dork siap");
@@ -1318,8 +1318,8 @@ $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopO
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
 $("#dBuild").onclick=dorks;
-$("#wOpen").onclick=async()=>{const r=await A("openUrl","https://web-check.xyz/");toast(r.startsWith("err:")?r:"Web Check dibuka di browser");};
-$("#oOpen").onclick=async()=>{const r=await A("openUrl","https://osint4all.com/tool/");toast(r.startsWith("err:")?r:"OSINT dibuka di browser");};
+$("#wOpen").onclick=async()=>{const u=$("#wTarget").value.trim()||"https://web-check.xyz/";const r=await A("openInAppBrowser",u,"Web Check");toast(r.startsWith("err:")?r:"Web Check dibuka di dalam Mas Kiplay");};
+$("#oOpen").onclick=async()=>{const u=$("#oTarget").value.trim()||"https://osint4all.com/tool/";const r=await A("openInAppBrowser",u,"OSINT");toast(r.startsWith("err:")?r:"OSINT dibuka di dalam Mas Kiplay");};
 
 /* boot */
 (function boot(){
