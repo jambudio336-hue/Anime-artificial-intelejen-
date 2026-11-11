@@ -140,7 +140,7 @@ jobs:
               raise SystemExit("VPN UI must disclose DNS-only behavior")
           if '.addRoute(DNS_ADDRESS, 32)' not in vpn:
               raise SystemExit("Expected DNS-only route is missing")
-          if "OpenVPN 3 Core belum" not in ui:
+          if "Mesin OpenVPN 3 belum terpasang" not in ui:
               raise SystemExit("VPN UI must disclose OpenVPN 3 is not integrated")
           if "does **not** mean OpenVPN 3 has already been linked" not in docs:
               raise SystemExit("OpenVPN 3 implementation status must remain explicit")
