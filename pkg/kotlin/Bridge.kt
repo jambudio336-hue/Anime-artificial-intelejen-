@@ -1,5 +1,7 @@
 package ai.maskiplay.app
 
+import android.annotation.SuppressLint
+
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
 import android.widget.Toast
@@ -93,6 +95,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.rgb(7, 9, 13))
         }
+        var dialogRef: AlertDialog? = null
         val toolbar = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -165,7 +168,6 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         root.addView(progress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3))
         root.addView(browser, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
-        var dialogRef: AlertDialog? = null
         val dialog = AlertDialog.Builder(activity).setView(root).create()
         dialogRef = dialog
         dialog.setOnKeyListener { _, keyCode, event ->
