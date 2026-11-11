@@ -1,0 +1,13 @@
+[package]
+name = "maskiplay-openvpn3"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "maskiplay_openvpn3"
+crate-type = ["cdylib"]
+
+[dependencies]
+openvpn-connect = { path = "../openvpn-connect-rs/openvpn-connect", default-features = false, features = ["vendor"] }
+jni = "0.21.1"
