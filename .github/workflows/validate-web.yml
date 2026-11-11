@@ -6,6 +6,10 @@ on:
   push:
     branches: [feature/**, feat/**]
 
+concurrency:
+  group: maskiplay-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   syntax:
     runs-on: ubuntu-latest
