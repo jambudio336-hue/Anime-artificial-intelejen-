@@ -2,6 +2,22 @@ package ai.maskiplay.app
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
+import android.widget.Toast
+import android.widget.TextView
+import android.widget.ProgressBar
+import android.widget.LinearLayout
+import android.webkit.SslErrorHandler
+import android.webkit.WebViewClient
+import android.webkit.WebSettings
+import android.webkit.WebResourceRequest
+import android.webkit.WebChromeClient
+import android.view.ViewGroup
+import android.view.View
+import android.view.KeyEvent
+import android.view.Gravity
+import android.net.http.SslError
+import android.graphics.Color
+import android.app.AlertDialog
 import android.app.ActivityManager
 import android.app.WallpaperManager
 import android.content.ClipData
@@ -55,6 +71,122 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     private var rate = 1.0f
     private var pitch = 0.92f
     private val vpnGateExecutor = Executors.newSingleThreadExecutor()
+
+    // ---------- browser internal terisolasi ----------
+
+    @JavascriptInterface
+    fun openInAppBrowser(rawUrl: String, pageTitle: String): String {
+        val uri = try { Uri.parse(rawUrl.trim()) } catch (_: Exception) { null }
+        if (uri == null || uri.scheme?.lowercase() != "https" || uri.host.isNullOrBlank()) {
+            return "err: hanya URL HTTPS yang diizinkan"
+        }
+        activity.runOnUiThread {
+            try { showInAppBrowser(uri.toString(), pageTitle.take(64).ifBlank { "Web Tool" }) }
+            catch (e: Exception) { Toast.makeText(activity, "Browser internal: ${e.message}", Toast.LENGTH_LONG).show() }
+        }
+        return "opening"
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun showInAppBrowser(url: String, pageTitle: String) {
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.rgb(7, 9, 13))
+        }
+        val toolbar = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(14, 10, 14, 10)
+        }
+        val title = TextView(activity).apply {
+            text = pageTitle
+            setTextColor(Color.WHITE)
+            textSize = 16f
+            maxLines = 1
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val close = TextView(activity).apply {
+            text = "TUTUP"
+            setTextColor(Color.rgb(255, 90, 100))
+            textSize = 12f
+            setPadding(14, 8, 4, 8)
+            isClickable = true
+            setOnClickListener { dialogRef?.dismiss() }
+        }
+        toolbar.addView(title)
+        toolbar.addView(close)
+        val progress = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 100
+            visibility = View.VISIBLE
+        }
+        val browser = WebView(activity).apply {
+            setBackgroundColor(Color.rgb(7, 9, 13))
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                databaseEnabled = false
+                allowFileAccess = false
+                allowContentAccess = false
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
+                mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                cacheMode = WebSettings.LOAD_DEFAULT
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
+            }
+            CookieManager.getInstance().setAcceptCookie(true)
+            webChromeClient = object : WebChromeClient() {
+                override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                    progress.progress = newProgress
+                    progress.visibility = if (newProgress >= 100) View.GONE else View.VISIBLE
+                }
+                override fun onReceivedTitle(view: WebView?, page: String?) {
+                    if (!page.isNullOrBlank()) title.text = page.take(64)
+                }
+            }
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                    return request.url.scheme?.lowercase() != "https"
+                }
+                override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: android.graphics.Bitmap?) {
+                    progress.visibility = View.VISIBLE
+                    progress.progress = 0
+                }
+                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler, error: SslError) {
+                    handler.cancel()
+                    title.text = "Sertifikat TLS tidak valid"
+                    Toast.makeText(activity, "Koneksi HTTPS ditolak karena sertifikat tidak valid", Toast.LENGTH_LONG).show()
+                }
+            }
+            setDownloadListener { _, _, _, _, _ ->
+                Toast.makeText(activity, "Unduhan web dinonaktifkan di browser internal", Toast.LENGTH_SHORT).show()
+            }
+        }
+        root.addView(toolbar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root.addView(progress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3))
+        root.addView(browser, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+
+        var dialogRef: AlertDialog? = null
+        val dialog = AlertDialog.Builder(activity).setView(root).create()
+        dialogRef = dialog
+        dialog.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                if (browser.canGoBack()) browser.goBack() else dialog.dismiss()
+                true
+            } else false
+        }
+        dialog.setOnDismissListener {
+            browser.stopLoading()
+            browser.loadUrl("about:blank")
+            browser.removeAllViews()
+            browser.destroy()
+        }
+        dialog.show()
+        dialog.window?.setLayout(
+            (activity.resources.displayMetrics.widthPixels * 0.98f).toInt(),
+            (activity.resources.displayMetrics.heightPixels * 0.92f).toInt()
+        )
+        browser.loadUrl(url)
+    }
 
     // ---------- VPN DNS tunnel ----------
 
