@@ -67,6 +67,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private var recognizer: SpeechRecognizer? = null
+    @Volatile private var recognitionGeneration: Long = 0L
     private val pending = ArrayDeque<Pair<String, String>>()
     @Volatile private var lastRoot = false
     @Volatile private var rootChecked = false
@@ -305,6 +306,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     fun shutdown() {
         shutdownVpnGate()
+        recognitionGeneration++
         try { recognizer?.cancel() } catch (_: Exception) {}
         try { recognizer?.destroy() } catch (_: Exception) {}
         recognizer = null
@@ -544,56 +546,79 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         if (!SpeechRecognizer.isRecognitionAvailable(activity)) return "err: pengenal suara tidak tersedia"
         if (!hasMic()) return "err: izin mikrofon belum diberikan"
         activity.runOnUiThread {
+            val session = ++recognitionGeneration
             try {
-                if (recognizer == null) {
-                    recognizer = SpeechRecognizer.createSpeechRecognizer(activity)
-                    recognizer?.setRecognitionListener(object : RecognitionListener {
-                        override fun onReadyForSpeech(params: android.os.Bundle?) { emit("state", "listening") }
-                        override fun onBeginningOfSpeech() {}
-                        override fun onRmsChanged(rms: Float) {}
-                        override fun onBufferReceived(buffer: ByteArray?) {}
-                        override fun onEndOfSpeech() { emit("state", "end") }
-                        override fun onError(error: Int) {
-                            val m = when (error) {
-                                SpeechRecognizer.ERROR_NO_MATCH -> "tidak jelas"
-                                SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "diam"
-                                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "izin ditolak"
-                                SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "jaringan"
-                                SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "sibuk"
-                                else -> "kode $error"
-                            }
-                            emit("err", m)
+                // Satu instance per sesi mencegah callback sesi lama masuk ke Jarvis baru.
+                try { recognizer?.cancel() } catch (_: Exception) {}
+                try { recognizer?.destroy() } catch (_: Exception) {}
+                val current = SpeechRecognizer.createSpeechRecognizer(activity)
+                recognizer = current
+                current.setRecognitionListener(object : RecognitionListener {
+                    private fun isCurrent(): Boolean = session == recognitionGeneration
+
+                    override fun onReadyForSpeech(params: android.os.Bundle?) {
+                        if (isCurrent()) emit("state", "listening")
+                    }
+                    override fun onBeginningOfSpeech() {}
+                    override fun onRmsChanged(rms: Float) {}
+                    override fun onBufferReceived(buffer: ByteArray?) {}
+                    override fun onEndOfSpeech() {
+                        if (isCurrent()) emit("state", "end")
+                    }
+                    override fun onError(error: Int) {
+                        if (!isCurrent()) return
+                        val message = when (error) {
+                            SpeechRecognizer.ERROR_NO_MATCH -> "tidak jelas"
+                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "diam"
+                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "izin ditolak"
+                            SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "jaringan"
+                            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "sibuk"
+                            else -> "kode $error"
                         }
-                        override fun onResults(results: android.os.Bundle?) {
-                            val t = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                                ?.firstOrNull().orEmpty()
-                            emit("final", t)
-                        }
-                        override fun onPartialResults(partial: android.os.Bundle?) {
-                            val t = partial?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                                ?.firstOrNull().orEmpty()
-                            if (t.isNotBlank()) emit("partial", t)
-                        }
-                        override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
-                    })
-                }
-                val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        emit("err", message)
+                    }
+                    override fun onResults(results: android.os.Bundle?) {
+                        if (!isCurrent()) return
+                        val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            ?.firstOrNull().orEmpty()
+                        if (text.isNotBlank()) emit("final", text)
+                        else emit("err", "tidak jelas")
+                    }
+                    override fun onPartialResults(partial: android.os.Bundle?) {
+                        if (!isCurrent()) return
+                        val text = partial?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            ?.firstOrNull().orEmpty()
+                        if (text.isNotBlank()) emit("partial", text)
+                    }
+                    override fun onEvent(eventType: Int, params: android.os.Bundle?) {}
+                })
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID")
                     putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                     putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
                 }
-                recognizer?.cancel()
-                recognizer?.startListening(i)
-            } catch (e: Exception) { emit("err", e.message ?: "gagal") }
+                current.startListening(intent)
+            } catch (e: Exception) {
+                if (session == recognitionGeneration) {
+                    recognitionGeneration++
+                    emit("err", e.message ?: "gagal memulai pengenalan suara")
+                }
+            }
         }
-        return "ok"
+        return "starting"
     }
 
     @JavascriptInterface
     fun srStop(): String {
-        activity.runOnUiThread { try { recognizer?.stopListening() } catch (_: Exception) {} }
-        return "ok"
+        activity.runOnUiThread {
+            recognitionGeneration++
+            try { recognizer?.cancel() } catch (_: Exception) {}
+            try { recognizer?.destroy() } catch (_: Exception) {}
+            recognizer = null
+            emit("state", "stopped")
+        }
+        return "stopping"
     }
 
     // ---------- suara keluar ----------
