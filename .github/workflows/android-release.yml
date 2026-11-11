@@ -14,9 +14,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: maskiplay-android-release
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       VERSION: ${{ inputs.versi || '9.1.0' }}
 
@@ -94,9 +99,9 @@ jobs:
         run: |
           set -euo pipefail
           test -s icon.png
-          sudo apt-get update
-          sudo apt-get install -y python3-pil
-          /usr/bin/python3 - <<'PY'
+          python3 -m venv "$RUNNER_TEMP/pillow-venv"
+          "$RUNNER_TEMP/pillow-venv/bin/pip" install --disable-pip-version-check --no-cache-dir Pillow
+          "$RUNNER_TEMP/pillow-venv/bin/python" - <<'PY'
           from pathlib import Path
           from PIL import Image, ImageOps
 
