@@ -3,7 +3,8 @@ name: Android Debug Build
 on:
   push:
     branches:
-      - feature/vpngate-openvpn3
+      - feature/**
+      - feat/**
   pull_request:
     branches:
       - main
@@ -126,6 +127,25 @@ jobs:
           PY
           test -s "$D/VpnGateRepository.kt"
           grep -q "fun vpnGateRefresh" "$D/Bridge.kt"
+
+
+      - name: Validate DNS-only VPN truthfulness
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          ui = Path("index.html").read_text(encoding="utf-8")
+          vpn = Path("pkg/kotlin/MasKiplayVpnService.kt").read_text(encoding="utf-8")
+          docs = Path("docs/OPENVPN3_ANDROID_INTEGRATION.md").read_text(encoding="utf-8")
+          if "Tidak mengalihkan seluruh trafik perangkat" not in ui:
+              raise SystemExit("VPN UI must disclose DNS-only behavior")
+          if '.addRoute(DNS_ADDRESS, 32)' not in vpn:
+              raise SystemExit("Expected DNS-only route is missing")
+          if "OpenVPN 3 Core belum" not in ui:
+              raise SystemExit("VPN UI must disclose OpenVPN 3 is not integrated")
+          if "does **not** mean OpenVPN 3 has already been linked" not in docs:
+              raise SystemExit("OpenVPN 3 implementation status must remain explicit")
+          print("DNS-only VPN status disclosure checks passed.")
+          PY
 
       - name: Build debug APK
         working-directory: android
