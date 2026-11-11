@@ -39,10 +39,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: |
-            platform-tools
-            ndk;27.2.12479018
+          packages: platform-tools
 
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.2.12479018"
 
       - name: Setup Rust toolchain for OpenVPN 3
         uses: dtolnay/rust-toolchain@stable
