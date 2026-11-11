@@ -38,6 +38,8 @@ jobs:
           from pathlib import Path
           html = Path("index.html").read_text(encoding="utf-8")
           bridge = Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8")
+          native = Path("pkg/kotlin/OpenVpn3Native.kt").read_text(encoding="utf-8")
+          rust = Path("native/openvpn3/src/lib.rs").read_text(encoding="utf-8")
           required_html = [
               'id="wTarget"', 'id="oTarget"',
               'A("openInAppBrowser",u,"Web Check")',
@@ -55,5 +57,11 @@ jobs:
               raise SystemExit("Remote browser must not receive a JavaScript native bridge")
           if 'location.href="https://www.google.com/search?' in html:
               raise SystemExit("Dorking must not navigate away from the app")
+          if 'id="vpnCoreCheck"' not in html or 'fun openVpn3CoreStatus()' not in bridge:
+              raise SystemExit("OpenVPN 3 Core diagnostic UI/bridge missing")
+          if "System.loadLibrary(\"maskiplay_openvpn3\")" not in native:
+              raise SystemExit("OpenVPN 3 JNI library loader missing")
+          if "Java_ai_maskiplay_app_OpenVpn3Native_nativeCoreReady" not in rust:
+              raise SystemExit("OpenVPN 3 JNI native probe missing")
           print("In-app WebCheck, OSINT, dork browser wiring and isolation checks passed.")
           PY
