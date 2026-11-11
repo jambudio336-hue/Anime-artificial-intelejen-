@@ -71,7 +71,7 @@ jobs:
           git -C native/openvpn-connect-rs checkout 98fcf3ba0abfddb9f2458daace5ab2182052054b
           git -C native/openvpn-connect-rs submodule update --init --recursive
           cargo build --manifest-path native/openvpn3/Cargo.toml --release --target aarch64-linux-android
-          test -s target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          test -s native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
 
       - name: Install web dependencies and create Capacitor Android project
         run: |
@@ -99,7 +99,7 @@ jobs:
           cp pkg/kotlin/VpnGateRepository.kt "$D/VpnGateRepository.kt"
           cp pkg/kotlin/OpenVpn3Native.kt "$D/OpenVpn3Native.kt"
           mkdir -p android/app/src/main/jniLibs/arm64-v8a
-          cp target/aarch64-linux-android/release/libmaskiplay_openvpn3.so android/app/src/main/jniLibs/arm64-v8a/
+          cp native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so android/app/src/main/jniLibs/arm64-v8a/
           python3 - <<'PY'
           from pathlib import Path
           import re
