@@ -31,3 +31,29 @@ jobs:
           print(f"Memeriksa inline JavaScript ({len(script)} karakter)")
           PY
           node --check /tmp/app-inline.js
+
+      - name: Validate in-app security tools wiring
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path("index.html").read_text(encoding="utf-8")
+          bridge = Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8")
+          required_html = [
+              'id="wTarget"', 'id="oTarget"',
+              'A("openInAppBrowser",u,"Web Check")',
+              'A("openInAppBrowser",u,"OSINT")',
+              'A("openInAppBrowser",u,"Google Dork")',
+          ]
+          for item in required_html:
+              if item not in html:
+                  raise SystemExit("Missing in-app tool wiring: " + item)
+          if "fun openInAppBrowser(rawUrl: String, pageTitle: String)" not in bridge:
+              raise SystemExit("Native in-app browser bridge missing")
+          if "WebViewClient()" not in bridge or "MIXED_CONTENT_NEVER_ALLOW" not in bridge:
+              raise SystemExit("Isolated browser security configuration missing")
+          if "addJavascriptInterface" in bridge[bridge.find("private fun showInAppBrowser"):bridge.find("// ---------- VPN DNS tunnel")]:
+              raise SystemExit("Remote browser must not receive a JavaScript native bridge")
+          if 'location.href="https://www.google.com/search?' in html:
+              raise SystemExit("Dorking must not navigate away from the app")
+          print("In-app WebCheck, OSINT, dork browser wiring and isolation checks passed.")
+          PY
