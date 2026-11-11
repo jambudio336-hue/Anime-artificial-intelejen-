@@ -13,6 +13,7 @@ import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import android.webkit.WebResourceRequest
 import android.webkit.WebChromeClient
+import android.webkit.CookieManager
 import android.view.ViewGroup
 import android.view.View
 import android.view.KeyEvent
