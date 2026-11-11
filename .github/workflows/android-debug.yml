@@ -182,7 +182,7 @@ jobs:
               raise SystemExit("Expected DNS-only route is missing")
           if "Core native yang terpasang belum berarti sesi VPN aktif" not in ui:
               raise SystemExit("VPN UI must disclose OpenVPN 3 is not integrated")
-          if "does **not** mean OpenVPN 3 has already been linked" not in docs:
+          if "not yet a working OpenVPN session" not in docs:
               raise SystemExit("OpenVPN 3 implementation status must remain explicit")
           print("DNS-only VPN status disclosure checks passed.")
           PY
