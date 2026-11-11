@@ -320,7 +320,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <button class="btn sm pri" id="vpnGateRefresh">Muat server &amp; ukur kualitas</button>
         <div class="mono" id="vpnGateInfo">Belum memuat daftar server.</div>
         <div id="vpnGateList"></div>
-        <p class="sub">Relay dikelola sukarelawan. Periksa kebijakan log masing-masing operator. Mesin OpenVPN 3 belum terpasang, jadi server di sini belum bisa dikoneksikan dari aplikasi.</p>
+        <button class="btn sm" id="vpnCoreCheck">Periksa mesin OpenVPN 3</button><div class="mono" id="vpnCoreInfo">Status mesin belum diperiksa.</div><p class="sub">Relay dikelola sukarelawan. Periksa kebijakan log masing-masing operator. Core native yang terpasang belum berarti sesi VPN aktif; koneksi baru boleh diaktifkan setelah adapter TUN Android dan proteksi socket selesai diuji.</p>
       </div>
     </div></section>
 
@@ -1417,6 +1417,7 @@ $("#vpnToggle").onclick=()=>{
   n.vpnStart(host,53);
   $("#vpnInfo").textContent="Status: Meminta izin VPN Android…";
 };
+$("#vpnCoreCheck").onclick=()=>{const n=mk();const out=$("#vpnCoreInfo");out.textContent=n&&n.openVpn3CoreStatus?n.openVpn3CoreStatus():"OpenVPN 3 Core native hanya tersedia di APK Android";};
 $("#vpnStatus").onclick=()=>{
   const n=mk();
   vpnActive=!!(n&&n.vpnStatus&&n.vpnStatus());
