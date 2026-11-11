@@ -35,6 +35,7 @@ import java.net.URL
 import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.Executors
 
 /**
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
@@ -53,6 +54,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     @Volatile private var rootChecked = false
     private var rate = 1.0f
     private var pitch = 0.92f
+    private val vpnGateExecutor = Executors.newSingleThreadExecutor()
 
     // ---------- VPN DNS tunnel ----------
 
@@ -119,6 +121,64 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     @JavascriptInterface
     fun vpnStatus(): Boolean = MasKiplayVpnService.isRunning
+
+    /**
+     * Refresh the official VPN Gate CSV directory in a worker thread.
+     * The result is a ranked server catalogue, not an active VPN connection.
+     */
+    @JavascriptInterface
+    fun vpnGateRefresh(): String {
+        vpnGateExecutor.execute {
+            try {
+                val relays = VpnGateRepository.fetchAndRank()
+                val servers = org.json.JSONArray()
+                relays.forEach { relay ->
+                    servers.put(JSONObject()
+                        .put("hostName", relay.hostName)
+                        .put("ip", relay.ip)
+                        .put("country", relay.country)
+                        .put("countryCode", relay.countryCode)
+                        .put("reportedPingMs", relay.reportedPingMs)
+                        .put("probeMs", relay.probeMs ?: JSONObject.NULL)
+                        .put("speedMbps", String.format(Locale.US, "%.2f", relay.speedMbps).toDouble())
+                        .put("sessions", relay.sessions)
+                        .put("uptimeSeconds", relay.uptimeSeconds)
+                        .put("logType", relay.logType)
+                        .put("operator", relay.operator)
+                        .put("port", relay.port)
+                        .put("transport", relay.transport)
+                        .put("profileAvailable", relay.profileAvailable)
+                    )
+                }
+                js("MK_onVPNGateServers", JSONObject()
+                    .put("ok", true)
+                    .put("source", "VPN Gate official public CSV")
+                    .put("updatedAt", System.currentTimeMillis())
+                    .put("servers", servers).toString())
+            } catch (e: Exception) {
+                js("MK_onVPNGateServers", JSONObject()
+                    .put("ok", false)
+                    .put("error", e.message ?: "Gagal memuat server VPN Gate")
+                    .put("servers", org.json.JSONArray()).toString())
+            }
+        }
+        return "refreshing"
+    }
+
+    fun shutdownVpnGate() {
+        try { vpnGateExecutor.shutdownNow() } catch (_: Exception) {}
+    }
+
+    fun shutdown() {
+        shutdownVpnGate()
+        try { recognizer?.cancel() } catch (_: Exception) {}
+        try { recognizer?.destroy() } catch (_: Exception) {}
+        recognizer = null
+        try { tts?.stop() } catch (_: Exception) {}
+        try { tts?.shutdown() } catch (_: Exception) {}
+        tts = null
+        pending.clear()
+    }
 
     // ---------- utilitas ----------
 
@@ -339,6 +399,10 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             activity.requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), 7101)
         }
         return "asking"
+    }
+
+    fun onMicPermissionResult(granted: Boolean) {
+        emit("permission", if (granted) "granted" else "denied")
     }
 
     @JavascriptInterface

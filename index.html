@@ -216,7 +216,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="cmp">
         <button class="ib" id="pasteBtn">📋</button>
         <button class="ib" id="micBtn">🎙</button>
-        <textarea id="inp" rows="1" placeholder="Tanya apa saja…"></textarea>
+        <textarea id="inp" spellcheck="true" autocapitalize="sentences" autocomplete="on" rows="1" placeholder="Tanya apa saja…"></textarea>
         <button id="sndBtn">➤</button>
       </div>
     </section>
@@ -313,6 +313,14 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <input class="f" id="vpnResolver" value="1.1.1.1" inputmode="decimal" autocomplete="off">
         <div class="g2"><button class="btn sm pri" id="vpnToggle">Aktifkan VPN</button><button class="btn sm" id="vpnStatus">Periksa status</button></div>
         <div class="mono" id="vpnInfo">Status: Nonaktif</div>
+      </div>
+      <div class="cd">
+        <h3>VPN Gate · Smart Server Finder</h3>
+        <p class="sub">Memuat relay OpenVPN publik dari VPN Gate, mengurutkan berdasarkan ping dan kualitas, serta menguji port TCP kandidat. Daftar server bukan status koneksi VPN.</p>
+        <button class="btn sm pri" id="vpnGateRefresh">Muat server &amp; ukur kualitas</button>
+        <div class="mono" id="vpnGateInfo">Belum memuat daftar server.</div>
+        <div id="vpnGateList"></div>
+        <p class="sub">Relay dikelola sukarelawan. Periksa kebijakan log masing-masing operator. Mesin OpenVPN 3 belum terpasang, jadi server di sini belum bisa dikoneksikan dari aplikasi.</p>
       </div>
     </div></section>
 
@@ -618,7 +626,8 @@ function sysP(voice){
   const b=(PER[S.persona]||PER.brutal).p;
   const v=voice?"\n\nMODE SUARA: jawaban dibacakan. Maks 5 kalimat, tanpa markdown, tanpa blok kode.":"\n\nMODE TEKS: detail penuh, markdown penuh.";
   const mem=S.mem.length?"\n\n## MEMORI TENTANG PENGGUNA\n"+S.mem.map(x=>"- "+x).join("\n"):"";
-  return IDENT+"\n\n"+b+v+mem+CTRL+(S.sysEx?"\n\n## TAMBAHAN\n"+S.sysEx:"");
+  const quality="\n\n## KUALITAS JAWABAN WAJIB\nSebelum mengirim jawaban, periksa ulang ejaan, typo, tata bahasa, tanda baca, konsistensi istilah, dan fakta. Gunakan Bahasa Indonesia yang alami sesuai konteks. Jangan mengulang kata atau kalimat tanpa alasan. Pertahankan maksud pengguna. Jangan mengubah isi kode, URL, nama API, identifier, command, atau kutipan literal saat proofreading. Jika tidak yakin, nyatakan ketidakpastian daripada mengarang.";
+  return IDENT+"\n\n"+b+v+quality+mem+CTRL+(S.sysEx?"\n\n## TAMBAHAN\n"+S.sysEx:"");
 }
 
 /* API */
@@ -633,7 +642,7 @@ async function callAI(msgs,cb,sig,model){
     try{
       const r=await fetch(P.b+"/chat/completions",{method:"POST",signal:sig,
         headers:{"Content-Type":"application/json",Authorization:"Bearer "+k,"HTTP-Referer":location.origin,"X-Title":"Mas Kiplay"},
-        body:JSON.stringify({model:model||S.model,messages:msgs,stream:true,temperature:.9,max_tokens:6000})});
+        body:JSON.stringify({model:model||S.model,messages:msgs,stream:true,temperature:.45,max_tokens:6000})});
       if([401,402,403,429].includes(r.status)){last=new Error("kunci "+r.status);if(S.keys.length>1)S.ki=(S.ki+1)%S.keys.length;continue;}
       if(!r.ok){last=new Error("HTTP "+r.status);continue;}
       mark(1);
@@ -651,6 +660,26 @@ async function callAI(msgs,cb,sig,model){
 }
 function mark(v){CONN=v;const d=$("#stDot");d.className="dot"+(v===1?" on":v===2?" no":"");
   $("#kStat").textContent=v===1?"terhubung":v===2?"ditolak":"belum terhubung";}
+async function proofreadAI(text, signal){
+  const blocks=[];
+  const keep=block=>{
+    const token="MKBLOCKTOKEN"+blocks.length+"END";
+    blocks.push({token,block});
+    return token;
+  };
+  const masked=String(text)
+    .replace(/```[\s\S]*?```/g,keep)
+    .replace(/\x60[^\x60\n]+\x60/g,keep)
+    .replace(/https?:\/\/[^\s<>"')\]]+/g,keep);
+  if(!masked.trim())return text;
+  const instruction="Kamu editor bahasa profesional. Koreksi typo, ejaan, tata bahasa, tanda baca, dan kalimat janggal pada teks berikut. Pertahankan makna, fakta, struktur Markdown, urutan, nada, dan panjang sedekat mungkin. Jangan menambah fakta, klaim, atau penjelasan. Jangan mengubah placeholder MKBLOCKTOKEN...END. Jangan menulis komentar atau pengantar; keluarkan hanya teks hasil koreksi.";
+  const corrected=await callAI([{role:"system",content:instruction},{role:"user",content:masked}],null,signal);
+  if(!corrected.trim()||blocks.some(x=>!corrected.includes(x.token)))return text;
+  let output=corrected.trim();
+  for(const item of blocks)output=output.replace(item.token,item.block);
+  return output||text;
+}
+
 async function ping(){
   if(!keyNow()){mark(0);return;}
   try{const r=await fetch(prov().b+"/key",{headers:{Authorization:"Bearer "+keyNow()}});mark(r.ok?1:2);}
@@ -776,7 +805,10 @@ async function send(){
       if(first){first=false;bd.innerHTML="";tp=typer(bd);}
       tp.push(d);
     },ab.signal);
-    const full=await tp.done();
+    const streamed=await tp.done();
+    let full=streamed;
+    try{full=await proofreadAI(streamed,ab.signal);}catch(e){if(e.name==="AbortError")throw e;}
+    bd.innerHTML=md(full);
     active.msgs.push({role:"assistant",content:full});saveChats();
     if(S.auto)TTS.push(full);
     if(S.exec&&/```run/.test(full))await runActs(full);
@@ -926,6 +958,7 @@ async function agentRun(){
 }
 
 /* jarvis */
+let micPurpose = "";
 function waveInit(){const w=$("#wave");for(let i=0;i<15;i++)w.appendChild(el("i"));}
 function setLab(t){$("#jlab").textContent=t;}
 function setState(s){
@@ -935,6 +968,7 @@ function setState(s){
 
 async function startL(){
   if(busy||aBusy)return;
+  micPurpose = "jarvis";
   const n=mk();
   // Jangan memakai CAPS.mic sebagai sumber kebenaran: nilainya bisa stale
   // setelah pengguna mengubah izin dari Settings Android.
@@ -977,11 +1011,19 @@ async function startL(){
 }
 function stopL(){const n=mk();if(n&&n.srStop){try{n.srStop();}catch(e){}}try{recog&&recog.abort();}catch(e){}}
 
-window.MK_onSR=function(raw){
+window.MK_onSR=async function(raw){
   let o;try{o=JSON.parse(raw);}catch(e){return;}
   if(o.t==="state"){
     if(o.text==="listening"){setState("lis");$("#jMic").classList.add("hot");setLab("Mendengar…");}
     if(o.text==="end"){setState("");$("#jMic").classList.remove("hot");setLab("Memproses…");}
+  }
+  if(o.t==="permission"){
+    if(o.text==="granted"){
+      const n=mk();
+      if(n&&n.srStart){try{const r=await n.srStart();if(String(r).startsWith("err"))toast(String(r).slice(5));}
+        catch(e){toast("Mikrofon: "+(e.message||e));}}
+    } else {setState("");$("#jMic").classList.remove("hot");setLab("Izin mikrofon ditolak");toast("Izinkan mikrofon di Setelan Android.");}
+    return;
   }
   if(o.t==="partial"){$("#jcap").textContent=o.text;}
   if(o.t==="err"){
@@ -990,7 +1032,9 @@ window.MK_onSR=function(raw){
     if(loopOn&&!busy)setTimeout(()=>{if(loopOn&&!busy)startL();},700);
   }
   if(o.t==="final"&&o.text&&o.text.trim()){
-    $("#jcap").textContent=o.text;TTS.stop();turn(o.text.trim());
+    $("#jcap").textContent=o.text;TTS.stop();
+    if(micPurpose==="chat"){ $("#inp").value=o.text.trim(); send(); }
+    else turn(o.text.trim());
   }
 };
 
@@ -1227,13 +1271,16 @@ $("#pasteBtn").onclick=async()=>{const t=await A("getClip");
 $("#micBtn").onclick=()=>{
   const n=mk();
   if(n&&n.srStart){
-    if(CAPS&&CAPS.mic===false){n.micPerm();toast("Izinkan mikrofon lalu tekan lagi");return;}
-    window.MK_onSR=function(raw){
-      let o;try{o=JSON.parse(raw);}catch(e){return;}
-      if(o.t==="final"&&o.text){$("#inp").value=o.text;send();}
-      if(o.t==="err")toast("Mic: "+o.text);
-    };
-    n.srStart();
+    micPurpose="chat";
+    const startNative=async()=>{try{const r=await n.srStart();if(String(r).startsWith("err")){
+      const msg=String(r).slice(5);
+      if(/izin|permission|record_audio/i.test(msg)){const p=await n.micPerm();if(p==="granted")startNative();}
+      else toast(msg);
+    }}catch(e){toast("Mic: "+(e.message||e));}};
+    const p=n.micPerm?n.micPerm():"granted";
+    if(p==="granted")startNative();
+    else if(p==="asking")toast("Izinkan mikrofon pada dialog Android.");
+    else startNative();
     return;
   }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1241,8 +1288,8 @@ $("#micBtn").onclick=()=>{
   const r=new SR();r.lang="id-ID";
   r.onresult=e=>{let f="";for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)f+=e.results[i][0].transcript;
     if(f.trim()){$("#inp").value=f.trim();send();}};
-  r.onerror=()=>toast("Gagal mendengar");
-  try{r.start();}catch(e){}
+  r.onerror=e=>toast("Mic: "+(e.error||"gagal mendengar"));
+  try{r.start();}catch(e){toast("Gagal memulai mikrofon");}
 };
 $("#newBtn").onclick=()=>{
   if(busy)return toast("Tunggu balasan selesai");
@@ -1311,6 +1358,35 @@ function paintVpn(){
   if(info)info.textContent="Status: "+(vpnActive?"Aktif":"Nonaktif")+" · DNS resolver "+($("#vpnResolver")?.value||"1.1.1.1");
   if(btn)btn.textContent=vpnActive?"Matikan VPN":"Aktifkan VPN";
 }
+window.MK_onVPNGateServers=function(raw){
+  let data=raw;
+  if(typeof raw==="string"){try{data=JSON.parse(raw)}catch(e){data={ok:false,error:"Respons server tidak valid"}}}
+  const info=$("#vpnGateInfo"),list=$("#vpnGateList"),btn=$("#vpnGateRefresh");
+  if(!info||!list)return;
+  list.replaceChildren();
+  if(!data||!data.ok){info.textContent="Gagal memuat server: "+((data&&data.error)||"tidak diketahui");if(btn)btn.disabled=false;return;}
+  const servers=Array.isArray(data.servers)?data.servers:[];
+  info.textContent="Ditemukan "+servers.length+" relay · diperbarui "+new Date(data.updatedAt||Date.now()).toLocaleTimeString("id-ID");
+  if(!servers.length){list.textContent="Belum ada relay yang menyediakan profil OpenVPN valid.";if(btn)btn.disabled=false;return;}
+  servers.forEach((server,index)=>{
+    const card=document.createElement("div");card.className="cd";
+    const title=document.createElement("strong");
+    title.textContent=(index===0?"★ Rekomendasi · ":"")+((server.country||"Lokasi tidak diketahui")+" ("+(server.countryCode||"--")+")");
+    const details=document.createElement("div");details.className="mono";
+    const latency=server.probeMs!==null&&server.probeMs!==undefined
+      ? server.probeMs+" ms TCP probe"
+      : (Number(server.reportedPingMs)>=0?server.reportedPingMs+" ms ping laporan":"ping tidak tersedia");
+    const speed=Number(server.speedMbps||0);
+    details.textContent=server.ip+":"+server.port+" · "+server.transport+" · "+latency+
+      " · "+(speed>0?speed.toFixed(1)+" Mbps":"throughput n/a")+
+      " · "+Number(server.sessions||0)+" sesi";
+    const operator=document.createElement("div");operator.className="sub";
+    operator.textContent="Operator: "+(server.operator||"tidak dicantumkan")+
+      " · kode log: "+(server.logType||"tidak dicantumkan");
+    card.append(title,details,operator);list.append(card);
+  });
+  if(btn)btn.disabled=false;
+};
 window.MK_onVPN=function(raw){
   let data=raw;
   if(typeof raw==="string"){try{data=JSON.parse(raw)}catch(e){data={active:false,error:raw}}}
@@ -1318,6 +1394,14 @@ window.MK_onVPN=function(raw){
   paintVpn();
   if(data&&data.error)toast("VPN: "+data.error);
   else toast(vpnActive?"DNS VPN aktif":"DNS VPN nonaktif");
+};
+$("#vpnGateRefresh").onclick=()=>{
+  const n=mk();
+  if(!n||!n.vpnGateRefresh){toast("Pencarian server tersedia di APK Android");return;}
+  $("#vpnGateRefresh").disabled=true;
+  $("#vpnGateInfo").textContent="Mengambil daftar resmi VPN Gate dan menguji kandidat…";
+  const result=n.vpnGateRefresh();
+  if(String(result).startsWith("err")){$("#vpnGateInfo").textContent=String(result);$("#vpnGateRefresh").disabled=false;}
 };
 $("#vpnToggle").onclick=()=>{
   const n=mk();

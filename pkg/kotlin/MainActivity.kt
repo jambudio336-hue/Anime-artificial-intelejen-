@@ -53,6 +53,20 @@ class MainActivity : BridgeActivity() {
     }
 
     @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 7101) {
+            nativeBridge?.onMicPermissionResult(
+                grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED
+            )
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         val web = bridge.webView
         web.evaluateJavascript(
@@ -69,6 +83,7 @@ class MainActivity : BridgeActivity() {
     }
 
     override fun onDestroy() {
+        nativeBridge?.shutdown()
         nativeBridge = null
         super.onDestroy()
     }

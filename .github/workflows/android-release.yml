@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.0.3"
+        default: "9.1.0"
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ inputs.versi || '9.0.3' }}
+      VERSION: ${{ inputs.versi || '9.1.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -148,9 +148,11 @@ jobs:
           cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
           cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
           cp pkg/kotlin/MasKiplayVpnService.kt "$D/MasKiplayVpnService.kt"
+          cp pkg/kotlin/VpnGateRepository.kt "$D/VpnGateRepository.kt"
           test -s "$D/MainActivity.kt"
           test -s "$D/Bridge.kt"
           test -s "$D/KiplayAccessibility.kt"
+          test -s "$D/VpnGateRepository.kt"
           grep -q "^package ai.maskiplay.app" "$D/Bridge.kt"
           grep -q "^package ai.maskiplay.app" "$D/MainActivity.kt"
           grep -q "Bridge(this, web)" "$D/MainActivity.kt"
@@ -295,7 +297,7 @@ jobs:
           fi
           sed -i -E 's/minSdkVersion [0-9]+/minSdkVersion 26/' android/app/build.gradle
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode ${{ github.run_number }}/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 910010/' android/app/build.gradle
           if [ -f android/variables.gradle ]; then
             grep -q "minSdkVersion = 26" android/variables.gradle
           else
@@ -401,7 +403,11 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
-            Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package pada pipeline release.
+Status fitur jaringan: VPN Gate server directory dan pengukuran kandidat tersedia. OpenVPN 3 Core/full-tunnel IPv4+IPv6 belum terintegrasi; layanan yang tersedia saat ini hanya DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
+
+            Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package serta sertifikat penandatanganan pada pipeline release.
+
+Catatan transparansi: katalog VPN Gate hanya melakukan penemuan server. OpenVPN 3 dan full-tunnel belum tersedia pada versi ini; layanan VPN saat ini adalah DNS-only IPv4.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 
