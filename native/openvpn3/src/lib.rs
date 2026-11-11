@@ -5,7 +5,7 @@
 //! only a capability probe; VPN connection remains disabled until the Android
 //! TunBuilder and VpnService socket-protection callbacks are implemented.
 
-use jni::objects::{JClass, JObject};
+use jni::objects::JObject;
 use jni::sys::{jboolean, jstring, JNI_FALSE, JNI_TRUE};
 use jni::JNIEnv;
 
@@ -21,7 +21,7 @@ pub extern "system" fn Java_ai_maskiplay_app_OpenVpn3Native_nativeCoreReady(
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_ai_maskiplay_app_OpenVpn3Native_nativeCoreInfo(
     mut env: JNIEnv,
-    _class: JClass,
+    _this: JObject,
 ) -> jstring {
     let text = format!(
         "OpenVPN 3 Core native library loaded; platform={}; tun_builder={}; external_tun={}",
