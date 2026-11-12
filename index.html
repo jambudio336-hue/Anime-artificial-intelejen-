@@ -315,6 +315,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="mono" id="vpnInfo">Status: Nonaktif</div>
       </div>
       <div class="cd">
+        <h3>WireGuard VPN · Full Tunnel</h3>
+        <p class="sub">Mesin WireGuard resmi berbasis GoBackend. Tempel konfigurasi .conf milikmu; konfigurasi disimpan terenkripsi di Android Keystore.</p>
+        <div class="row" style="align-items:center;gap:12px"><button class="btn pri" id="wgToggle" style="min-height:48px;flex:1">Aktifkan WireGuard</button><span class="dot" id="wgDot"></span></div>
+        <div class="mono" id="wgStatus">Status: MATI</div>
+        <label class="sub" for="wgConfig">Konfigurasi WireGuard</label>
+        <textarea class="f" id="wgConfig" rows="8" spellcheck="false" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;DNS = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:51820&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
+        <div class="g2"><button class="btn sm" id="wgGen">Generate keypair</button><button class="btn sm" id="wgCheck">Periksa status</button></div>
+        <pre class="mono" id="wgKeys" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+      </div>
+      <div class="cd">
         <h3>VPN Gate · Smart Server Finder</h3>
         <p class="sub">Memuat relay OpenVPN publik dari VPN Gate, mengurutkan berdasarkan ping dan kualitas, serta menguji port TCP kandidat. Daftar server bukan status koneksi VPN.</p>
         <button class="btn sm pri" id="vpnGateRefresh">Muat server &amp; ukur kualitas</button>
@@ -1423,6 +1433,45 @@ $("#vpnStatus").onclick=()=>{
   vpnActive=!!(n&&n.vpnStatus&&n.vpnStatus());
   paintVpn();
 };
+
+// WireGuard native full tunnel
+let wgActive=false;
+async function wgRefresh(){
+  const api=window.Capacitor?.Plugins?.Vpn;
+  if(!api){$("#wgStatus").textContent="Status: Plugin WireGuard belum tersedia di APK.";return;}
+  try{
+    const r=await api.status();wgActive=!!r.active;
+    $("#wgStatus").textContent="Status: "+(wgActive?"AKTIF":"MATI");
+    $("#wgDot").classList.toggle("on",wgActive);
+    $("#wgToggle").textContent=wgActive?"Matikan WireGuard":"Aktifkan WireGuard";
+  }catch(e){$("#wgStatus").textContent="Status gagal dibaca: "+e.message;}
+}
+$("#wgToggle").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.Vpn;
+  if(!api){toast("WireGuard native hanya tersedia di APK Android");return;}
+  const button=$("#wgToggle");button.disabled=true;
+  try{
+    if(wgActive){await api.down();wgActive=false;toast("WireGuard dimatikan");}
+    else{
+      const config=$("#wgConfig").value.trim();
+      if(!config){toast("Tempel konfigurasi WireGuard terlebih dahulu");return;}
+      const permission=await api.prepare();
+      if(!permission.granted){toast("Izin VPN Android belum diberikan");return;}
+      await api.up({config,name:"maskiplay"});
+      wgActive=true;toast("WireGuard aktif");
+    }
+    await wgRefresh();
+  }catch(e){toast("WireGuard: "+e.message);await wgRefresh();}
+  finally{button.disabled=false;}
+};
+$("#wgCheck").onclick=wgRefresh;
+$("#wgGen").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.Vpn;
+  if(!api){toast("Generate keypair tersedia di APK Android");return;}
+  try{const k=await api.genKey();$("#wgKeys").textContent="PrivateKey = "+k.privateKey+"\nPublicKey = "+k.publicKey;toast("Keypair berhasil dibuat");}
+  catch(e){toast("Gagal membuat keypair: "+e.message);}
+};
+wgRefresh();
 
 </script>
 </body>
