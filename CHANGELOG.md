@@ -1,5 +1,23 @@
 # Changelog
 
+## [9.4.1] — 2026-11-12
+
+### Keamanan
+- Perintah shell dengan hak ROOT wajib disetujui melalui dialog native Android; prompt JavaScript tidak dianggap sebagai batas keamanan.
+- Eksekusi perintah melalui Termux juga meminta persetujuan native Android.
+- Batasi panjang perintah shell lokal dan ROOT hingga 4.096 karakter.
+
+### WebView
+- Tile ChatGPT, Hacker AI, Shannon, G0DM0D3, ePorner 18+, Artex, FlickReels, dan Dracinema membuka browser internal dalam satu ketukan.
+- Browser internal mempertahankan HTTPS, menolak HTTP dan sertifikat TLS tidak valid, serta tidak mengekspos native JavaScript bridge ke halaman pihak ketiga.
+- Batasan embedded WebView, Google OAuth, CAPTCHA, DRM, dan proteksi situs didokumentasikan.
+
+### Batasan
+- WireGuard memerlukan konfigurasi peer/server valid dan izin VPN Android.
+- OpenVPN 3 belum mempunyai adapter TUN/sesi Android yang siap produksi.
+- Network Scanner adalah TCP connect scanner satu host, bukan Nmap penuh.
+- Uji VPN, mikrofon, pemutaran video, dan otomasi tetap memerlukan perangkat Android fisik.
+
 ## [9.4.0] — 2026-11-12
 
 ### Diperbaiki
