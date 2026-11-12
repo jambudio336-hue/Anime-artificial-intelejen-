@@ -56,7 +56,12 @@ class WatchPlugin : Plugin() {
         val videoId = call.getString("videoId") ?: throw IllegalArgumentException("videoId wajib diisi")
         val title = call.getString("title", "Video") ?: "Video"
         val seriesId = call.getString("seriesId", videoId) ?: videoId
-        val playback = registry.get(source).resolve(videoId)
+        val provider = registry.get(source)
+        val playback = provider.resolve(videoId)
+        val neighbors = try { provider.episodes(seriesId) } catch (_: Exception) { emptyList() }
+        val currentIndex = neighbors.indexOfFirst { it.videoId == videoId }
+        val previous = neighbors.getOrNull(currentIndex - 1)
+        val next = neighbors.getOrNull(currentIndex + 1)
         val preferred = playback.variants.firstOrNull { !it.codec.orEmpty().contains("bytevc1", true) }
             ?: playback.variants.first()
         saveHistory(source, seriesId, videoId, title, playback.poster)
@@ -66,6 +71,12 @@ class WatchPlugin : Plugin() {
             putExtra(PlayerActivity.EXTRA_SELECTED_URL, preferred.url)
             putExtra(PlayerActivity.EXTRA_DURATION, playback.duration)
             putExtra(PlayerActivity.EXTRA_VIDEO_ID, videoId)
+            putExtra(PlayerActivity.EXTRA_SOURCE, source)
+            putExtra(PlayerActivity.EXTRA_SERIES_ID, seriesId)
+            putExtra(PlayerActivity.EXTRA_PREVIOUS_ID, previous?.videoId)
+            putExtra(PlayerActivity.EXTRA_PREVIOUS_TITLE, previous?.title)
+            putExtra(PlayerActivity.EXTRA_NEXT_ID, next?.videoId)
+            putExtra(PlayerActivity.EXTRA_NEXT_TITLE, next?.title)
         }
         activity.runOnUiThread { activity.startActivity(intent) }
         JSObject().apply { put("started", true) }
