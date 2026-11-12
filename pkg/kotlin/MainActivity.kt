@@ -74,6 +74,12 @@ class MainActivity : BridgeActivity() {
         }
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        nativeBridge?.onTermuxResult(intent)
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         val web = bridge.webView
