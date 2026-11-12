@@ -143,6 +143,7 @@ jobs:
               "Native consent for Termux commands": 'confirmNativeAction("Konfirmasi eksekusi Termux", cmd)' in bridge,
               "Shell command length limit": "cmd.length > 4096" in bridge,
               "Native command confirmation dialog": "CountDownLatch" in bridge and "Setujui dan jalankan" in bridge,
+              "Agent respects sensitive action approval": "Jangan pernah melewati dialog izin atau konfirmasi sistem" in html and "persetujuan native Android" in html,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
