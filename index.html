@@ -204,6 +204,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="t" data-go="hackerai"><i>🛡️</i><b>Hacker AI</b><small>AI Pentest · hackerai.co</small></div>
         <div class="t" data-go="shannon"><i>🧠</i><b>Shannon AI</b><small>AI Chat · shannon-ai.com</small></div>
         <div class="t" data-go="ghostgpt"><i>👻</i><b>Ghost GPT</b><small>G0DM0D3 · godmod3.ai</small></div>
+        <div class="t" data-go="eporner"><i>🔞</i><b>ePorner 18+</b><small>Konten dewasa · WebView internal</small></div>
         <div class="t" data-go="jarvis"><i>🎙</i><b>Jarvis</b><small>Suara murni</small></div>
         <div class="t" data-go="agent"><i>🤖</i><b>Agent</b><small>Kendali penuh</small></div>
         <div class="t" data-go="shortdrama"><i>🎬</i><b>Short Drama</b><small>FlickReels · Cinta Baru Dia</small></div>
@@ -262,6 +263,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="mono" id="ghostgptStatus">Siap membuka G0DM0D3 di dalam aplikasi.</div>
       </div>
       <div class="cd"><h3>Catatan penggunaan</h3><p class="sub">G0DM0D3 merupakan antarmuka chat multi-model. Penggunaan model dapat memerlukan API key/provider yang kamu konfigurasi sendiri. Ketersediaan model, biaya token, dan batas penggunaan mengikuti penyedia model.</p><p class="sub">Kredensial provider dan riwayat dapat disimpan pada penyimpanan browser lokal. Jangan masukkan API key ke perangkat bersama dan lindungi data aplikasi agar kredensial tidak terekspos.</p></div>
+    </div></section>
+
+    <section class="v" id="vEporner"><div class="sc">
+      <div class="cd"><h3>🔞 ePorner · 18+</h3>
+        <p class="sub">Akses situs ePorner melalui browser internal Mas Kiplay. Konten dewasa hanya untuk pengguna yang telah berusia 18 tahun atau memenuhi batas usia legal yang lebih tinggi di wilayahnya.</p>
+        <div class="row"><div class="bd"><b>ePorner</b><small>eporner.com/tag/indonesia-solo/</small></div><span>🔞</span></div>
+        <button class="btn pri" id="epornerOpen">🔞 Saya berusia 18+ · Buka ePorner</button>
+        <div class="mono" id="epornerStatus">Konfirmasi usia diperlukan setiap kali membuka situs.</div>
+      </div>
+      <div class="cd"><h3>Privasi, usia & akses jaringan</h3><p class="sub">Konfirmasi ini adalah pernyataan mandiri, bukan verifikasi identitas atau umur. Jangan gunakan jika belum memenuhi batas usia. Patuhi hukum setempat dan ketentuan situs.</p><p class="sub">Halaman dibuka di WebView internal; situs dapat meminta cookie, login, atau verifikasi sendiri. VPN tidak otomatis aktif. DNS VPN hanya mengubah resolusi DNS; akses melalui tunnel penuh memerlukan koneksi VPN full-tunnel yang sah dan sudah dikonfigurasi. Aplikasi tidak menjamin atau memaksa akses jika situs dibatasi oleh penyedia jaringan atau wilayah.</p></div>
     </div></section>
 
     <section class="v" id="vShannon"><div class="sc">
@@ -464,6 +475,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     <div class="di" data-go="hackerai"><i>🛡️</i>Hacker AI</div>
     <div class="di" data-go="shannon"><i>🧠</i>Shannon AI</div>
     <div class="di" data-go="ghostgpt"><i>👻</i>Ghost GPT</div>
+    <div class="di" data-go="eporner"><i>🔞</i>ePorner 18+</div>
     <div class="di" data-go="jarvis"><i>🎙</i>Jarvis</div>
     <div class="di" data-go="agent"><i>🤖</i>Agent</div>
     <div class="di" data-go="dork"><i>🔎</i>Dork</div>
@@ -518,8 +530,8 @@ async function A(fn,...a){
 }
 
 /* router */
-const V={home:"vHome",chat:"vChat",hackerai:"vHackerAI",ghostgpt:"vGhostGPT",shannon:"vShannon",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
-const TITLE={home:"Mas Kiplay",chat:"Chat",hackerai:"Hacker AI",ghostgpt:"Ghost GPT",shannon:"Shannon AI",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
+const V={home:"vHome",chat:"vChat",hackerai:"vHackerAI",ghostgpt:"vGhostGPT",eporner:"vEporner",shannon:"vShannon",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
+const TITLE={home:"Mas Kiplay",chat:"Chat",hackerai:"Hacker AI",ghostgpt:"Ghost GPT",eporner:"ePorner 18+",shannon:"Shannon AI",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
 function go(v){
   if(!V[v])v="home";
   $$(".v").forEach(s=>s.classList.remove("act"));
@@ -1424,6 +1436,7 @@ $("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
 $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
+$("#epornerOpen").onclick=async()=>{const s=$("#epornerStatus");if(!window.confirm("Saya menyatakan bahwa saya telah berusia minimal 18 tahun atau memenuhi batas usia legal yang lebih tinggi di wilayah saya, dan memilih untuk membuka situs dewasa. Lanjutkan?")){s.textContent="Dibatalkan. Halaman dewasa tidak dibuka.";return;}s.textContent="Membuka ePorner di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://www.eporner.com/tag/indonesia-solo/","ePorner · 18+");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#ghostgptOpen").onclick=async()=>{const s=$("#ghostgptStatus");s.textContent="Membuka G0DM0D3 di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://godmod3.ai/","Ghost GPT · G0DM0D3");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#shannonOpen").onclick=async()=>{const s=$("#shannonStatus");s.textContent="Membuka Shannon AI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://shannon-ai.com/chat","Shannon AI · Chat");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#hackeraiOpen").onclick=async()=>{const s=$("#hackeraiStatus");s.textContent="Membuka HackerAI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://hackerai.co/","Hacker AI · Pentest Assistant");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
