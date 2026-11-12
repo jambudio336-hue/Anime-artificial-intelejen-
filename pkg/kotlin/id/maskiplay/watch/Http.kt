@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong
 object WatchEndpoints {
     const val MELOLO_API = "https://api.tmtreader.com"
     const val MELOLO_REFERER = "https://melolo.org/"
+    const val MELOLO_STATIC_SUFFIX = ".melolostatic.com"
     const val ANIME_REFERER = "https://hianime.to/"
     val ANIME_BASES = listOf(
         "https://aniwatch-api-tau.vercel.app/api/v2/hianime",
