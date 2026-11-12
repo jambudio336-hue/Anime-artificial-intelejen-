@@ -22,6 +22,7 @@ class WatchPlugin : Plugin() {
         anime = AnimeProvider(context)
         manual = ManualProvider()
         registry = ProviderRegistry(listOf(melolo, anime, manual))
+        SyncWorker.schedule(context)
     }
 
     @PluginMethod
@@ -76,66 +77,55 @@ class WatchPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun history(call: PluginCall) {
-        val prefs = context.getSharedPreferences(PREFS, 0)
-        val rows = try { org.json.JSONArray(prefs.getString(KEY_HISTORY, "[]")) }
-            catch (_: Exception) { org.json.JSONArray() }
+    fun history(call: PluginCall) = runWorker(call) {
+        val dao = WatchDb.get(context).watchDao()
         if (call.getString("action") == "remove") {
-            val id = call.getString("id") ?: return call.reject("id wajib diisi")
-            val kept = org.json.JSONArray()
-            for (i in 0 until rows.length()) {
-                val row = rows.optJSONObject(i) ?: continue
-                if (row.optString("videoId") != id) kept.put(row)
-            }
-            prefs.edit().putString(KEY_HISTORY, kept.toString()).apply()
-            call.resolve(JSObject().apply { put("items", kept) })
-        } else call.resolve(JSObject().apply { put("items", rows) })
+            val id = call.getString("id") ?: throw IllegalArgumentException("id wajib diisi")
+            dao.removeHistory(id)
+        }
+        val rows = org.json.JSONArray()
+        dao.getHistory().forEach { row -> rows.put(JSObject().apply {
+            put("id", row.videoId); put("videoId", row.videoId); put("seriesId", row.seriesId)
+            put("source", row.source); put("title", row.title); put("cover", row.cover)
+            put("updatedAt", row.updatedAt)
+        }) }
+        JSObject().apply { put("items", rows) }
     }
 
     @PluginMethod
-    fun watchlist(call: PluginCall) {
-        val prefs = context.getSharedPreferences(PREFS, 0)
-        val rows = try { org.json.JSONArray(prefs.getString(KEY_WATCHLIST, "[]")) }
-            catch (_: Exception) { org.json.JSONArray() }
+    fun watchlist(call: PluginCall) = runWorker(call) {
+        val dao = WatchDb.get(context).watchDao()
         val action = call.getString("action", "list") ?: "list"
         if (action == "add" || action == "remove") {
-            val id = call.getString("id") ?: return call.reject("id wajib diisi")
-            val kept = org.json.JSONArray()
-            for (i in 0 until rows.length()) {
-                val row = rows.optJSONObject(i) ?: continue
-                if (row.optString("id") != id) kept.put(row)
-            }
-            if (action == "add") {
-                kept.put(JSObject().apply {
-                    put("id", id)
-                    put("source", call.getString("source", "melolo"))
-                    put("title", call.getString("title", id))
-                    put("cover", call.getString("cover"))
-                })
-            }
-            prefs.edit().putString(KEY_WATCHLIST, kept.toString()).apply()
-            call.resolve(JSObject().apply { put("items", kept) })
-        } else {
-            call.resolve(JSObject().apply { put("items", rows) })
+            val id = call.getString("id") ?: throw IllegalArgumentException("id wajib diisi")
+            if (action == "remove") dao.removeWatchlist(id)
+            else dao.putWatchlist(WatchlistEntity(
+                id = id,
+                source = call.getString("source", "melolo") ?: "melolo",
+                title = call.getString("title", id) ?: id,
+                cover = call.getString("cover"),
+                addedAt = System.currentTimeMillis()
+            ))
         }
+        val rows = org.json.JSONArray()
+        dao.getWatchlist().forEach { row -> rows.put(JSObject().apply {
+            put("id", row.id); put("source", row.source); put("title", row.title)
+            put("cover", row.cover); put("addedAt", row.addedAt)
+        }) }
+        JSObject().apply { put("items", rows) }
     }
 
     private fun saveHistory(source: String, seriesId: String, videoId: String, title: String, poster: String?) {
-        val prefs = context.getSharedPreferences(PREFS, 0)
-        val old = try { org.json.JSONArray(prefs.getString(KEY_HISTORY, "[]")) }
-            catch (_: Exception) { org.json.JSONArray() }
-        val next = org.json.JSONArray()
-        next.put(JSObject().apply {
-            put("id", videoId); put("videoId", videoId); put("seriesId", seriesId)
-            put("source", source); put("title", title); put("cover", poster)
-            put("updatedAt", System.currentTimeMillis())
-        })
-        for (i in 0 until old.length()) {
-            val row = old.optJSONObject(i) ?: continue
-            if (row.optString("videoId") != videoId || row.optString("source") != source) next.put(row)
-            if (next.length() >= 100) break
-        }
-        prefs.edit().putString(KEY_HISTORY, next.toString()).apply()
+        WatchDb.get(context).watchDao().putHistory(
+            HistoryEntity(
+                videoId = videoId,
+                seriesId = seriesId,
+                source = source,
+                title = title,
+                cover = poster,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
     }
 
     private fun runWorker(call: PluginCall, action: () -> JSObject) {
@@ -183,9 +173,5 @@ class WatchPlugin : Plugin() {
         super.handleOnDestroy()
     }
 
-    companion object {
-        private const val PREFS = "watch_library"
-        private const val KEY_HISTORY = "history"
-        private const val KEY_WATCHLIST = "watchlist"
-    }
+    companion object {}
 }
