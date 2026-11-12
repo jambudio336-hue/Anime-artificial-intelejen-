@@ -31,10 +31,13 @@ class WatchPlugin : Plugin() {
         val q = call.getString("q", "") ?: ""
         val offset = call.getInt("offset", 0) ?: 0
         if (source == "manual" && q.startsWith("http", true)) manual.register(q)
+        var catalogFromCache = false
         val items = if (source == "melolo" && q.isBlank() && offset == 0) {
             val fresh = try { melolo.searchPopular() } catch (_: Exception) { emptyList() }
             if (fresh.isNotEmpty()) CatalogCache.savePopular(context, fresh)
-            fresh.ifEmpty { CatalogCache.loadPopular(context) }
+            val cached = if (fresh.isEmpty()) CatalogCache.loadPopular(context) else fresh
+            catalogFromCache = fresh.isEmpty() && cached.isNotEmpty()
+            cached
         } else {
             registry.get(source).search(q, offset)
         }
@@ -42,7 +45,7 @@ class WatchPlugin : Plugin() {
             put("items", items.toJsonArray(source))
             if (source == "melolo" && q.isBlank() && offset == 0) {
                 put("catalogUpdatedAt", CatalogCache.updatedAt(context))
-                put("catalogCached", items.isNotEmpty())
+                put("catalogFromCache", catalogFromCache)
             }
         }
     }
