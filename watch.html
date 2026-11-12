@@ -6,6 +6,18 @@
 <meta name="theme-color" content="#050506">
 <title>Nonton — Mas Kiplay</title>
 <link rel="stylesheet" href="watch.css">
+<style>
+.tools{margin:14px 0;border:1px solid var(--line);background:var(--panel);padding:12px}
+.tools summary{font:700 11px var(--mono);letter-spacing:1px;cursor:pointer;color:var(--text)}
+.tool-body{display:grid;gap:8px;margin-top:12px}
+.tool-body label{font-size:11px;color:var(--muted)}
+.tool-body input,.tool-body textarea{width:100%;min-width:0;background:#07080b;border:1px solid var(--line);color:var(--text);padding:11px;font:12px var(--mono)}
+.tool-body textarea{min-height:110px;resize:vertical}
+.tool-actions{display:flex;gap:7px;flex-wrap:wrap}
+.tool-actions button{border:1px solid var(--line);background:var(--card);color:var(--text);padding:10px 12px;font:700 10px var(--mono)}
+.tool-actions button.primary{background:var(--red);border-color:var(--red)}
+.tool-output{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font:11px/1.5 var(--mono);max-height:220px;overflow:auto}
+</style>
 </head>
 <body>
 <div class="watch-app">
@@ -17,8 +29,38 @@
     <section id="cards" class="cards" aria-live="polite"></section>
     <section id="episodes" class="episodes hidden"><div class="section-head"><button id="backCards">← Kembali</button><h2 id="seriesTitle">Episode</h2></div><div id="episodeList"></div></section>
     <section id="error" class="error hidden"><b>Gagal memuat sumber</b><p id="errorText"></p><button id="retry">Coba lagi</button></section>
+
+    <details class="tools">
+      <summary>WIREGUARD VPN · KONFIGURASI & STATUS</summary>
+      <div class="tool-body">
+        <label for="wgConfig">Konfigurasi WireGuard (.conf)</label>
+        <textarea id="wgConfig" spellcheck="false" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;DNS = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;AllowedIPs = 0.0.0.0/0, ::/0&#10;Endpoint = host:port"></textarea>
+        <div class="tool-actions"><button id="wgGenerate">Buat keypair</button><button id="wgSave">Simpan terenkripsi</button><button id="wgUp" class="primary">Sambungkan</button><button id="wgDown">Putuskan</button><button id="wgStatus">Periksa status</button></div>
+        <pre id="wgOutput" class="tool-output">Status: belum diperiksa.</pre>
+      </div>
+    </details>
+
+    <details class="tools">
+      <summary>NMAP · TCP CONNECT SCAN</summary>
+      <div class="tool-body">
+        <label for="nmapHost">IP atau hostname milikmu / yang diizinkan</label>
+        <input id="nmapHost" value="127.0.0.1" autocomplete="off">
+        <div class="tool-actions"><button id="nmapScan" class="primary">Mulai scan</button><button id="nmapCopy">Salin XML</button></div>
+        <pre id="nmapOutput" class="tool-output">Scan terbatas TCP connect, tanpa root. Binary ARM64 harus tersedia di APK.</pre>
+      </div>
+    </details>
+
+    <details class="tools">
+      <summary>PENGATURAN MIRROR ANIME</summary>
+      <div class="tool-body">
+        <label for="animeBase">Base URL mirror Hianime-compatible</label>
+        <input id="animeBase" value="https://aniwatch-api-tau.vercel.app/api/v2/hianime" inputmode="url">
+        <div class="tool-actions"><button id="animeSave" class="primary">Simpan mirror</button></div>
+        <pre id="animeOutput" class="tool-output">Mirror bawaan aktif sampai URL khusus disimpan.</pre>
+      </div>
+    </details>
   </main>
-  <footer>Streaming hanya dari sumber yang dapat diakses. Gunakan konten sesuai hak dan aturan di wilayahmu.</footer>
+  <footer>Streaming hanya dari sumber yang dapat diakses. Gunakan konten sesuai hak dan aturan di wilayahmu. Lakukan pemindaian jaringan hanya pada host yang kamu miliki atau diizinkan.</footer>
 </div>
 <script src="watch.js"></script>
 </body>
