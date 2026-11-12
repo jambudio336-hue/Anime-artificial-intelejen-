@@ -1,5 +1,26 @@
 # Changelog
 
+## [9.4.0] — 2026-11-12
+
+### Diperbaiki
+- Validasi konfigurasi WireGuard memakai parser resmi sebelum konfigurasi disimpan atau tunnel dijalankan.
+- Batas ukuran konfigurasi WireGuard 64 KiB untuk mencegah input berlebihan.
+- Ciphertext konfigurasi yang tidak dapat didekripsi dibersihkan agar tidak terus memicu kegagalan.
+- User-Agent WebView diselaraskan dengan versi aplikasi.
+
+### Pemeriksaan rilis
+- Pipeline memvalidasi registrasi plugin native Watch, WireGuard, dan Network Scanner.
+- Pipeline memeriksa penggunaan Android Keystore AES-GCM untuk penyimpanan konfigurasi WireGuard.
+- Status DNS-only, WireGuard full-tunnel, dan batasan OpenVPN 3/Network Scanner diperiksa agar tidak salah diklaim.
+
+### Batasan
+- OpenVPN 3 masih belum mempunyai adapter TUN/sesi Android; PR #9 tetap belum layak digabungkan.
+- Network Scanner adalah TCP connect scanner, bukan Nmap.
+- Fitur jaringan, video, dan aksesibilitas tetap memerlukan pengujian pada perangkat Android fisik.
+
+## [9.3.0] — 2026-11-12
+- PR #11 dan #12 digabungkan: pembaruan katalog media, cache offline, browser internal, agent Termux, ePorner 18+, dan Artex Pentester AI.
+
 ## [9.2.0] — 2026-11-12
 
 ### Ditambahkan
@@ -9,7 +30,7 @@
 - Kontrol WireGuard GoBackend: izin VPN Android, konfigurasi terenkripsi, pembuatan keypair, sambung, putus, dan status.
 - Perbaikan sesi mikrofon Jarvis/chat agar callback lama tidak masuk ke sesi baru.
 - Browser internal terisolasi untuk Web Check, OSINT, dan Google Dork: HTTPS-only, tanpa native bridge, serta menolak sertifikat TLS tidak valid.
-- Network Scanner TCP native untuk 50 port umum pada satu host, tersedia di Watch dan Cyber Lab.
+- Network Scanner TCP native untuk 51 port umum pada satu host, tersedia di Watch dan Cyber Lab.
 
 ### Batasan yang dinyatakan
 - Network Scanner adalah TCP connect scanner sederhana buatan proyek, bukan Nmap; tidak menyediakan UDP, SYN scan, fingerprint OS, atau pemindaian subnet.

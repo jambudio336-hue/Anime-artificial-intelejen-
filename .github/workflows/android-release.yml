@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.3.0"
+        default: "9.4.0"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.3.0' }}
+      VERSION: ${{ inputs.versi || '9.4.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +88,43 @@ jobs:
           print(f"HTML valid secara struktural; {len(p.ids)} ID dan {p.scripts} script ditemukan.")
           PY
           node --check /tmp/maskiplay-inline.js
+
+      - name: Validasi integrasi fitur native dan batasan keamanan
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          main = Path("pkg/kotlin/MainActivity.kt").read_text(encoding="utf-8")
+          vpn = Path("pkg/kotlin/id/maskiplay/vpn/VpnPlugin.kt").read_text(encoding="utf-8")
+          store = Path("pkg/kotlin/id/maskiplay/vpn/VpnStore.kt").read_text(encoding="utf-8")
+          scanner = Path("pkg/kotlin/id/maskiplay/net/NetworkScannerPlugin.kt").read_text(encoding="utf-8")
+          import re
+          port_block = re.search(r"COMMON_PORTS = intArrayOf\((.*?)\)", scanner, re.S)
+          port_count = len(re.findall(r"\b\d+\b", port_block.group(1))) if port_block else 0
+          html = Path("index.html").read_text(encoding="utf-8")
+          package = json.loads(Path("package.json").read_text(encoding="utf-8"))
+          checks = {
+              "Watch plugin registration": "registerPlugin(WatchPlugin::class.java)" in main,
+              "WireGuard plugin registration": "registerPlugin(VpnPlugin::class.java)" in main,
+              "Network Scanner plugin registration": "registerPlugin(NetworkScannerPlugin::class.java)" in main,
+              "WireGuard official config parser": "Config.parse(" in vpn,
+              "WireGuard config validation before persistence": (lambda up: "Config.parse(" in up and up.index("Config.parse(") < up.index("store.save(configText)"))(vpn.split("fun up(call: PluginCall)", 1)[1].split("@PluginMethod", 1)[0]),
+              "Android Keystore encryption": '"AndroidKeyStore"' in store,
+              "AES-GCM storage": '"AES/GCM/NoPadding"' in store,
+              "TCP scanner disclosed": "TCP connect" in scanner and port_count == 51,
+              "DNS VPN disclosure": "Tidak mengalihkan seluruh trafik perangkat" in html,
+              "WireGuard full tunnel UI": "WireGuard VPN · Full Tunnel" in html,
+              "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
+              "App package version": package.get("version") == "9.4.0",
+              "WebView user-agent version": "MasKiplay/9.4.0" in main,
+          }
+          failed = [name for name, ok in checks.items() if not ok]
+          for name, ok in checks.items():
+              print(("PASS" if ok else "FAIL") + " " + name)
+          if failed:
+              raise SystemExit("Native integration checks failed: " + ", ".join(failed))
+          PY
 
       - name: Pasang Capacitor
         run: |
@@ -337,7 +374,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 930000/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 940000/' android/app/build.gradle
           grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard

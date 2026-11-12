@@ -1,6 +1,6 @@
 # Mas Kiplay — AI Agent Android
 
-Mas Kiplay is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
+Mas Kiplay v9.4.0 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
 
 ## Main capabilities
 
@@ -10,8 +10,8 @@ Mas Kiplay is an Android application and PWA that combines an AI chat/Jarvis int
 - **Watch:** Melolo drama catalogue, anime provider integration, episode directories, watch history, watchlist, and an in-app Media3 player.
 - **Automatic catalogue refresh:** WorkManager refreshes the public Melolo catalogue in the background every six hours and keeps a local fallback. Episode directories and playback URLs are refreshed when the title/episode is opened.
 - **Startup media:** `video.mp4` is used for the opening splash; `Dashboard.mp4` is the looping dashboard background.
-- **VPN:** native WireGuard GoBackend integration accepts a valid user/server configuration. A generated keypair alone is not a VPN connection. Full-tunnel behavior depends on a correctly configured peer and routes.
-- **Security utilities:** network scanner and web/OSINT utilities for authorized testing and research.
+- **VPN:** native WireGuard GoBackend integration accepts a valid user/server configuration. Configurations are parsed before being persisted and stored with Android Keystore AES-GCM. A generated keypair alone is not a VPN connection. Full-tunnel behavior depends on a correctly configured peer and routes.
+- **Security utilities:** an unprivileged TCP connect scanner for 51 common ports on one authorized host, plus web/OSINT utilities. The scanner is not Nmap and does not perform UDP, SYN, OS fingerprinting, or subnet scans.
 
 ## Build and release
 

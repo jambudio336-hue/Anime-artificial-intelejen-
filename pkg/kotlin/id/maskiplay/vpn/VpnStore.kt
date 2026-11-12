@@ -15,6 +15,10 @@ class VpnStore(context: Context) {
     private val prefs = context.getSharedPreferences("wireguard_secure_store", Context.MODE_PRIVATE)
 
     fun save(config: String) {
+        require(config.isNotBlank()) { "Konfigurasi WireGuard kosong" }
+        require(config.toByteArray(Charsets.UTF_8).size <= MAX_CONFIG_BYTES) {
+            "Konfigurasi WireGuard terlalu besar (maksimum 64 KiB)"
+        }
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey())
         val encrypted = cipher.doFinal(config.toByteArray(Charsets.UTF_8))
@@ -33,6 +37,9 @@ class VpnStore(context: Context) {
             cipher.init(Cipher.DECRYPT_MODE, secretKey(), GCMParameterSpec(128, iv))
             String(cipher.doFinal(encrypted), Charsets.UTF_8)
         } catch (_: Exception) {
+            // Remove unusable ciphertext so a stale Keystore key does not cause
+            // the same decryption failure on every subsequent app launch.
+            prefs.edit().remove(CONFIG_KEY).apply()
             null
         }
     }
@@ -60,5 +67,6 @@ class VpnStore(context: Context) {
         private const val CONFIG_KEY = "encrypted_config"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val IV_SIZE = 12
+        private const val MAX_CONFIG_BYTES = 64 * 1024
     }
 }
