@@ -119,10 +119,15 @@ jobs:
           ET.register_namespace("android","http://schemas.android.com/apk/res/android")
           tree=ET.parse(p); root=tree.getroot()
           a="{http://schemas.android.com/apk/res/android}"
+          queries=root.find("queries")
+          if queries is None:
+              queries=ET.Element("queries"); root.insert(0,queries)
+          if not any(x.tag=="package" and x.get(a+"name")=="com.termux" for x in queries.findall("package")):
+              pkg=ET.SubElement(queries,"package"); pkg.set(a+"name","com.termux")
           existing={x.get(a+"name") for x in root.findall("uses-permission")}
           for name in ["android.permission.INTERNET","android.permission.ACCESS_NETWORK_STATE",
                        "android.permission.RECORD_AUDIO","android.permission.FOREGROUND_SERVICE",
-                       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE","android.permission.POST_NOTIFICATIONS"]:
+                       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE","android.permission.POST_NOTIFICATIONS","com.termux.permission.RUN_COMMAND"]:
               if name not in existing:
                   node=ET.Element("uses-permission"); node.set(a+"name",name); root.insert(0,node)
           app=root.find("application")

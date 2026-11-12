@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
+import android.app.PendingIntent
 import android.widget.Toast
 import android.widget.EditText
 import android.widget.TextView
@@ -46,6 +47,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.ValueCallback
 import androidx.core.content.FileProvider
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -61,7 +63,11 @@ import java.util.concurrent.Executors
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
  */
 class Bridge(private val activity: Activity, private val web: WebView?) {
-    companion object { const val REQ_VPN = 991 }
+    companion object {
+        private val termuxRequestId = java.util.concurrent.atomic.AtomicInteger(1000)
+        const val REQ_VPN = 991
+        const val REQ_WEB_FILE = 992
+    }
     @Volatile private var pendingVpnHost: String? = null
     @Volatile private var pendingVpnPort: Int = 53
 
@@ -76,6 +82,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     private var rate = 1.0f
     private var pitch = 0.92f
     private val vpnGateExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var pendingWebFileCallback: ValueCallback<Array<Uri>>? = null
 
     // ---------- browser internal terisolasi ----------
 
@@ -179,6 +186,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
+                mediaPlaybackRequiresUserGesture = false
                 databaseEnabled = false
                 allowFileAccess = false
                 allowContentAccess = false
@@ -189,6 +197,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
             }
             CookieManager.getInstance().setAcceptCookie(true)
+            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
             webChromeClient = object : WebChromeClient() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
                     progress.progress = newProgress
@@ -196,6 +205,28 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 }
                 override fun onReceivedTitle(view: WebView?, page: String?) {
                     if (!page.isNullOrBlank()) title.text = page.take(64)
+                }
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    filePathCallback: ValueCallback<Array<Uri>>,
+                    fileChooserParams: WebChromeClient.FileChooserParams
+                ): Boolean {
+                    pendingWebFileCallback?.onReceiveValue(null)
+                    pendingWebFileCallback = filePathCallback
+                    return try {
+                        val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "*/*"
+                            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/*", "application/json", "application/pdf", "image/*", "application/zip", "application/octet-stream"))
+                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, fileChooserParams.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE)
+                        }
+                        activity.startActivityForResult(Intent.createChooser(picker, "Pilih file untuk situs"), REQ_WEB_FILE)
+                        true
+                    } catch (_: Exception) {
+                        pendingWebFileCallback = null
+                        filePathCallback.onReceiveValue(null)
+                        false
+                    }
                 }
             }
             webViewClient = object : WebViewClient() {
@@ -299,13 +330,21 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         return "requesting"
     }
 
-    fun onActivityResult(resultCode: Int) {
-        val host = pendingVpnHost
-        val port = pendingVpnPort
-        pendingVpnHost = null
-        if (resultCode == Activity.RESULT_OK && host != null) launchVpn(host, port)
-        else js("MK_onVPN", JSONObject().put("active", false)
-            .put("error", "izin VPN ditolak").toString())
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQ_WEB_FILE) {
+            val callback = pendingWebFileCallback
+            pendingWebFileCallback = null
+            callback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
+            return
+        }
+        if (requestCode == REQ_VPN) {
+            val host = pendingVpnHost
+            val port = pendingVpnPort
+            pendingVpnHost = null
+            if (resultCode == Activity.RESULT_OK && host != null) launchVpn(host, port)
+            else js("MK_onVPN", JSONObject().put("active", false)
+                .put("error", "izin VPN ditolak").toString())
+        }
     }
 
     private fun launchVpn(host: String, port: Int) {
@@ -495,6 +534,60 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             val mode = if (hasSu()) "su" else "rish"
             "root siap via $mode\n" + exec("id", true)
         } else "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+    }
+
+    // ---------- Termux RUN_COMMAND ----------
+
+    @JavascriptInterface
+    fun termuxRun(command: String, workdir: String): String {
+        val cmd = command.trim()
+        if (cmd.isEmpty()) return "err: perintah kosong"
+        if (cmd.length > 8000) return "err: perintah melebihi batas 8.000 karakter"
+        if (activity.checkSelfPermission("com.termux.permission.RUN_COMMAND") != PackageManager.PERMISSION_GRANTED) {
+            return "err: izin RUN_COMMAND belum diberikan pada Info Aplikasi Mas Kiplay"
+        }
+        return try {
+            val id = termuxRequestId.incrementAndGet()
+            val resultIntent = Intent(activity, MainActivity::class.java).apply {
+                action = "ai.maskiplay.app.TERMUX_RESULT"
+                putExtra("mk_termux_id", id)
+            }
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
+            val resultPending = PendingIntent.getActivity(activity, id, resultIntent, flags)
+            val run = Intent().apply {
+                setClassName("com.termux", "com.termux.app.RunCommandService")
+                action = "com.termux.RUN_COMMAND"
+                putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
+                putExtra("com.termux.execute.arguments", arrayOf("-lc", cmd))
+                putExtra("com.termux.execute.cwd",
+                    workdir.trim().takeIf { it.startsWith("/") || it.startsWith("~/") } ?: "~/")
+                putExtra("com.termux.execute.background", true)
+                putExtra("com.termux.execute.command_label", "Mas Kiplay Agent")
+                putExtra("com.termux.execute.command_description", "Perintah diminta dari Chat/Jarvis Mas Kiplay")
+                putExtra("pendingIntent", resultPending)
+            }
+            activity.startService(run)
+            "queued:$id — perintah dikirim ke Termux. Hasil akan kembali ke Chat."
+        } catch (e: Exception) {
+            "err: Termux tidak siap: ${e.message ?: "gagal memulai layanan"}"
+        }
+    }
+
+    fun onTermuxResult(intent: Intent?) {
+        if (intent?.action != "ai.maskiplay.app.TERMUX_RESULT") return
+        val bundle = intent.getBundleExtra("result")
+        if (bundle == null) {
+            js("MK_onTermuxResult", JSONObject().put("error", "Termux tidak mengembalikan result bundle").toString())
+            return
+        }
+        val payload = JSONObject()
+            .put("id", intent.getIntExtra("mk_termux_id", 0))
+            .put("stdout", bundle.getString("stdout", "").take(12000))
+            .put("stderr", bundle.getString("stderr", "").take(6000))
+            .put("exitCode", bundle.getInt("exitCode", -1))
+            .put("error", bundle.getString("errmsg", ""))
+        js("MK_onTermuxResult", payload.toString())
     }
 
     // ---------- shell ----------

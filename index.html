@@ -200,8 +200,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="sect">Modul</div>
       <div class="pad"><div class="tl">
         <div class="t" data-go="chat"><i>💬</i><b>Chat</b><small>Bedah apa saja</small></div>
+        <div class="t" data-go="chatgpt"><i>✨</i><b>ChatGPT</b><small>OpenAI · chatgpt.com</small></div>
+        <div class="t" data-go="hackerai"><i>🛡️</i><b>Hacker AI</b><small>AI Pentest · hackerai.co</small></div>
+        <div class="t" data-go="shannon"><i>🧠</i><b>Shannon AI</b><small>AI Chat · shannon-ai.com</small></div>
+        <div class="t" data-go="ghostgpt"><i>👻</i><b>Ghost GPT</b><small>G0DM0D3 · godmod3.ai</small></div>
+        <div class="t" data-go="eporner"><i>🔞</i><b>ePorner 18+</b><small>Konten dewasa · WebView internal</small></div>
+        <div class="t" data-go="artex"><i>🧠</i><b>Artex Pentester AI</b><small>AI security assistant · artex.lol</small></div>
         <div class="t" data-go="jarvis"><i>🎙</i><b>Jarvis</b><small>Suara murni</small></div>
         <div class="t" data-go="agent"><i>🤖</i><b>Agent</b><small>Kendali penuh</small></div>
+        <div class="t" data-go="shortdrama"><i>🎬</i><b>Short Drama</b><small>FlickReels · Cinta Baru Dia</small></div>
+        <div class="t" data-go="dracinema"><i>🎞️</i><b>Dracinema</b><small>Drama Asia · Dracinema.com</small></div>
         <div class="t" data-go="cyber"><i>🧪</i><b>Cyber Lab</b><small>DNS, hash, JWT</small></div>
         <div class="t" data-go="dork"><i>🔎</i><b>Dork</b><small>Bongkar jejak</small></div>
         <div class="t" data-go="wcheck"><i>🩻</i><b>Web Check</b><small>X-ray situs</small></div>
@@ -237,6 +245,87 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <button id="jStop">⏹</button>
       </div>
     </section>
+
+    <section class="v" id="vHackerAI"><div class="sc">
+      <div class="cd"><h3>Hacker AI · Pentest Assistant</h3>
+        <p class="sub">Jalankan HackerAI langsung di dalam Mas Kiplay melalui tampilan web internal. Sesi, chat, dan agent tetap terhubung ke layanan resmi HackerAI.</p>
+        <div class="row"><div class="bd"><b>HackerAI</b><small>hackerai.co · AI security testing</small></div><span>🛡️</span></div>
+        <button class="btn pri" id="hackeraiOpen">🛡️ Jalankan Hacker AI</button>
+        <div class="mono" id="hackeraiStatus">Siap membuka HackerAI di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Penggunaan aman</h3><p class="sub">Gunakan hanya pada aset milikmu atau target yang memiliki izin tertulis dan ruang lingkup pengujian yang jelas. Perintah agent dapat menjalankan tindakan nyata di sandbox cloud atau perangkat lokal yang terhubung.</p><p class="sub">Login dan pemrosesan AI dilakukan oleh layanan HackerAI. Kebijakan akun, paket, kuota, dan privasi mengikuti ketentuan resmi mereka. Fitur unggah file atau autentikasi tertentu mungkin membutuhkan dukungan WebView tambahan.</p></div>
+    </div></section>
+
+    <section class="v" id="vGhostGPT"><div class="sc">
+      <div class="cd"><h3>Ghost GPT · G0DM0D3</h3>
+        <p class="sub">Buka antarmuka resmi G0DM0D3 langsung di dalam Mas Kiplay menggunakan browser internal aplikasi, tanpa mengalihkan ke Chrome atau browser eksternal.</p>
+        <div class="row"><div class="bd"><b>G0DM0D3</b><small>godmod3.ai · Multi-model AI chat</small></div><span>👻</span></div>
+        <button class="btn pri" id="ghostgptOpen">👻 Jalankan Ghost GPT</button>
+        <div class="mono" id="ghostgptStatus">Siap membuka G0DM0D3 di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Catatan penggunaan</h3><p class="sub">G0DM0D3 merupakan antarmuka chat multi-model. Penggunaan model dapat memerlukan API key/provider yang kamu konfigurasi sendiri. Ketersediaan model, biaya token, dan batas penggunaan mengikuti penyedia model.</p><p class="sub">Kredensial provider dan riwayat dapat disimpan pada penyimpanan browser lokal. Jangan masukkan API key ke perangkat bersama dan lindungi data aplikasi agar kredensial tidak terekspos.</p></div>
+    </div></section>
+
+    <section class="v" id="vEporner"><div class="sc">
+      <div class="cd"><h3>🔞 ePorner · 18+</h3>
+        <p class="sub">Akses situs ePorner melalui browser internal Mas Kiplay. Konten dewasa hanya untuk pengguna yang telah berusia 18 tahun atau memenuhi batas usia legal yang lebih tinggi di wilayahnya.</p>
+        <div class="row"><div class="bd"><b>ePorner</b><small>eporner.com/tag/indonesia-solo/</small></div><span>🔞</span></div>
+        <button class="btn pri" id="epornerOpen">🔞 Saya berusia 18+ · Buka ePorner</button>
+        <div class="mono" id="epornerStatus">Konfirmasi usia diperlukan setiap kali membuka situs.</div>
+      </div>
+      <div class="cd"><h3>Privasi, usia & akses jaringan</h3><p class="sub">Konfirmasi ini adalah pernyataan mandiri, bukan verifikasi identitas atau umur. Jangan gunakan jika belum memenuhi batas usia. Patuhi hukum setempat dan ketentuan situs.</p><p class="sub">Halaman dibuka di WebView internal; situs dapat meminta cookie, login, atau verifikasi sendiri. VPN tidak otomatis aktif. DNS VPN hanya mengubah resolusi DNS; akses melalui tunnel penuh memerlukan koneksi VPN full-tunnel yang sah dan sudah dikonfigurasi. Aplikasi tidak menjamin atau memaksa akses jika situs dibatasi oleh penyedia jaringan atau wilayah.</p></div>
+    </div></section>
+
+    <section class="v" id="vArtex"><div class="sc">
+      <div class="cd"><h3>🧠 Artex Pentester AI</h3>
+        <p class="sub">Buka layanan resmi Artex langsung di browser internal Mas Kiplay. Gunakan sebagai asisten keamanan untuk pembelajaran, audit, dan pengujian pada sistem milik sendiri atau yang memiliki izin tertulis.</p>
+        <div class="row"><div class="bd"><b>Artex</b><small>artex.lol · AI Pentester</small></div><span>🧠</span></div>
+        <button class="btn pri" id="artexOpen">🧠 Buka Artex Pentester AI</button>
+        <div class="mono" id="artexStatus">Siap membuka Artex di browser internal.</div>
+      </div>
+      <div class="cd"><h3>Keamanan & privasi</h3><p class="sub">Login, model AI, kuota, dan fitur pemindaian mengikuti layanan Artex. Jangan masukkan password, token, API key, atau data klien yang tidak diperlukan. Pastikan ada izin dan ruang lingkup yang jelas sebelum menjalankan pemindaian atau eksploitasi.</p><p class="sub">Mas Kiplay hanya menyediakan WebView untuk membuka situs. Fitur Artex tetap diproses oleh layanan resminya; kompatibilitas login dan fungsi situs perlu diuji pada perangkat.</p></div>
+    </div></section>
+
+    <section class="v" id="vShannon"><div class="sc">
+      <div class="cd"><h3>Shannon AI · AI Chat</h3>
+        <p class="sub">Buka ruang chat resmi Shannon AI langsung di dalam Mas Kiplay. Percakapan dan pemrosesan model tetap berjalan pada layanan Shannon AI.</p>
+        <div class="row"><div class="bd"><b>Shannon AI</b><small>shannon-ai.com/chat · AI assistant</small></div><span>🧠</span></div>
+        <button class="btn pri" id="shannonOpen">🧠 Buka Shannon AI</button>
+        <div class="mono" id="shannonStatus">Siap membuka Shannon AI di browser internal.</div>
+      </div>
+      <div class="cd"><h3>Info layanan & keamanan</h3><p class="sub">Shannon menyediakan chat AI, pencarian web, memori, unggah file, dan model dengan dukungan streaming. Login, model, kuota, serta fitur yang tersedia mengikuti akun dan ketentuan Shannon AI.</p><p class="sub">Jangan memasukkan password, API key, atau data rahasia yang tidak diperlukan. Periksa kebijakan privasi layanan sebelum mengirim dokumen atau informasi sensitif.</p></div>
+    </div></section>
+
+    <section class="v" id="vChatGPT"><div class="sc">
+      <div class="cd"><h3>ChatGPT · OpenAI</h3>
+        <p class="sub">Buka ChatGPT langsung di browser internal Mas Kiplay. Login dilakukan sendiri pada halaman resmi ChatGPT.</p>
+        <div class="row"><div class="bd"><b>ChatGPT</b><small>chatgpt.com · Asisten AI resmi</small></div><span>✦</span></div>
+        <button class="btn pri" id="chatgptOpen">✨ Buka ChatGPT</button>
+        <div class="mono" id="chatgptStatus">Siap membuka ChatGPT di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Info login</h3><p class="sub">Gunakan akun dan metode login OpenAI milikmu. Jika login Google, verifikasi, atau CAPTCHA tidak berjalan di WebView, gunakan browser Chrome yang didukung. Mas Kiplay tidak meminta atau menyimpan password ChatGPT.</p></div>
+    </div></section>
+
+    <section class="v" id="vShortDrama"><div class="sc">
+      <div class="cd"><h3>Short Drama · FlickReels</h3>
+        <p class="sub">Tonton drama pendek langsung dari browser internal Mas Kiplay. Pilih episode untuk membuka halaman FlickReels di dalam aplikasi.</p>
+        <div class="row"><div class="bd"><b>Cinta Baru Dia</b><small>Episode 1 · Romantis · Komedi ringan</small></div><span>▶</span></div>
+        <p class="sub">Sumia bertemu Yasan setelah kisah pertunangannya berubah arah. Buka episode untuk memuat pemutar video dari penyedia.</p>
+        <button class="btn pri" id="flickOpen">▶ Tonton Episode 1</button>
+        <div class="mono" id="flickStatus">Siap membuka FlickReels di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Pemutaran video</h3><p class="sub">Video diputar oleh pemutar resmi FlickReels melalui WebView internal. Ketersediaan pemutaran mengikuti dukungan situs, koneksi, wilayah, dan izin konten. Jika situs memblokir WebView atau memerlukan aplikasi/DRM tertentu, episode mungkin tidak dapat diputar di dalam aplikasi.</p></div>
+    </div></section>
+
+    <section class="v" id="vDracinema"><div class="sc">
+      <div class="cd"><h3>Dracinema · Drama Asia</h3>
+        <p class="sub">Jelajahi katalog dan tonton drama melalui situs Dracinema langsung di browser internal Mas Kiplay.</p>
+        <div class="row"><div class="bd"><b>Dracinema</b><small>dracinema.com · Situs streaming drama</small></div><span>▶</span></div>
+        <button class="btn pri" id="dracinemaOpen">▶ Buka Dracinema</button>
+        <div class="mono" id="dracinemaStatus">Siap membuka Dracinema di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Pemutaran di dalam aplikasi</h3><p class="sub">Halaman situs dimuat dalam WebView internal. Video menggunakan pemutar resmi yang disediakan situs. Keberhasilan pemutaran bergantung pada kompatibilitas WebView, jaringan, wilayah, dan izin atau proteksi konten situs.</p></div>
+    </div></section>
 
     <section class="v" id="vAgent"><div class="sc">
       <div class="cd"><h3>Status</h3><div class="mono" id="brg">memeriksa…</div>
@@ -393,13 +482,20 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     <h4>Navigasi</h4>
     <div class="di" data-go="home"><i>🏠</i>Dashboard</div>
     <div class="di" data-go="chat"><i>💬</i>Chat</div>
+    <div class="di" data-go="chatgpt"><i>✨</i>ChatGPT</div>
+    <div class="di" data-go="hackerai"><i>🛡️</i>Hacker AI</div>
+    <div class="di" data-go="shannon"><i>🧠</i>Shannon AI</div>
+    <div class="di" data-go="ghostgpt"><i>👻</i>Ghost GPT</div>
+    <div class="di" data-go="eporner"><i>🔞</i>ePorner 18+</div>
+    <div class="di" data-go="artex"><i>🧠</i>Artex Pentester AI</div>
     <div class="di" data-go="jarvis"><i>🎙</i>Jarvis</div>
     <div class="di" data-go="agent"><i>🤖</i>Agent</div>
     <div class="di" data-go="dork"><i>🔎</i>Dork</div>
     <div class="di" data-go="wcheck"><i>🩻</i>Web Check</div>
     <div class="di" data-go="osint"><i>🕵</i>OSINT</div>
     <div class="di" data-go="cyber"><i>🧪</i>Cyber Lab</div>
-    <a class="di" href="watch.html" style="text-decoration:none"><i>🎬</i>Nonton Dracin &amp; Anime</a>
+    <div class="di" data-go="shortdrama"><i>🎬</i>Short Drama</div>
+    <a class="di" href="watch.html" style="text-decoration:none"><i>📺</i>Nonton Dracin &amp; Anime</a>
     <div class="di" data-go="vpn"><i>🛡</i>DNS VPN</div>
     <div class="di" data-go="hist"><i>🕘</i>Riwayat</div>
     <div class="di" data-go="set"><i>⚙</i>Setelan</div>
@@ -446,8 +542,8 @@ async function A(fn,...a){
 }
 
 /* router */
-const V={home:"vHome",chat:"vChat",jarvis:"vJ",agent:"vAgent",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
-const TITLE={home:"Mas Kiplay",chat:"Chat",jarvis:"Jarvis",agent:"Agent",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
+const V={home:"vHome",chat:"vChat",hackerai:"vHackerAI",ghostgpt:"vGhostGPT",eporner:"vEporner",artex:"vArtex",shannon:"vShannon",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
+const TITLE={home:"Mas Kiplay",chat:"Chat",hackerai:"Hacker AI",ghostgpt:"Ghost GPT",eporner:"ePorner 18+",artex:"Artex Pentester AI",shannon:"Shannon AI",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
 function go(v){
   if(!V[v])v="home";
   $$(".v").forEach(s=>s.classList.remove("act"));
@@ -579,6 +675,12 @@ const TTS={q:[],run:false,seq:0,aud:null,wait:null,
   }
   if(my===this.seq){this.run=false;setState("");}
  }};
+window.MK_onTermuxResult=function(raw){
+  let r=raw;try{if(typeof raw==="string")r=JSON.parse(raw);}catch(e){r={error:"hasil Termux tidak valid"};}
+  const body=["Hasil Termux"+(r.id?" #"+r.id:""),r.stdout||"",r.stderr?("STDERR:\n"+r.stderr):"",r.error?("ERROR: "+r.error):"", "Exit code: "+(r.exitCode??"—")].filter(Boolean).join("\n");
+  if(active){active.msgs.push({role:"assistant",content:"```text\n"+body+"\n```"});saveChats();}
+  addMsg("assistant",body);
+};
 window.MK_onTTS=function(raw){
   let o;try{o=JSON.parse(raw);}catch(e){return;}
   if(o.ok&&!o.end)setState("spk");
@@ -632,7 +734,7 @@ const CTRL=[
 "root id",
 "shot",
 "```",
-"Perintah: open, url, dump, tap, swipe, click, text, key, scroll, wait, shell, root, shot, wall, speak, clip.",
+"Perintah: open, url, dump, tap, swipe, click, text, key, scroll, wait, shell, root, termux, shot, wall, speak, clip. Untuk termux, minta persetujuan pengguna sebelum eksekusi.",
 "Blok di akhir jawaban. Setelah blok, sistem kirim output; analisa seperti operator sungguhan.",
 "",
 "## MEMORI",
@@ -647,7 +749,7 @@ const CTRL=[
 
 function sysP(voice){
   const b=(PER[S.persona]||PER.brutal).p;
-  const v=voice?"\n\nMODE SUARA: jawaban dibacakan. Maks 5 kalimat, tanpa markdown, tanpa blok kode.":"\n\nMODE TEKS: detail penuh, markdown penuh.";
+  const v=voice?"\n\nMODE JARVIS AUDIO-ONLY: balas dengan kalimat percakapan yang natural untuk langsung dibacakan TTS. Maksimal 5 kalimat. Jangan gunakan Markdown, tabel, blok kode, URL panjang, atau instruksi format visual. Jangan tampilkan jawaban AI sebagai teks di panel Jarvis; keluaran jawaban hanya melalui audio. Jika aksi diperlukan, keluarkan blok run terpisah tanpa membacakan isi blok.":"\n\nMODE TEKS: detail penuh, markdown penuh.";
   const mem=S.mem.length?"\n\n## MEMORI TENTANG PENGGUNA\n"+S.mem.map(x=>"- "+x).join("\n"):"";
   const quality="\n\n## KUALITAS JAWABAN WAJIB\nSebelum mengirim jawaban, periksa ulang ejaan, typo, tata bahasa, tanda baca, konsistensi istilah, dan fakta. Gunakan Bahasa Indonesia yang alami sesuai konteks. Jangan mengulang kata atau kalimat tanpa alasan. Pertahankan maksud pengguna. Jangan mengubah isi kode, URL, nama API, identifier, command, atau kutipan literal saat proofreading. Jika tidak yakin, nyatakan ketidakpastian daripada mengarang.";
   return IDENT+"\n\n"+b+v+quality+mem+CTRL+(S.sysEx?"\n\n## TAMBAHAN\n"+S.sysEx:"");
@@ -886,6 +988,12 @@ async function doAct(line){
       case "open": return openApp(a);
       case "url": return openUrl(a);
       case "shell": return "$ "+a+"\n"+await shell(a,false);
+      case "termux": {
+        if(!a)return "err: perintah Termux kosong";
+        if(!window.confirm("Izinkan Mas Kiplay menjalankan perintah ini melalui Termux?\n\n"+a))return "dibatalkan pengguna";
+        const n=mk();if(!n||!n.termuxRun)return "Termux bridge hanya tersedia di APK Android";
+        return String(n.termuxRun(a,"~/"));
+      }
       case "root": return "# "+a+"\n"+await shell(a,true);
       case "install": return await A("installApk",a);
       case "wall": return await A("wall",a);
@@ -925,7 +1033,7 @@ const AGENT_SYS=[
 "9. Kalau tugas selesai, balas satu paragraf hasil TANPA blok act.",
 "10. Jangan minta konfirmasi. Jalan terus sampai beres.",
 "",
-"Perintah: dump, shot, tap X Y, swipe X1 Y1 X2 Y2 MS, click TEKS, text TEKS, key back|home|recents, scroll up|down, wait MS, open PAKET, url LINK, shell CMD, root CMD.",
+"Perintah: dump, shot, tap X Y, swipe X1 Y1 X2 Y2 MS, click TEKS, text TEKS, key back|home|recents, scroll up|down, wait MS, open PAKET, url LINK, shell CMD, termux CMD, root CMD.",
 "",
 "Format balasan:",
 "```act",
@@ -1340,6 +1448,14 @@ $("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
 $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
+$("#artexOpen").onclick=async()=>{const s=$("#artexStatus");s.textContent="Membuka Artex di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://artex.lol/","Artex Pentester AI");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#epornerOpen").onclick=async()=>{const s=$("#epornerStatus");if(!window.confirm("Saya menyatakan bahwa saya telah berusia minimal 18 tahun atau memenuhi batas usia legal yang lebih tinggi di wilayah saya, dan memilih untuk membuka situs dewasa. Lanjutkan?")){s.textContent="Dibatalkan. Halaman dewasa tidak dibuka.";return;}s.textContent="Membuka ePorner di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://www.eporner.com/tag/indonesia-solo/","ePorner · 18+");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#ghostgptOpen").onclick=async()=>{const s=$("#ghostgptStatus");s.textContent="Membuka G0DM0D3 di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://godmod3.ai/","Ghost GPT · G0DM0D3");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#shannonOpen").onclick=async()=>{const s=$("#shannonStatus");s.textContent="Membuka Shannon AI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://shannon-ai.com/chat","Shannon AI · Chat");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#hackeraiOpen").onclick=async()=>{const s=$("#hackeraiStatus");s.textContent="Membuka HackerAI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://hackerai.co/","Hacker AI · Pentest Assistant");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#chatgptOpen").onclick=async()=>{const s=$("#chatgptStatus");s.textContent="Membuka ChatGPT di browser internal…";const r=await A("openInAppBrowser","https://chatgpt.com/","ChatGPT · OpenAI");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#flickOpen").onclick=async()=>{const s=$("#flickStatus");s.textContent="Membuka FlickReels di browser internal…";const r=await A("openInAppBrowser","https://www.flickreels.net/id/playlist/cinta-baru-dia/3498/episode-1","Short Drama · Cinta Baru Dia");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#dracinemaOpen").onclick=async()=>{const s=$("#dracinemaStatus");s.textContent="Membuka Dracinema di browser internal…";const r=await A("openInAppBrowser","https://www.dracinema.com/","Dracinema");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#dBuild").onclick=dorks;
 $("#wOpen").onclick=async()=>{const u=$("#wTarget").value.trim()||"https://web-check.xyz/";const r=await A("openInAppBrowser",u,"Web Check");toast(r.startsWith("err:")?r:"Web Check dibuka di dalam Mas Kiplay");};
 $("#oOpen").onclick=async()=>{const u=$("#oTarget").value.trim()||"https://osint4all.com/tool/";const r=await A("openInAppBrowser",u,"OSINT");toast(r.startsWith("err:")?r:"OSINT dibuka di dalam Mas Kiplay");};
