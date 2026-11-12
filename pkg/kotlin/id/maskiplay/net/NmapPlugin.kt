@@ -16,8 +16,11 @@ class NmapPlugin : Plugin() {
     @PluginMethod
     fun scan(call: PluginCall) {
         val host = call.getString("host")?.trim().orEmpty()
-        if (!HOST_PATTERN.matches(host)) {
-            call.reject("Host tidak valid. Masukkan IP atau hostname tanpa opsi tambahan.")
+        val validIpv4 = host.matches(Regex("^(?:\d{1,3}\.){3}\d{1,3}$")) &&
+            host.split(".").all { it.toIntOrNull() in 0..255 }
+        val validHostname = HOST_PATTERN.matches(host) && !host.matches(Regex("^[\d.]+$"))
+        if (!validIpv4 && !validHostname) {
+            call.reject("Host tidak valid. Masukkan IPv4 atau hostname tanpa opsi tambahan.")
             return
         }
         worker.execute {
@@ -29,23 +32,22 @@ class NmapPlugin : Plugin() {
                     "-sT", "-Pn", "-T4", "-F",
                     "--host-timeout", "30s",
                     "-oX", "-", host
-                ).redirectErrorStream(false).start()
+                ).redirectErrorStream(true).start()
                 process = running
-                val stdout = running.inputStream.bufferedReader().use { it.readText() }
-                val stderr = running.errorStream.bufferedReader().use { it.readText() }
                 if (!running.waitFor(35, TimeUnit.SECONDS)) {
                     running.destroyForcibly()
                     throw IllegalStateException("Scan melewati batas waktu 35 detik")
                 }
-                if (running.exitValue() != 0 && stdout.isBlank()) {
-                    throw IllegalStateException(stderr.ifBlank { "Nmap gagal dengan kode ${running.exitValue()}" })
+                val output = running.inputStream.bufferedReader().use { it.readText() }
+                if (running.exitValue() != 0 && !output.contains("<nmaprun")) {
+                    throw IllegalStateException(output.ifBlank { "Nmap gagal dengan kode \${running.exitValue()}" })
                 }
-                if (!stdout.trimStart().startsWith("<?xml") && !stdout.contains("<nmaprun")) {
-                    throw IllegalStateException(stderr.ifBlank { "Nmap tidak mengembalikan XML yang valid" })
+                if (!output.trimStart().startsWith("<?xml") && !output.contains("<nmaprun")) {
+                    throw IllegalStateException(output.ifBlank { "Nmap tidak mengembalikan XML yang valid" })
                 }
                 call.resolve(JSObject().apply {
                     put("host", host)
-                    put("xml", stdout)
+                    put("xml", output)
                     put("exitCode", running.exitValue())
                 })
             } catch (e: Exception) {
