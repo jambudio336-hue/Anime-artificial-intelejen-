@@ -171,11 +171,23 @@ jobs:
           grep -q "fun vpnStart" "$D/Bridge.kt"
           grep -q "fun vpnStop" "$D/Bridge.kt"
           grep -q "vpnStart" "$D/Bridge.kt"
-          mkdir -p android/app/src/main/java/id
-          cp -R pkg/kotlin/id/maskiplay android/app/src/main/java/id/
+          set -x
+          echo "Checking native Kotlin source tree"
+          test -d pkg/kotlin/id/maskiplay
+          find pkg/kotlin/id/maskiplay -type f -maxdepth 4 -print
+          NATIVE_ID=android/app/src/main/java/id/maskiplay
+          mkdir -p "$NATIVE_ID"
+          cp -R pkg/kotlin/id/maskiplay/. "$NATIVE_ID/"
+          test -s "$NATIVE_ID/net/NetworkScannerPlugin.kt"
+          test -s "$NATIVE_ID/vpn/VpnPlugin.kt"
+          test -s "$NATIVE_ID/watch/WatchPlugin.kt"
+          echo "Kotlin sources copied"
           mkdir -p android/app/src/main/res/layout android/app/src/main/res/xml
-          cp pkg/res/layout/activity_player.xml android/app/src/main/res/layout/
-          cp pkg/res/xml/network_security_config.xml android/app/src/main/res/xml/
+          install -m 0644 pkg/res/layout/activity_player.xml android/app/src/main/res/layout/activity_player.xml
+          install -m 0644 pkg/res/xml/network_security_config.xml android/app/src/main/res/xml/network_security_config.xml
+          test -s android/app/src/main/res/layout/activity_player.xml
+          test -s android/app/src/main/res/xml/network_security_config.xml
+          echo "Native resources copied"
 
       - name: Tulis resource service dan provider
         run: |
