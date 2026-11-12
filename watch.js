@@ -18,7 +18,13 @@
       const card=document.createElement("article"); card.className="card";
       const cover=item.cover ? '<img class="cover" loading="lazy" src="'+esc(item.cover)+'" alt="Poster '+esc(item.title)+'">' : '<div class="cover-placeholder">TANPA POSTER</div>';
       card.innerHTML=cover+'<div class="meta"><div class="title">'+esc(item.title)+'</div><div class="badges"><span class="badge">'+esc(item.totalEps||"Video")+' eps</span><span class="badge">'+esc(item.status||"")+'</span><span class="badge source">'+esc(item.source||sourceLabel())+'</span></div></div>';
-      card.addEventListener("click",()=>openEpisodes(item));
+      if(source==="history") {
+        const play=document.createElement("button"); play.className="episode"; play.textContent="▶ Lanjutkan";
+        play.addEventListener("click",async e=>{e.stopPropagation();try{await plugin().play({source:item.source,videoId:item.videoId,title:item.title,seriesId:item.seriesId});}catch(err){showError(err.message);}});
+        const remove=document.createElement("button"); remove.className="episode"; remove.textContent="Hapus riwayat";
+        remove.addEventListener("click",async e=>{e.stopPropagation();try{await plugin().history({action:"remove",id:item.videoId});search();}catch(err){showError(err.message);}});
+        card.querySelector(".meta").append(play,remove);
+      } else card.addEventListener("click",()=>openEpisodes(item));
       cards.append(card);
     }
   }
@@ -45,7 +51,7 @@
         const b=document.createElement("button"); b.className="episode"; b.disabled=!!ep.locked;
         b.innerHTML='<span>'+String(ep.index+1).padStart(2,"0")+'</span><b>'+esc(ep.title)+'</b><span>'+(ep.locked?"TERKUNCI":"▶")+'</span>';
         b.addEventListener("click",async()=>{
-          try { await api.play({source:item.source==="Manual"?"manual":(item.source==="Anime"?"anime":"melolo"),videoId:ep.videoId,title:item.title+" · "+ep.title}); }
+          try { await api.play({source:item.source==="Manual"?"manual":(item.source==="Anime"?"anime":"melolo"),videoId:ep.videoId,seriesId:item.id,title:item.title+" · "+ep.title}); }
           catch(e){showError(e.message);}
         });
         list.append(b);
