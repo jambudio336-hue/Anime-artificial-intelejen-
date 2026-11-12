@@ -127,7 +127,7 @@ jobs:
               "WireGuard full tunnel UI": "WireGuard VPN · Full Tunnel" in html,
               "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
               "App package version": package.get("version") == "9.4.1",
-              "WebView user-agent version": "MasKiplay/9.4.0" in main,
+              "WebView user-agent version": "MasKiplay/9.4.1" in main,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
