@@ -25,6 +25,7 @@ object WatchEndpoints {
 
 object WatchHttp {
     private val lastRequestAt = AtomicLong(0L)
+    private const val MAX_IMAGE_BYTES = 4 * 1024 * 1024
     private val jsonType = "application/json; charset=utf-8".toMediaType()
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
