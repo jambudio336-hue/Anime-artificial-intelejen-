@@ -100,8 +100,8 @@ jobs:
           store = Path("pkg/kotlin/id/maskiplay/vpn/VpnStore.kt").read_text(encoding="utf-8")
           scanner = Path("pkg/kotlin/id/maskiplay/net/NetworkScannerPlugin.kt").read_text(encoding="utf-8")
           import re
-          port_block = re.search(r"COMMON_PORTS = intArrayOf\\((.*?)\\)", scanner, re.S)
-          port_count = len(re.findall(r"\\b\\d+\\b", port_block.group(1))) if port_block else 0
+          port_block = re.search(r"COMMON_PORTS = intArrayOf\((.*?)\)", scanner, re.S)
+          port_count = len(re.findall(r"\b\d+\b", port_block.group(1))) if port_block else 0
           html = Path("index.html").read_text(encoding="utf-8")
           package = json.loads(Path("package.json").read_text(encoding="utf-8"))
           checks = {
