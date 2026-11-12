@@ -202,6 +202,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="t" data-go="chat"><i>💬</i><b>Chat</b><small>Bedah apa saja</small></div>
         <div class="t" data-go="jarvis"><i>🎙</i><b>Jarvis</b><small>Suara murni</small></div>
         <div class="t" data-go="agent"><i>🤖</i><b>Agent</b><small>Kendali penuh</small></div>
+        <div class="t" data-go="shortdrama"><i>🎬</i><b>Short Drama</b><small>FlickReels · Cinta Baru Dia</small></div>
         <div class="t" data-go="cyber"><i>🧪</i><b>Cyber Lab</b><small>DNS, hash, JWT</small></div>
         <div class="t" data-go="dork"><i>🔎</i><b>Dork</b><small>Bongkar jejak</small></div>
         <div class="t" data-go="wcheck"><i>🩻</i><b>Web Check</b><small>X-ray situs</small></div>
@@ -237,6 +238,17 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <button id="jStop">⏹</button>
       </div>
     </section>
+
+    <section class="v" id="vShortDrama"><div class="sc">
+      <div class="cd"><h3>Short Drama · FlickReels</h3>
+        <p class="sub">Tonton drama pendek langsung dari browser internal Mas Kiplay. Pilih episode untuk membuka halaman FlickReels di dalam aplikasi.</p>
+        <div class="row"><div class="bd"><b>Cinta Baru Dia</b><small>Episode 1 · Romantis · Komedi ringan</small></div><span>▶</span></div>
+        <p class="sub">Sumia bertemu Yasan setelah kisah pertunangannya berubah arah. Buka episode untuk memuat pemutar video dari penyedia.</p>
+        <button class="btn pri" id="flickOpen">▶ Tonton Episode 1</button>
+        <div class="mono" id="flickStatus">Siap membuka FlickReels di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Pemutaran video</h3><p class="sub">Video diputar oleh pemutar resmi FlickReels melalui WebView internal. Ketersediaan pemutaran mengikuti dukungan situs, koneksi, wilayah, dan izin konten. Jika situs memblokir WebView atau memerlukan aplikasi/DRM tertentu, episode mungkin tidak dapat diputar di dalam aplikasi.</p></div>
+    </div></section>
 
     <section class="v" id="vAgent"><div class="sc">
       <div class="cd"><h3>Status</h3><div class="mono" id="brg">memeriksa…</div>
@@ -399,7 +411,8 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     <div class="di" data-go="wcheck"><i>🩻</i>Web Check</div>
     <div class="di" data-go="osint"><i>🕵</i>OSINT</div>
     <div class="di" data-go="cyber"><i>🧪</i>Cyber Lab</div>
-    <a class="di" href="watch.html" style="text-decoration:none"><i>🎬</i>Nonton Dracin &amp; Anime</a>
+    <div class="di" data-go="shortdrama"><i>🎬</i>Short Drama</div>
+    <a class="di" href="watch.html" style="text-decoration:none"><i>📺</i>Nonton Dracin &amp; Anime</a>
     <div class="di" data-go="vpn"><i>🛡</i>DNS VPN</div>
     <div class="di" data-go="hist"><i>🕘</i>Riwayat</div>
     <div class="di" data-go="set"><i>⚙</i>Setelan</div>
@@ -446,8 +459,8 @@ async function A(fn,...a){
 }
 
 /* router */
-const V={home:"vHome",chat:"vChat",jarvis:"vJ",agent:"vAgent",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
-const TITLE={home:"Mas Kiplay",chat:"Chat",jarvis:"Jarvis",agent:"Agent",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
+const V={home:"vHome",chat:"vChat",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
+const TITLE={home:"Mas Kiplay",chat:"Chat",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
 function go(v){
   if(!V[v])v="home";
   $$(".v").forEach(s=>s.classList.remove("act"));
@@ -1352,6 +1365,7 @@ $("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
 $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
+$("#flickOpen").onclick=async()=>{const s=$("#flickStatus");s.textContent="Membuka FlickReels di browser internal…";const r=await A("openInAppBrowser","https://www.flickreels.net/id/playlist/cinta-baru-dia/3498/episode-1","Short Drama · Cinta Baru Dia");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#dBuild").onclick=dorks;
 $("#wOpen").onclick=async()=>{const u=$("#wTarget").value.trim()||"https://web-check.xyz/";const r=await A("openInAppBrowser",u,"Web Check");toast(r.startsWith("err:")?r:"Web Check dibuka di dalam Mas Kiplay");};
 $("#oOpen").onclick=async()=>{const u=$("#oTarget").value.trim()||"https://osint4all.com/tool/";const r=await A("openInAppBrowser",u,"OSINT");toast(r.startsWith("err:")?r:"OSINT dibuka di dalam Mas Kiplay");};
