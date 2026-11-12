@@ -210,8 +210,8 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                         address.setText(pageUrl)
                         address.setSelection(address.text.length)
                     }
-                    back.isEnabled = canGoBack()
-                    forward.isEnabled = canGoForward()
+                    back.isEnabled = view?.canGoBack() == true
+                    forward.isEnabled = view?.canGoForward()
                 }
                 override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler, error: SslError) {
                     handler.cancel()
