@@ -17,6 +17,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.MimeTypes
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
@@ -94,7 +95,21 @@ class PlayerActivity : Activity() {
         val httpFactory = DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setDefaultRequestProperties(headers)
-        val item = MediaItem.fromUri(Uri.parse(url))
+        val subtitleRows = try {
+            JSONObject(intent.getStringExtra(EXTRA_VARIANTS).orEmpty()).optJSONArray("subtitles")
+        } catch (_: Exception) { null }
+        val subtitleConfigs = (0 until (subtitleRows?.length() ?: 0)).mapNotNull { index ->
+            val row = subtitleRows?.optJSONObject(index) ?: return@mapNotNull null
+            val subtitleUrl = row.optString("url").takeIf { it.startsWith("https://") } ?: return@mapNotNull null
+            MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleUrl))
+                .setMimeType(MimeTypes.TEXT_VTT)
+                .setLanguage(row.optString("language").ifBlank { "id" })
+                .setLabel(row.optString("label").ifBlank { "Subtitle" })
+                .setSelectionFlags(0)
+                .build()
+        }
+        val item = MediaItem.Builder().setUri(Uri.parse(url))
+            .setSubtitleConfigurations(subtitleConfigs).build()
         val mediaSource = if (variant?.optBoolean("isHls") == true ||
             url.substringBefore('?').endsWith(".m3u8", true)) {
             HlsMediaSource.Factory(httpFactory).createMediaSource(item)
