@@ -1,6 +1,6 @@
 # Mas Kiplay — AI Agent Android
 
-Mas Kiplay v9.4.0 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
+Mas Kiplay v9.4.1 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
 
 ## Main capabilities
 
