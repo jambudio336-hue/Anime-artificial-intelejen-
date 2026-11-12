@@ -168,6 +168,8 @@ jobs:
           grep -q "fun vpnStart" "$D/Bridge.kt"
           grep -q "fun vpnStop" "$D/Bridge.kt"
           grep -q "vpnStart" "$D/Bridge.kt"
+          mkdir -p android/app/src/main/java/id
+          cp -R pkg/kotlin/id/maskiplay android/app/src/main/java/id/
 
       - name: Tulis resource service dan provider
         run: |
