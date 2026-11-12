@@ -190,7 +190,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 databaseEnabled = false
                 allowFileAccess = false
                 allowContentAccess = false
-                javaScriptCanOpenWindowsAutomatically = true
+                javaScriptCanOpenWindowsAutomatically = false
                 // New-window links and window.open are routed into this same WebView.
                 // No secondary WebView or external browser is created.
                 setSupportMultipleWindows(false)
