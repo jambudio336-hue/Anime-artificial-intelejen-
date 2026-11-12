@@ -66,6 +66,34 @@ object WatchHttp {
         throw IOException("Request gagal setelah 3 percobaan", failure)
     }
 
+    fun getBytes(url: String, headers: Map<String, String> = emptyMap()): Pair<ByteArray, String> {
+        var failure: Exception? = null
+        repeat(3) { attempt ->
+            try {
+                throttle()
+                val builder = Request.Builder().url(url).get()
+                    .header("User-Agent", WatchEndpoints.USER_AGENT)
+                    .header("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
+                    .header("Accept-Encoding", "gzip")
+                headers.forEach { (key, value) -> builder.header(key, value) }
+                client.newCall(builder.build()).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("HTTP gambar ${response.code}")
+                    val body = response.body ?: throw IOException("Gambar kosong")
+                    if (body.contentLength() > MAX_IMAGE_BYTES) throw IOException("Poster terlalu besar")
+                    val bytes = body.bytes()
+                    if (bytes.isEmpty() || bytes.size > MAX_IMAGE_BYTES) throw IOException("Ukuran poster tidak valid")
+                    val mime = body.contentType()?.toString()?.substringBefore(';') ?: "image/jpeg"
+                    if (!mime.startsWith("image/")) throw IOException("Konten poster bukan gambar")
+                    return Pair(bytes, mime)
+                }
+            } catch (e: Exception) {
+                failure = e
+                if (attempt < 2) Thread.sleep(250L * (attempt + 1))
+            }
+        }
+        throw IOException("Gagal mengambil poster", failure)
+    }
+
     @Throws(IOException::class)
     fun postJson(
         url: String,
