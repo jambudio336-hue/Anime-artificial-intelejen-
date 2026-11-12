@@ -190,10 +190,10 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="hero">
         <video id="heroV" playsinline loop muted autoplay preload="auto"></video>
         <div class="g"></div>
-        <div class="top"><span class="tag">MK · 9.0.3</span><button id="snd">🔇</button></div>
+        <div class="top"><span class="tag">MK · 9.4.0</span><button id="snd">🔇</button></div>
         <div class="bot">
           <h1 data-t="MAS KIPLAY">MAS KIPLAY</h1>
-          <div class="sub">Agent AI · <b>Full Device Control</b> · <span id="verTxt">v9.0.3</span></div>
+          <div class="sub">Agent AI · <b>Full Device Control</b> · <span id="verTxt">v9.4.0</span></div>
         </div>
       </div>
       <div class="quote" id="quoteBox"><p id="qt"></p><span id="qs"></span></div>
@@ -541,6 +541,34 @@ async function A(fn,...a){
   try{return String(await n[fn](...a));}catch(e){return "err: "+e.message;}
 }
 
+/* Situs eksternal dibuka otomatis saat tile/menu dipilih, tanpa tombol kedua. */
+const WEB_TOOLS={
+  chatgpt:{url:"https://chatgpt.com/",title:"ChatGPT · OpenAI",status:"chatgptStatus"},
+  hackerai:{url:"https://hackerai.co/",title:"Hacker AI · Pentest Assistant",status:"hackeraiStatus"},
+  shannon:{url:"https://shannon-ai.com/chat",title:"Shannon AI · Chat",status:"shannonStatus"},
+  ghostgpt:{url:"https://godmod3.ai/",title:"Ghost GPT · G0DM0D3",status:"ghostgptStatus"},
+  eporner:{url:"https://www.eporner.com/tag/indonesia-solo/",title:"ePorner · 18+",status:"epornerStatus",adult:true},
+  artex:{url:"https://artex.lol/",title:"Artex Pentester AI",status:"artexStatus"},
+  shortdrama:{url:"https://www.flickreels.net/id/playlist/cinta-baru-dia/3498/episode-1",title:"Short Drama · Cinta Baru Dia",status:"flickStatus"},
+  dracinema:{url:"https://www.dracinema.com/",title:"Dracinema",status:"dracinemaStatus"}
+};
+const webToolOpening=new Set();
+async function launchWebTool(key){
+  const item=WEB_TOOLS[key];
+  if(!item||webToolOpening.has(key))return;
+  const status=item.status?$("#"+item.status):null;
+  if(item.adult&&!window.confirm("Saya menyatakan bahwa saya telah berusia minimal 18 tahun atau memenuhi batas usia legal yang lebih tinggi di wilayah saya, dan memilih untuk membuka situs dewasa. Lanjutkan?")){
+    if(status)status.textContent="Dibatalkan. Halaman dewasa tidak dibuka.";
+    return;
+  }
+  webToolOpening.add(key);
+  if(status)status.textContent="Membuka "+item.title+" di browser internal Mas Kiplay…";
+  const result=await A("openInAppBrowser",item.url,item.title);
+  if(status)status.textContent=String(result);
+  if(String(result).startsWith("err:"))toast(String(result));
+  webToolOpening.delete(key);
+}
+
 /* router */
 const V={home:"vHome",chat:"vChat",hackerai:"vHackerAI",ghostgpt:"vGhostGPT",eporner:"vEporner",artex:"vArtex",shannon:"vShannon",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
 const TITLE={home:"Mas Kiplay",chat:"Chat",hackerai:"Hacker AI",ghostgpt:"Ghost GPT",eporner:"ePorner 18+",artex:"Artex Pentester AI",shannon:"Shannon AI",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
@@ -559,6 +587,7 @@ function go(v){
   if(v==="set"){renderKeys();renderModels();renderMem();}
   if(v==="agent")loadCaps();
   if(v==="chat")setTimeout(()=>$("#log").scrollTop=$("#log").scrollHeight,60);
+  if(WEB_TOOLS[v])launchWebTool(v);
   history.replaceState(null,"","#/"+v);
 }
 window.mkBack=function(){
@@ -1448,14 +1477,14 @@ $("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
 $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
-$("#artexOpen").onclick=async()=>{const s=$("#artexStatus");s.textContent="Membuka Artex di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://artex.lol/","Artex Pentester AI");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#epornerOpen").onclick=async()=>{const s=$("#epornerStatus");if(!window.confirm("Saya menyatakan bahwa saya telah berusia minimal 18 tahun atau memenuhi batas usia legal yang lebih tinggi di wilayah saya, dan memilih untuk membuka situs dewasa. Lanjutkan?")){s.textContent="Dibatalkan. Halaman dewasa tidak dibuka.";return;}s.textContent="Membuka ePorner di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://www.eporner.com/tag/indonesia-solo/","ePorner · 18+");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#ghostgptOpen").onclick=async()=>{const s=$("#ghostgptStatus");s.textContent="Membuka G0DM0D3 di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://godmod3.ai/","Ghost GPT · G0DM0D3");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#shannonOpen").onclick=async()=>{const s=$("#shannonStatus");s.textContent="Membuka Shannon AI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://shannon-ai.com/chat","Shannon AI · Chat");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#hackeraiOpen").onclick=async()=>{const s=$("#hackeraiStatus");s.textContent="Membuka HackerAI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://hackerai.co/","Hacker AI · Pentest Assistant");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#chatgptOpen").onclick=async()=>{const s=$("#chatgptStatus");s.textContent="Membuka ChatGPT di browser internal…";const r=await A("openInAppBrowser","https://chatgpt.com/","ChatGPT · OpenAI");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#flickOpen").onclick=async()=>{const s=$("#flickStatus");s.textContent="Membuka FlickReels di browser internal…";const r=await A("openInAppBrowser","https://www.flickreels.net/id/playlist/cinta-baru-dia/3498/episode-1","Short Drama · Cinta Baru Dia");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
-$("#dracinemaOpen").onclick=async()=>{const s=$("#dracinemaStatus");s.textContent="Membuka Dracinema di browser internal…";const r=await A("openInAppBrowser","https://www.dracinema.com/","Dracinema");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#artexOpen").onclick=()=>launchWebTool("artex");
+$("#epornerOpen").onclick=()=>launchWebTool("eporner");
+$("#ghostgptOpen").onclick=()=>launchWebTool("ghostgpt");
+$("#shannonOpen").onclick=()=>launchWebTool("shannon");
+$("#hackeraiOpen").onclick=()=>launchWebTool("hackerai");
+$("#chatgptOpen").onclick=()=>launchWebTool("chatgpt");
+$("#flickOpen").onclick=()=>launchWebTool("shortdrama");
+$("#dracinemaOpen").onclick=()=>launchWebTool("dracinema");
 $("#dBuild").onclick=dorks;
 $("#wOpen").onclick=async()=>{const u=$("#wTarget").value.trim()||"https://web-check.xyz/";const r=await A("openInAppBrowser",u,"Web Check");toast(r.startsWith("err:")?r:"Web Check dibuka di dalam Mas Kiplay");};
 $("#oOpen").onclick=async()=>{const u=$("#oTarget").value.trim()||"https://osint4all.com/tool/";const r=await A("openInAppBrowser",u,"OSINT");toast(r.startsWith("err:")?r:"OSINT dibuka di dalam Mas Kiplay");};
