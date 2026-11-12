@@ -528,7 +528,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
                 putExtra("com.termux.RUN_COMMAND_LABEL", "Mas Kiplay Agent")
                 putExtra("com.termux.RUN_COMMAND_DESCRIPTION", "Perintah diminta dari Chat/Jarvis Mas Kiplay")
-                putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", resultPending)
+                putExtra("pendingIntent", resultPending)
             }
             activity.startService(run)
             "queued:$id — perintah dikirim ke Termux. Hasil akan kembali ke Chat."
@@ -539,9 +539,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     fun onTermuxResult(intent: Intent?) {
         if (intent?.action != "ai.maskiplay.app.TERMUX_RESULT") return
-        val bundle = intent.getBundleExtra("com.termux.RESULT_BUNDLE")
-            ?: intent.getBundleExtra("com.termux.RUN_COMMAND_RESULT_BUNDLE")
-            ?: intent.getBundleExtra("com.termux.plugin.RESULT_BUNDLE")
+        val bundle = intent.getBundleExtra("result")
         if (bundle == null) {
             js("MK_onTermuxResult", JSONObject().put("error", "Termux tidak mengembalikan result bundle").toString())
             return
