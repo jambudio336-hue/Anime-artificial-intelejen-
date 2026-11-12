@@ -300,10 +300,10 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="cd"><h3>Hash</h3><textarea class="f" id="cHash" rows="2" placeholder="teks"></textarea>
         <div class="g3"><button class="btn sm" data-h="SHA-256">SHA256</button><button class="btn sm" data-h="SHA-384">SHA384</button><button class="btn sm" data-h="SHA-512">SHA512</button></div>
         <div class="mono" id="cHashOut">—</div></div>
-      <div class="cd"><h3>Nmap TCP Connect Scan</h3>
+      <div class="cd"><h3>Network Scanner · TCP Connect</h3>
         <p class="sub">Mode tanpa root: -sT -Pn -T4 -F. Scan hanya host yang kamu miliki atau punya izin tertulis untuk diuji.</p>
         <input class="f" id="nmapHost" value="127.0.0.1" placeholder="127.0.0.1 atau host yang diizinkan" autocapitalize="off">
-        <div class="g2"><button class="btn sm pri" id="nmapScan">Mulai scan</button><button class="btn sm" id="nmapCopy">Salin XML</button></div>
+        <div class="g2"><button class="btn sm pri" id="nmapScan">Mulai scan</button><button class="btn sm" id="nmapCopy">Salin hasil</button></div>
         <pre class="mono" id="nmapOutput" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto">Belum ada hasil scan.</pre>
       </div>
       <div class="cd"><h3>Base64 / URL Codec</h3><textarea class="f" id="cCod" rows="2" placeholder="teks"></textarea>
@@ -1446,17 +1446,21 @@ $("#vpnStatus").onclick=()=>{
   paintVpn();
 };
 
-// Native Nmap TCP connect scan
-let nmapXml="";
+// Native TCP connect scanner (original project implementation)
+let networkScanText="";
 $("#nmapScan").onclick=async()=>{
-  const api=window.Capacitor?.Plugins?.Nmap, host=$("#nmapHost").value.trim();
-  if(!api){$("#nmapOutput").textContent="Plugin Nmap hanya tersedia di APK Android.";return;}
-  $("#nmapScan").disabled=true;$("#nmapOutput").textContent="Memindai "+host+"…";
-  try{const r=await api.scan({host});nmapXml=r.xml||"";$("#nmapOutput").textContent=nmapXml||"Nmap tidak mengembalikan XML.";toast("Pemindaian selesai");}
-  catch(e){$("#nmapOutput").textContent=e.message;toast("Nmap: "+e.message);}
+  const api=window.Capacitor?.Plugins?.NetworkScanner, host=$("#nmapHost").value.trim();
+  if(!api){$("#nmapOutput").textContent="Network Scanner hanya tersedia di APK Android.";return;}
+  $("#nmapScan").disabled=true;$("#nmapOutput").textContent="Memindai 50 port TCP umum pada "+host+"…";
+  try{
+    const r=await api.scan({host});
+    networkScanText="Host: "+r.host+" ("+r.address+")\\nMetode: "+r.method+"\\nPort diperiksa: "+r.scannedPorts+" · terbuka: "+r.openCount+"\\nDurasi: "+r.durationMs+" ms\\n\\n"+(r.ports||[]).map(p=>p.port+"/tcp  "+p.state+"  "+p.service).join("\\n");
+    if(!r.openCount)networkScanText+="\\nTidak ada port terbuka yang terdeteksi pada daftar port ini.";
+    $("#nmapOutput").textContent=networkScanText;toast("Pemindaian selesai");
+  }catch(e){$("#nmapOutput").textContent=e.message;toast("Scanner: "+e.message);}
   finally{$("#nmapScan").disabled=false;}
 };
-$("#nmapCopy").onclick=()=>{if(nmapXml)cp(nmapXml);else toast("Belum ada XML untuk disalin");};
+$("#nmapCopy").onclick=()=>{if(networkScanText)cp(networkScanText);else toast("Belum ada hasil scan untuk disalin");};
 
 // Custom anime mirror setting
 $("#animeBaseSave").onclick=async()=>{
