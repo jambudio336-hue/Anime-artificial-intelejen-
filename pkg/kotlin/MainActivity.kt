@@ -93,7 +93,7 @@ class MainActivity : BridgeActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == Bridge.REQ_VPN) nativeBridge?.onActivityResult(resultCode)
+        nativeBridge?.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {
