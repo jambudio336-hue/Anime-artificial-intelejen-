@@ -22,7 +22,7 @@ class VpnPlugin : Plugin() {
     private val worker = Executors.newSingleThreadExecutor()
     private lateinit var backend: GoBackend
     private lateinit var store: VpnStore
-    private val tunnel = MasTunnel("maskiplay")
+    @Volatile private var tunnel = MasTunnel("maskiplay")
 
     override fun load() {
         super.load()
@@ -53,6 +53,10 @@ class VpnPlugin : Plugin() {
         val name = call.getString("name", "maskiplay") ?: "maskiplay"
         require(!Tunnel.isNameInvalid(name)) { "Nama tunnel tidak valid (1–15 karakter)" }
         if (VpnService.prepare(context) != null) throw IllegalStateException("Izin VPN belum diberikan; panggil prepare()")
+        if (backend.getState(tunnel) == Tunnel.State.UP && tunnel.getName() != name) {
+            backend.setState(tunnel, Tunnel.State.DOWN, null)
+        }
+        if (tunnel.getName() != name) tunnel = MasTunnel(name)
         store.save(configText)
         val config = Config.parse(ByteArrayInputStream(configText.toByteArray(Charsets.UTF_8)))
         val state = backend.setState(tunnel, Tunnel.State.UP, config)
