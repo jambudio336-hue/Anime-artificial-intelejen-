@@ -491,23 +491,29 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         if (activity.isFinishing || activity.isDestroyed) return false
         val latch = CountDownLatch(1)
         val approved = AtomicReference(false)
+        val dialogRef = AtomicReference<AlertDialog?>(null)
         activity.runOnUiThread {
             try {
-                AlertDialog.Builder(activity)
+                val dialog = AlertDialog.Builder(activity)
                     .setTitle(title)
-                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\n\n${command.take(4096)}")
+                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\\n\\n${command.take(4096)}")
                     .setPositiveButton("Setujui dan jalankan") { _, _ -> approved.set(true); latch.countDown() }
                     .setNegativeButton("Batal") { _, _ -> approved.set(false); latch.countDown() }
                     .setOnCancelListener { approved.set(false); latch.countDown() }
-                    .show()
+                    .create()
+                dialogRef.set(dialog)
+                dialog.show()
             } catch (_: Exception) {
                 latch.countDown()
             }
         }
         return try {
-            latch.await(75, TimeUnit.SECONDS) && approved.get()
+            val completed = latch.await(75, TimeUnit.SECONDS)
+            if (!completed) activity.runOnUiThread { dialogRef.get()?.dismiss() }
+            completed && approved.get()
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
+            activity.runOnUiThread { dialogRef.get()?.dismiss() }
             false
         }
     }
