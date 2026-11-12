@@ -16,9 +16,9 @@ class NmapPlugin : Plugin() {
     @PluginMethod
     fun scan(call: PluginCall) {
         val host = call.getString("host")?.trim().orEmpty()
-        val validIpv4 = host.matches(Regex("^(?:\d{1,3}\.){3}\d{1,3}$")) &&
+        val validIpv4 = host.matches(Regex("""^(?:\d{1,3}\.){3}\d{1,3}$""")) &&
             host.split(".").all { it.toIntOrNull() in 0..255 }
-        val validHostname = HOST_PATTERN.matches(host) && !host.matches(Regex("^[\d.]+$"))
+        val validHostname = HOST_PATTERN.matches(host) && !host.matches(Regex("""^[\d.]+$"""))
         if (!validIpv4 && !validHostname) {
             call.reject("Host tidak valid. Masukkan IPv4 atau hostname tanpa opsi tambahan.")
             return
@@ -40,7 +40,7 @@ class NmapPlugin : Plugin() {
                 }
                 val output = running.inputStream.bufferedReader().use { it.readText() }
                 if (running.exitValue() != 0 && !output.contains("<nmaprun")) {
-                    throw IllegalStateException(output.ifBlank { "Nmap gagal dengan kode \${running.exitValue()}" })
+                    throw IllegalStateException(output.ifBlank { "Nmap gagal dengan kode ${running.exitValue()}" })
                 }
                 if (!output.trimStart().startsWith("<?xml") && !output.contains("<nmaprun")) {
                     throw IllegalStateException(output.ifBlank { "Nmap tidak mengembalikan XML yang valid" })
