@@ -38,6 +38,12 @@
     }
   }
   function sourceLabel(){return source==="melolo"?"Melolo":source==="anime"?"Anime":source==="manual"?"Manual":"Riwayat";}
+  function statusLabel(item){
+    if(item.sourceLabel==="Anime"||item.source==="anime") return item.status||"Anime";
+    const value=String(item.status||"").toLowerCase();
+    if(/finish|complete|completed|selesai|ended|\b2\b/.test(value)) return "Selesai";
+    return "Berjalan";
+  }
   async function search() {
     lastQuery=$("query").value.trim(); setBusy();
     try {
