@@ -127,7 +127,7 @@ unprivileged TCP connect scan (`-sT -Pn -T4 -F --host-timeout 30s -oX -`),
 returning raw XML. The host validator accepts an IP address or hostname.
 The Nmap control panel is present in the Cyber Lab screen in `index.html` and invokes `Capacitor.Plugins.Nmap.scan({host})`. The Watch screen also exposes a dedicated Nmap panel.
 
-**Release blocker:** no Android ARM64 `assets/nmap/nmap` binary is committed or built by CI. Calls to the plugin therefore fail with a clear missing-binary error. The available Android Nmap fork documents a dynamically linked AArch64 build, requires `libc++_shared.so`, and identifies its license as NPSL; its full license terms, source redistribution obligations, runtime data files, and compatibility with this GPL-3.0-only app must be reviewed before bundling. A generic Linux static Nmap binary is not a valid substitute for Android ARM64. Only scan systems you own or are authorized to test.
+**Release blocker (legal + technical):** no Android ARM64 `assets/nmap/nmap` binary is committed or built by CI. The plugin therefore fails with a clear missing-binary error. More importantly, the Nmap Project states that NPSL is not directly compatible with other licenses and specifically treats software designed to execute Nmap and parse its output as a derivative work for NPSL purposes. The Android fork also identifies its code as NPSL and its binary as dynamically linked, requiring `libc++_shared.so`. Do not bundle or distribute Nmap in this GPL-3.0-only app without written permission/relicensing from the Nmap Project or an appropriate OEM agreement, and a complete source/runtime-assets audit. The existing Nmap UI/plugin must remain marked unavailable until this is resolved. A generic Linux static Nmap binary is not a valid Android ARM64 substitute. Only scan systems you own or are authorized to test.
 
 ## Acceptance test report
 
@@ -145,7 +145,7 @@ physical-device media/VPN behavior.
 | 6 | Paste a manual MP4 URL and play it | Not run on physical device |
 | 7 | Disable network and verify a recoverable error state without crash | Not run on physical device |
 | 8 | WireGuard prepare → consent → up → AKTIF → down → MATI | Not run on physical device |
-| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: Android ARM64 binary, runtime dependencies/data, and NPSL distribution review missing; UI is integrated |
+| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: Android binary/runtime missing and NPSL requires explicit licensing resolution; UI is integrated |
 | 10 | Jarvis, chat, STT, TTS, and accessibility remain functional | Regression test not run on physical device |
 | 11 | No API key or Bearer token is required by the new integrations | Static source inspection pending final audit |
 
