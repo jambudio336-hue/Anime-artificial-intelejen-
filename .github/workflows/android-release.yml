@@ -142,6 +142,8 @@ jobs:
               "Native consent for ROOT commands": 'confirmNativeAction("Konfirmasi perintah ROOT", cmd)' in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
               "Native consent for Termux commands": 'confirmNativeAction("Konfirmasi eksekusi Termux", cmd)' in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
               "Legacy Termux bridge uses guarded path": 'fun termux(cmd: String): String = termuxRun(cmd, "~/")' in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
+              "Native consent dialog dismisses on timeout": "dialogRef.get()?.dismiss()" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8") and "latch.await(75, TimeUnit.SECONDS)" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
+              "Native consent displays bounded command text": "command.take(4096)" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
               "Shell command length limit": "cmd.length > 4096" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
               "Termux command length limit": "perintah melebihi batas 4.096 karakter" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
 
