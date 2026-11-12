@@ -301,7 +301,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="g3"><button class="btn sm" data-h="SHA-256">SHA256</button><button class="btn sm" data-h="SHA-384">SHA384</button><button class="btn sm" data-h="SHA-512">SHA512</button></div>
         <div class="mono" id="cHashOut">—</div></div>
       <div class="cd"><h3>Network Scanner · TCP Connect</h3>
-        <p class="sub">Mode tanpa root: -sT -Pn -T4 -F. Scan hanya host yang kamu miliki atau punya izin tertulis untuk diuji.</p>
+        <p class="sub">Memeriksa 50 port TCP umum tanpa root. Scan hanya host yang kamu miliki atau punya izin untuk diuji.</p>
         <input class="f" id="nmapHost" value="127.0.0.1" placeholder="127.0.0.1 atau host yang diizinkan" autocapitalize="off">
         <div class="g2"><button class="btn sm pri" id="nmapScan">Mulai scan</button><button class="btn sm" id="nmapCopy">Salin hasil</button></div>
         <pre class="mono" id="nmapOutput" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto">Belum ada hasil scan.</pre>
@@ -1454,8 +1454,8 @@ $("#nmapScan").onclick=async()=>{
   $("#nmapScan").disabled=true;$("#nmapOutput").textContent="Memindai 50 port TCP umum pada "+host+"…";
   try{
     const r=await api.scan({host});
-    networkScanText="Host: "+r.host+" ("+r.address+")\\nMetode: "+r.method+"\\nPort diperiksa: "+r.scannedPorts+" · terbuka: "+r.openCount+"\\nDurasi: "+r.durationMs+" ms\\n\\n"+(r.ports||[]).map(p=>p.port+"/tcp  "+p.state+"  "+p.service).join("\\n");
-    if(!r.openCount)networkScanText+="\\nTidak ada port terbuka yang terdeteksi pada daftar port ini.";
+    networkScanText="Host: "+r.host+" ("+r.address+")\nMetode: "+r.method+"\nPort diperiksa: "+r.scannedPorts+" · terbuka: "+r.openCount+"\nDurasi: "+r.durationMs+" ms\n\n"+(r.ports||[]).map(p=>p.port+"/tcp  "+p.state+"  "+p.service).join("\n");
+    if(!r.openCount)networkScanText+="\nTidak ada port terbuka yang terdeteksi pada daftar port ini.";
     $("#nmapOutput").textContent=networkScanText;toast("Pemindaian selesai");
   }catch(e){$("#nmapOutput").textContent=e.message;toast("Scanner: "+e.message);}
   finally{$("#nmapScan").disabled=false;}
