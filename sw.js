@@ -1,12 +1,12 @@
 'use strict';
-const CACHE = 'maskiplay-v9';
+const CACHE = 'maskiplay-v10';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon.png',
   './video.mp4',
-  './dashboard.mp4'
+  './Dashboard.mp4'
 ];
 
 self.addEventListener('install', e => {
