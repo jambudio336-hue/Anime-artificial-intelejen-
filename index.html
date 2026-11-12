@@ -581,8 +581,8 @@ const TTS={q:[],run:false,seq:0,aud:null,wait:null,
  }};
 window.MK_onTermuxResult=function(raw){
   let r=raw;try{if(typeof raw==="string")r=JSON.parse(raw);}catch(e){r={error:"hasil Termux tidak valid"};}
-  const body=["Hasil Termux"+(r.id?" #"+r.id:""),r.stdout||"",r.stderr?("STDERR:\\n"+r.stderr):"",r.error?("ERROR: "+r.error):"", "Exit code: "+(r.exitCode??"—")].filter(Boolean).join("\\n");
-  if(active){active.msgs.push({role:"assistant",content:"\u0060\u0060\u0060text\\n"+body+"\\n\u0060\u0060\u0060"});saveChats();}
+  const body=["Hasil Termux"+(r.id?" #"+r.id:""),r.stdout||"",r.stderr?("STDERR:\n"+r.stderr):"",r.error?("ERROR: "+r.error):"", "Exit code: "+(r.exitCode??"—")].filter(Boolean).join("\n");
+  if(active){active.msgs.push({role:"assistant",content:"```text\n"+body+"\n```"});saveChats();}
   addMsg("assistant",body);
 };
 window.MK_onTTS=function(raw){
@@ -892,7 +892,12 @@ async function doAct(line){
       case "open": return openApp(a);
       case "url": return openUrl(a);
       case "shell": return "$ "+a+"\n"+await shell(a,false);
-      case "termux": {\n        if(!a)return "err: perintah Termux kosong";\n        if(!window.confirm("Izinkan Mas Kiplay menjalankan perintah ini melalui Termux?\\n\\n"+a))return "dibatalkan pengguna";\n        const n=mk();if(!n||!n.termuxRun)return "Termux bridge hanya tersedia di APK Android";\n        return String(n.termuxRun(a,"~/"));\n      }
+      case "termux": {
+        if(!a)return "err: perintah Termux kosong";
+        if(!window.confirm("Izinkan Mas Kiplay menjalankan perintah ini melalui Termux?\n\n"+a))return "dibatalkan pengguna";
+        const n=mk();if(!n||!n.termuxRun)return "Termux bridge hanya tersedia di APK Android";
+        return String(n.termuxRun(a,"~/"));
+      }
       case "root": return "# "+a+"\n"+await shell(a,true);
       case "install": return await A("installApk",a);
       case "wall": return await A("wall",a);
