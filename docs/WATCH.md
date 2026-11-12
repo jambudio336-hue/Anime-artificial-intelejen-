@@ -122,16 +122,15 @@ DNS, IPv4/IPv6 leak behavior, disconnect, revoke, and network handoff).
 
 ## Nmap
 
-The native Capacitor `Nmap` plugin and Cyber Lab UI are present. The plugin
-extracts `assets/nmap/nmap` into app-private storage, executes a fixed
+The native Capacitor `Nmap` plugin source exists and implements a fixed
 unprivileged TCP connect scan (`-sT -Pn -T4 -F --host-timeout 30s -oX -`),
-and returns raw XML. The host field accepts only an IP address or hostname;
-scan only systems you own or are authorized to test.
+returning raw XML. The host validator accepts an IP address or hostname.
+However, the Nmap control panel is not yet connected to the app UI.
 
 **Release blocker:** no arm64 static `assets/nmap/nmap` binary is committed or
-built by CI yet. The UI will report that the binary is missing until that asset
-is supplied. The Nmap binary license and its source/notice obligations must be
-audited before bundling it.
+built by CI. Calls to the plugin therefore fail with a clear missing-binary
+error. The Nmap binary license and its source/notice obligations must be
+audited before bundling it. Only scan systems you own or are authorized to test.
 
 ## Acceptance test report
 
@@ -141,7 +140,7 @@ physical-device media/VPN behavior.
 
 | # | Acceptance test | Status |
 |---|---|---|
-| 1 | `./gradlew :app:assembleDebug` succeeds | Pending latest CI; previous CI attempts exposed and fixed workflow injection errors |
+| 1 | `./gradlew :app:assembleDebug` succeeds | **Passed** in GitHub Actions run 43168809915 (commit 2c4d2e9); APK artifact uploaded |
 | 2 | Dracin search for `love` returns at least five cards with covers | Not run against live API |
 | 3 | Open a Dracin title and load episodes | Not run against live API |
 | 4 | Play episode 1 with moving video, audio, duration, and quality switching | Not run on physical device |
@@ -149,9 +148,14 @@ physical-device media/VPN behavior.
 | 6 | Paste a manual MP4 URL and play it | Not run on physical device |
 | 7 | Disable network and verify a recoverable error state without crash | Not run on physical device |
 | 8 | WireGuard prepare → consent → up → AKTIF → down → MATI | Not run on physical device |
-| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: arm64 Nmap binary and plugin not integrated |
+| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: arm64 Nmap binary missing; Nmap UI not integrated |
 | 10 | Jarvis, chat, STT, TTS, and accessibility remain functional | Regression test not run on physical device |
 | 11 | No API key or Bearer token is required by the new integrations | Static source inspection pending final audit |
 
-Do not publish a release APK or merge this branch as complete until all eleven
-acceptance tests pass and the Nmap binary blocker is resolved.
+A green debug build verifies compilation only; it does not verify live API
+responses, video playback, WireGuard tunnel operation, Nmap execution, or
+regression behavior on a physical device. The current release workflow runs
+from `main`, and the existing public tag `v9.1.0` must not be overwritten.
+Do not publish this feature branch as a completed feature release until the
+remaining acceptance tests pass, the Nmap binary/UI are supplied, and the
+release workflow is run with a new version and valid signing secrets.
