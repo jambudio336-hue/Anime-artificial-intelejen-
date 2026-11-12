@@ -290,6 +290,19 @@ jobs:
               player.set(ns + "name", "id.maskiplay.watch.PlayerActivity")
               player.set(ns + "exported", "false")
 
+          if not any(x.get(ns + "name") == "com.wireguard.android.backend.GoBackend$VpnService" for x in application.findall("service")):
+              service = ET.SubElement(application, "service")
+              service.set(ns + "name", "com.wireguard.android.backend.GoBackend$VpnService")
+              service.set(ns + "exported", "true")
+              service.set(ns + "permission", "android.permission.BIND_VPN_SERVICE")
+              service.set(ns + "foregroundServiceType", "specialUse")
+              intent = ET.SubElement(service, "intent-filter")
+              action = ET.SubElement(intent, "action")
+              action.set(ns + "name", "android.net.VpnService")
+              prop = ET.SubElement(service, "property")
+              prop.set(ns + "name", "android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE")
+              prop.set(ns + "value", "WireGuard tunnel service")
+
           ET.indent(tree, space="    ")
           tree.write(path, encoding="utf-8", xml_declaration=True)
           ET.parse(path)
