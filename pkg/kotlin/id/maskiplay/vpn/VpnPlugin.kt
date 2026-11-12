@@ -51,9 +51,10 @@ class VpnPlugin : Plugin() {
         try {
             val config = call.getString("config")?.trim()
                 ?: throw IllegalArgumentException("Konfigurasi WireGuard wajib diisi")
-            require(config.contains("[Interface]") && config.contains("[Peer]")) {
-                "Konfigurasi harus memuat bagian [Interface] dan [Peer]"
+            require(config.toByteArray(Charsets.UTF_8).size <= MAX_CONFIG_BYTES) {
+                "Konfigurasi WireGuard terlalu besar (maksimum 64 KiB)"
             }
+            Config.parse(ByteArrayInputStream(config.toByteArray(Charsets.UTF_8)))
             store.save(config)
             call.resolve(JSObject().putValue("saved", true))
         } catch (e: Exception) {
@@ -63,8 +64,12 @@ class VpnPlugin : Plugin() {
 
     @PluginMethod
     fun up(call: PluginCall) = runWorker(call) {
-        val configText = call.getString("config") ?: store.load()
-            ?: throw IllegalArgumentException("Tempel konfigurasi WireGuard terlebih dahulu")
+        val configText = (call.getString("config") ?: store.load()
+            ?: throw IllegalArgumentException("Tempel konfigurasi WireGuard terlebih dahulu")).trim()
+        require(configText.toByteArray(Charsets.UTF_8).size <= MAX_CONFIG_BYTES) {
+            "Konfigurasi WireGuard terlalu besar (maksimum 64 KiB)"
+        }
+        val config = Config.parse(ByteArrayInputStream(configText.toByteArray(Charsets.UTF_8)))
         val name = call.getString("name", "maskiplay") ?: "maskiplay"
         require(!Tunnel.isNameInvalid(name)) { "Nama tunnel tidak valid (1–15 karakter)" }
         if (VpnService.prepare(context) != null) throw IllegalStateException("Izin VPN belum diberikan; panggil prepare()")
@@ -73,7 +78,6 @@ class VpnPlugin : Plugin() {
         }
         if (tunnel.getName() != name) tunnel = MasTunnel(name)
         store.save(configText)
-        val config = Config.parse(ByteArrayInputStream(configText.toByteArray(Charsets.UTF_8)))
         val state = backend.setState(tunnel, Tunnel.State.UP, config)
         if (state != Tunnel.State.UP) throw IllegalStateException("WireGuard tidak berhasil mengaktifkan tunnel")
         JSObject().putValue("status", "AKTIF").putValue("name", name)
@@ -110,6 +114,10 @@ class VpnPlugin : Plugin() {
     override fun handleOnDestroy() {
         worker.shutdownNow()
         super.handleOnDestroy()
+    }
+
+    private companion object {
+        const val MAX_CONFIG_BYTES = 64 * 1024
     }
 
     private fun JSObject.putValue(key: String, value: Any?): JSObject {
