@@ -101,12 +101,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         val toolbar = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(14, 10, 14, 10)
+            setPadding(14, 8, 14, 4)
         }
         val title = TextView(activity).apply {
             text = pageTitle
             setTextColor(Color.WHITE)
-            textSize = 16f
+            textSize = 15f
             maxLines = 1
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
@@ -120,6 +120,55 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         }
         toolbar.addView(title)
         toolbar.addView(close)
+
+        val addressRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(10, 4, 10, 6)
+        }
+        val address = EditText(activity).apply {
+            setSingleLine(true)
+            setText(url)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.LTGRAY)
+            textSize = 12f
+            hint = "https://alamat-situs"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_URI
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_GO
+            setPadding(12, 8, 12, 8)
+            setBackgroundColor(Color.rgb(27, 31, 40))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val goButton = TextView(activity).apply {
+            text = "BUKA"
+            setTextColor(Color.rgb(110, 190, 255))
+            textSize = 12f
+            setPadding(12, 12, 8, 12)
+            isClickable = true
+        }
+        addressRow.addView(address)
+        addressRow.addView(goButton)
+
+        val navRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(10, 0, 10, 6)
+        }
+        fun navButton(label: String): TextView = TextView(activity).apply {
+            text = label
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            setPadding(14, 8, 14, 8)
+            isClickable = true
+        }
+        val back = navButton("‹ Kembali")
+        val forward = navButton("Lanjut ›")
+        val reload = navButton("↻ Muat ulang")
+        navRow.addView(back)
+        navRow.addView(forward)
+        navRow.addView(reload)
+
         val progress = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
             visibility = View.VISIBLE
@@ -156,6 +205,14 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                     progress.visibility = View.VISIBLE
                     progress.progress = 0
                 }
+                override fun onPageFinished(view: WebView?, pageUrl: String?) {
+                    if (!pageUrl.isNullOrBlank() && pageUrl.startsWith("https://")) {
+                        address.setText(pageUrl)
+                        address.setSelection(address.text.length)
+                    }
+                    back.isEnabled = canGoBack()
+                    forward.isEnabled = canGoForward()
+                }
                 override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler, error: SslError) {
                     handler.cancel()
                     title.text = "Sertifikat TLS tidak valid"
@@ -166,7 +223,34 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 Toast.makeText(activity, "Unduhan web dinonaktifkan di browser internal", Toast.LENGTH_SHORT).show()
             }
         }
+
+        fun navigateAddress() {
+            val raw = address.text.toString().trim()
+            val target = try { Uri.parse(if (raw.startsWith("https://", true)) raw else "https://$raw") }
+                catch (_: Exception) { null }
+            if (target == null || target.scheme?.lowercase() != "https" || target.host.isNullOrBlank()) {
+                Toast.makeText(activity, "Masukkan alamat HTTPS yang valid", Toast.LENGTH_SHORT).show()
+                return
+            }
+            browser.loadUrl(target.toString())
+            val imm = activity.getSystemService(Context.INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager
+            imm?.hideSoftInputFromWindow(address.windowToken, 0)
+            address.clearFocus()
+        }
+        goButton.setOnClickListener { navigateAddress() }
+        address.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_GO) {
+                navigateAddress()
+                true
+            } else false
+        }
+        back.setOnClickListener { if (browser.canGoBack()) browser.goBack() }
+        forward.setOnClickListener { if (browser.canGoForward()) browser.goForward() }
+        reload.setOnClickListener { browser.reload() }
+
         root.addView(toolbar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root.addView(addressRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root.addView(navRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(progress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3))
         root.addView(browser, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
