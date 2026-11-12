@@ -30,7 +30,7 @@
 - Kontrol WireGuard GoBackend: izin VPN Android, konfigurasi terenkripsi, pembuatan keypair, sambung, putus, dan status.
 - Perbaikan sesi mikrofon Jarvis/chat agar callback lama tidak masuk ke sesi baru.
 - Browser internal terisolasi untuk Web Check, OSINT, dan Google Dork: HTTPS-only, tanpa native bridge, serta menolak sertifikat TLS tidak valid.
-- Network Scanner TCP native untuk 50 port umum pada satu host, tersedia di Watch dan Cyber Lab.
+- Network Scanner TCP native untuk 51 port umum pada satu host, tersedia di Watch dan Cyber Lab.
 
 ### Batasan yang dinyatakan
 - Network Scanner adalah TCP connect scanner sederhana buatan proyek, bukan Nmap; tidak menyediakan UDP, SYN scan, fingerprint OS, atau pemindaian subnet.
