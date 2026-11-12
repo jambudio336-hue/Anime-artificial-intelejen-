@@ -181,6 +181,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
+                mediaPlaybackRequiresUserGesture = false
                 databaseEnabled = false
                 allowFileAccess = false
                 allowContentAccess = false
