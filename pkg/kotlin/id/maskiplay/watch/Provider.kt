@@ -28,10 +28,17 @@ data class Episode(
     val locked: Boolean = false
 )
 
+data class Subtitle(
+    val label: String,
+    val url: String,
+    val language: String? = null
+)
+
 data class Playback(
     val variants: List<Variant>,
     val duration: Long = 0L,
-    val poster: String? = null
+    val poster: String? = null,
+    val subtitles: List<Subtitle> = emptyList()
 )
 
 data class Variant(
