@@ -132,6 +132,12 @@ jobs:
               "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
               "App package version": package.get("version") == "9.4.0",
               "WebView user-agent version": "MasKiplay/9.4.0" in main,
+              "Main WebView file access disabled": "allowFileAccess = false" in main,
+              "Main WebView content access disabled": "allowContentAccess = false" in main,
+              "Full-window internal browser": "ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
+              "Jarvis answer transcript": 'id="janswer"' in html,
+              "Jarvis requires key with visible guidance": 'API key AI belum diatur' in html,
+              "Jarvis text plus voice mode": "MODE JARVIS SUARA + TEKS" in html,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
