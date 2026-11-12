@@ -203,6 +203,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="t" data-go="jarvis"><i>🎙</i><b>Jarvis</b><small>Suara murni</small></div>
         <div class="t" data-go="agent"><i>🤖</i><b>Agent</b><small>Kendali penuh</small></div>
         <div class="t" data-go="shortdrama"><i>🎬</i><b>Short Drama</b><small>FlickReels · Cinta Baru Dia</small></div>
+        <div class="t" data-go="dracinema"><i>🎞️</i><b>Dracinema</b><small>Drama Asia · Dracinema.com</small></div>
         <div class="t" data-go="cyber"><i>🧪</i><b>Cyber Lab</b><small>DNS, hash, JWT</small></div>
         <div class="t" data-go="dork"><i>🔎</i><b>Dork</b><small>Bongkar jejak</small></div>
         <div class="t" data-go="wcheck"><i>🩻</i><b>Web Check</b><small>X-ray situs</small></div>
@@ -248,6 +249,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="mono" id="flickStatus">Siap membuka FlickReels di dalam aplikasi.</div>
       </div>
       <div class="cd"><h3>Pemutaran video</h3><p class="sub">Video diputar oleh pemutar resmi FlickReels melalui WebView internal. Ketersediaan pemutaran mengikuti dukungan situs, koneksi, wilayah, dan izin konten. Jika situs memblokir WebView atau memerlukan aplikasi/DRM tertentu, episode mungkin tidak dapat diputar di dalam aplikasi.</p></div>
+    </div></section>
+
+    <section class="v" id="vDracinema"><div class="sc">
+      <div class="cd"><h3>Dracinema · Drama Asia</h3>
+        <p class="sub">Jelajahi katalog dan tonton drama melalui situs Dracinema langsung di browser internal Mas Kiplay.</p>
+        <div class="row"><div class="bd"><b>Dracinema</b><small>dracinema.com · Situs streaming drama</small></div><span>▶</span></div>
+        <button class="btn pri" id="dracinemaOpen">▶ Buka Dracinema</button>
+        <div class="mono" id="dracinemaStatus">Siap membuka Dracinema di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Pemutaran di dalam aplikasi</h3><p class="sub">Halaman situs dimuat dalam WebView internal. Video menggunakan pemutar resmi yang disediakan situs. Keberhasilan pemutaran bergantung pada kompatibilitas WebView, jaringan, wilayah, dan izin atau proteksi konten situs.</p></div>
     </div></section>
 
     <section class="v" id="vAgent"><div class="sc">
@@ -459,8 +470,8 @@ async function A(fn,...a){
 }
 
 /* router */
-const V={home:"vHome",chat:"vChat",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
-const TITLE={home:"Mas Kiplay",chat:"Chat",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
+const V={home:"vHome",chat:"vChat",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
+const TITLE={home:"Mas Kiplay",chat:"Chat",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
 function go(v){
   if(!V[v])v="home";
   $$(".v").forEach(s=>s.classList.remove("act"));
@@ -1366,6 +1377,7 @@ $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopO
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
 $("#flickOpen").onclick=async()=>{const s=$("#flickStatus");s.textContent="Membuka FlickReels di browser internal…";const r=await A("openInAppBrowser","https://www.flickreels.net/id/playlist/cinta-baru-dia/3498/episode-1","Short Drama · Cinta Baru Dia");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
+$("#dracinemaOpen").onclick=async()=>{const s=$("#dracinemaStatus");s.textContent="Membuka Dracinema di browser internal…";const r=await A("openInAppBrowser","https://www.dracinema.com/","Dracinema");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#dBuild").onclick=dorks;
 $("#wOpen").onclick=async()=>{const u=$("#wTarget").value.trim()||"https://web-check.xyz/";const r=await A("openInAppBrowser",u,"Web Check");toast(r.startsWith("err:")?r:"Web Check dibuka di dalam Mas Kiplay");};
 $("#oOpen").onclick=async()=>{const u=$("#oTarget").value.trim()||"https://osint4all.com/tool/";const r=await A("openInAppBrowser",u,"OSINT");toast(r.startsWith("err:")?r:"OSINT dibuka di dalam Mas Kiplay");};
