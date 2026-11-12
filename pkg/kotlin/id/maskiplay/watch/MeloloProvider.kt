@@ -4,6 +4,8 @@ import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class MeloloProvider : WatchProvider {
     override val id: String = "melolo"
@@ -38,6 +40,20 @@ class MeloloProvider : WatchProvider {
             )
         }
         return output.values.toList()
+    }
+
+    fun searchPopular(): List<Item> {
+        val terms = listOf("love", "ceo", "revenge", "marriage", "heir", "rebirth")
+        val pool = Executors.newFixedThreadPool(terms.size)
+        return try {
+            val futures = terms.map { term -> pool.submit<List<Item>> { search(term, 0) } }
+            val merged = LinkedHashMap<String, Item>()
+            futures.forEach { future ->
+                try { future.get(35, TimeUnit.SECONDS).forEach { merged.putIfAbsent(it.id, it) } }
+                catch (_: Exception) { }
+            }
+            merged.values.toList()
+        } finally { pool.shutdownNow() }
     }
 
     override fun episodes(seriesId: String): List<Episode> {
