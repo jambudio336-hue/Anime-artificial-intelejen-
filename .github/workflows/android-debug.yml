@@ -144,7 +144,7 @@ jobs:
               player.set(a+"exported","false")
           if not any(x.get(a+"name") == "com.wireguard.android.backend.GoBackend$VpnService" for x in app.findall("service")):
               s=ET.SubElement(app,"service"); s.set(a+"name","com.wireguard.android.backend.GoBackend$VpnService")
-               s.set(a+"exported","false"); s.set(a+"permission","android.permission.BIND_VPN_SERVICE")
+              s.set(a+"exported","false"); s.set(a+"permission","android.permission.BIND_VPN_SERVICE")
               s.set(a+"foregroundServiceType","specialUse")
               intent=ET.SubElement(s,"intent-filter")
               action=ET.SubElement(intent,"action"); action.set(a+"name","android.net.VpnService")
