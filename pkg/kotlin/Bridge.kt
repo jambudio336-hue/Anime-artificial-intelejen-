@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
 import android.widget.Toast
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.ProgressBar
 import android.widget.LinearLayout
@@ -211,7 +212,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                         address.setSelection(address.text.length)
                     }
                     back.isEnabled = view?.canGoBack() == true
-                    forward.isEnabled = view?.canGoForward()
+                    forward.isEnabled = view?.canGoForward() == true
                 }
                 override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler, error: SslError) {
                     handler.cancel()
