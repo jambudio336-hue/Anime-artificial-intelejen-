@@ -8,6 +8,7 @@ import androidx.annotation.SuppressLint
 import com.getcapacitor.BridgeActivity
 import id.maskiplay.watch.PlayerActivity
 import id.maskiplay.watch.WatchPlugin
+import id.maskiplay.vpn.VpnPlugin
 
 class MainActivity : BridgeActivity() {
     private var nativeBridge: Bridge? = null
@@ -15,6 +16,7 @@ class MainActivity : BridgeActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(WatchPlugin::class.java)
+        registerPlugin(VpnPlugin::class.java)
         super.onCreate(savedInstanceState)
 
         val web = bridge.webView
