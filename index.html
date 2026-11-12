@@ -200,6 +200,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="sect">Modul</div>
       <div class="pad"><div class="tl">
         <div class="t" data-go="chat"><i>💬</i><b>Chat</b><small>Bedah apa saja</small></div>
+        <div class="t" data-go="chatgpt"><i>✨</i><b>ChatGPT</b><small>OpenAI · chatgpt.com</small></div>
         <div class="t" data-go="jarvis"><i>🎙</i><b>Jarvis</b><small>Suara murni</small></div>
         <div class="t" data-go="agent"><i>🤖</i><b>Agent</b><small>Kendali penuh</small></div>
         <div class="t" data-go="shortdrama"><i>🎬</i><b>Short Drama</b><small>FlickReels · Cinta Baru Dia</small></div>
@@ -239,6 +240,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <button id="jStop">⏹</button>
       </div>
     </section>
+
+    <section class="v" id="vChatGPT"><div class="sc">
+      <div class="cd"><h3>ChatGPT · OpenAI</h3>
+        <p class="sub">Buka ChatGPT langsung di browser internal Mas Kiplay. Login dilakukan sendiri pada halaman resmi ChatGPT.</p>
+        <div class="row"><div class="bd"><b>ChatGPT</b><small>chatgpt.com · Asisten AI resmi</small></div><span>✦</span></div>
+        <button class="btn pri" id="chatgptOpen">✨ Buka ChatGPT</button>
+        <div class="mono" id="chatgptStatus">Siap membuka ChatGPT di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Info login</h3><p class="sub">Gunakan akun dan metode login OpenAI milikmu. Jika login Google, verifikasi, atau CAPTCHA tidak berjalan di WebView, gunakan browser Chrome yang didukung. Mas Kiplay tidak meminta atau menyimpan password ChatGPT.</p></div>
+    </div></section>
 
     <section class="v" id="vShortDrama"><div class="sc">
       <div class="cd"><h3>Short Drama · FlickReels</h3>
@@ -416,6 +427,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     <h4>Navigasi</h4>
     <div class="di" data-go="home"><i>🏠</i>Dashboard</div>
     <div class="di" data-go="chat"><i>💬</i>Chat</div>
+    <div class="di" data-go="chatgpt"><i>✨</i>ChatGPT</div>
     <div class="di" data-go="jarvis"><i>🎙</i>Jarvis</div>
     <div class="di" data-go="agent"><i>🤖</i>Agent</div>
     <div class="di" data-go="dork"><i>🔎</i>Dork</div>
@@ -470,8 +482,8 @@ async function A(fn,...a){
 }
 
 /* router */
-const V={home:"vHome",chat:"vChat",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
-const TITLE={home:"Mas Kiplay",chat:"Chat",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
+const V={home:"vHome",chat:"vChat",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
+const TITLE={home:"Mas Kiplay",chat:"Chat",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
 function go(v){
   if(!V[v])v="home";
   $$(".v").forEach(s=>s.classList.remove("act"));
@@ -1376,6 +1388,7 @@ $("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
 $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
+$("#chatgptOpen").onclick=async()=>{const s=$("#chatgptStatus");s.textContent="Membuka ChatGPT di browser internal…";const r=await A("openInAppBrowser","https://chatgpt.com/","ChatGPT · OpenAI");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#flickOpen").onclick=async()=>{const s=$("#flickStatus");s.textContent="Membuka FlickReels di browser internal…";const r=await A("openInAppBrowser","https://www.flickreels.net/id/playlist/cinta-baru-dia/3498/episode-1","Short Drama · Cinta Baru Dia");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#dracinemaOpen").onclick=async()=>{const s=$("#dracinemaStatus");s.textContent="Membuka Dracinema di browser internal…";const r=await A("openInAppBrowser","https://www.dracinema.com/","Dracinema");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#dBuild").onclick=dorks;
