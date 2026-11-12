@@ -495,7 +495,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             try {
                 val dialog = AlertDialog.Builder(activity)
                     .setTitle(title)
-                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\n\n\${command.take(4096)}")
+                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\\n\\n" + command.take(4096))
                     .setPositiveButton("Setujui dan jalankan") { _, _ -> approved.set(true); latch.countDown() }
                     .setNegativeButton("Batal") { _, _ -> approved.set(false); latch.countDown() }
                     .setOnCancelListener { approved.set(false); latch.countDown() }
