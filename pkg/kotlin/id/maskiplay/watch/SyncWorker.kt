@@ -8,14 +8,28 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 
-/** Periodic local library maintenance; no account or API key is needed. */
+/**
+ * Refreshes the public Melolo catalogue in the background and prunes old history.
+ * Episode directories are fetched live when a title is opened, so new episodes
+ * are not frozen into this catalogue cache.
+ */
 class SyncWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
     override fun doWork(): Result = try {
+        val app = applicationContext
         val cutoff = System.currentTimeMillis() - HISTORY_RETENTION_MS
-        WatchDb.get(applicationContext).watchDao().pruneHistory(cutoff)
-        Result.success()
+        WatchDb.get(app).watchDao().pruneHistory(cutoff)
+
+        val fresh = MeloloProvider().searchPopular()
+        if (fresh.isNotEmpty()) CatalogCache.savePopular(app, fresh)
+
+        if (fresh.isNotEmpty() || CatalogCache.loadPopular(app).isNotEmpty()) {
+            Result.success()
+        } else {
+            Result.retry()
+        }
     } catch (_: Exception) {
-        Result.retry()
+        if (CatalogCache.loadPopular(applicationContext).isNotEmpty()) Result.success()
+        else Result.retry()
     }
 
     companion object {
@@ -26,7 +40,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : Worker(context, p
             val request = PeriodicWorkRequestBuilder<SyncWorker>(6, TimeUnit.HOURS).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 UNIQUE_WORK,
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 request
             )
         }

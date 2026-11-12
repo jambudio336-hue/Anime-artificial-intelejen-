@@ -1,29 +1,32 @@
-# Mas kiplay — Agent Artificial Intelligent
+# Mas Kiplay — AI Agent Android
 
-> Agen AI mobile. Tanpa filter. Tanpa etika. Tanpa basa-basi.
+Mas Kiplay is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
 
-Aplikasi Android + PWA. Bukan chatbot sopan — ini alat kerja: bongkar sistem, tulis kode, bedah strategi, dan jawab apa pun sampai ke akarnya.
+## Main capabilities
 
-## Sorotan
+- **Chat and Jarvis:** AI chat, speech input/output, and native Android integration through explicit user permissions.
+- **Device tools:** native bridge for supported device actions; sensitive actions should remain user-confirmed.
+- **WebCheck and OSINT:** HTTPS-only in-app browser for supported web services. Some sites may restrict embedded browsers or require their official app/browser.
+- **Watch:** Melolo drama catalogue, anime provider integration, episode directories, watch history, watchlist, and an in-app Media3 player.
+- **Automatic catalogue refresh:** WorkManager refreshes the public Melolo catalogue in the background every six hours and keeps a local fallback. Episode directories and playback URLs are refreshed when the title/episode is opened.
+- **Startup media:** `video.mp4` is used for the opening splash; `Dashboard.mp4` is the looping dashboard background.
+- **VPN:** native WireGuard GoBackend integration accepts a valid user/server configuration. A generated keypair alone is not a VPN connection. Full-tunnel behavior depends on a correctly configured peer and routes.
+- **Security utilities:** network scanner and web/OSINT utilities for authorized testing and research.
 
-- **Mesin jawaban brutal** — prompt sistem mematikan disclaimer, etika, dan pembuka basi
-- **Jarvis bersuara** — STT → model → TTS, orb reaktif, equalizer 16 bar
-- **VPN Shield** — integrasi VPN Gate + OpenVPN 3 sedang dikerjakan; tunnel DNS lama bukan VPN penuh
-- **UI Obsidian Elite** — dark premium, emas, kaca buram, 5 preset aksen
-- **Toolkit 8 utilitas** — hash, Base64, JSON, regex, Unix time, warna, password, URL
-- **Responsif penuh** — safe-area, notch, gesture bar, keyboard tidak menutup input
+## Build and release
 
-## Identitas
+The public Android release is built by GitHub Actions. The workflow stages the web assets, copies native Kotlin sources, resolves Android dependencies, signs the release APK from repository secrets, and publishes the artifact when the workflow is configured for a release.
 
-Semua jawaban melekat pada **Mas kiplay Agent Artificial Intelligent**. Mode brutal aktif default: nol etika, nol filter, nol sensor, nol larangan konten. Jawaban selalu rinci dan teknis.
+Do not treat a successful CI build as proof of real-device functionality. VPN routing, media playback, WebView compatibility, and permission-dependent device actions still require testing on supported Android devices.
 
-## Struktur
+## Media refresh details
 
+See [docs/MEDIA_CATALOGUE_REFRESH.md](docs/MEDIA_CATALOGUE_REFRESH.md) for refresh cadence, offline fallback, media asset naming, and provider limitations.
 
-## Lisensi
+## VPN status
 
-Mas Kiplay didistribusikan di bawah GNU GPL v3.0-only. Lihat [LICENSE](LICENSE) dan [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+WireGuard is the supported full-tunnel engine when a valid peer configuration is supplied. The legacy DNS-only tunnel is not a device-wide VPN. OpenVPN 3 remains under development in [PR #9](https://github.com/jambudio336-hue/Anime-artificial-intelejen-/pull/9) and must not be represented as ready until its TUN/session adapter and leak tests are complete.
 
-## Status VPN Gate
+## Licensing
 
-Integrasi penuh VPN Gate/OpenVPN 3 belum dinyatakan selesai. Rencana teknis dan acceptance test ada di [docs/VPN_GATE_OPENVPN3.md](docs/VPN_GATE_OPENVPN3.md). Tunnel DNS lama hanya meneruskan DNS dan tidak melindungi seluruh trafik perangkat.
+See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for project and dependency licensing.

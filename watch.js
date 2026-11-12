@@ -50,7 +50,14 @@
       const api=plugin(); if(!api) throw new Error("Native Watch plugin belum tersedia. Gunakan APK Android terbaru.");
       if(source==="history") { const r=await api.history(); renderItems(r.items||[]); return; }
       if(source==="watchlist") { const r=await api.watchlist(); renderItems(r.items||[]); return; }
-      const r=await api.search({source,q:lastQuery,offset:0}); renderItems(r.items||[]);
+      const r=await api.search({source,q:lastQuery,offset:0});
+      if(source==="melolo" && !lastQuery && r.catalogUpdatedAt) {
+        const updated=new Date(r.catalogUpdatedAt).toLocaleString("id-ID");
+        $("hint").textContent=r.catalogFromCache
+          ?"Katalog offline tersimpan · pembaruan terakhir "+updated+". Tarik ulang saat online untuk episode terbaru."
+          :"Katalog diperbarui otomatis · "+updated+". Daftar episode dimuat langsung saat judul dibuka.";
+      }
+      renderItems(r.items||[]);
     } catch(e) { showError(e.message); }
   }
   async function openEpisodes(item) {
