@@ -37,6 +37,8 @@ Before publishing an APK containing OpenVPN 3:
   - https://github.com/WireGuard/wireguard-android
 - AndroidX WorkManager 2.9.1 — Apache-2.0.
   - https://developer.android.com/jetpack/androidx/releases/work
+- AndroidX Room 2.6.1 — Apache-2.0.
+  - https://developer.android.com/jetpack/androidx/releases/room
 
 The Watch feature contacts the Melolo API and the configured keyless anime mirror
 instances over HTTPS. These are third-party services and may change, rate-limit,
