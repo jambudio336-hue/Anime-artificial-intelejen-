@@ -35,4 +35,29 @@
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#66000000">
+        <TextView
+            android:id="@+id/player_previous"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="‹ Episode sebelumnya"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/player_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:text="Episode berikutnya ›"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
+    </LinearLayout>
 </FrameLayout>
