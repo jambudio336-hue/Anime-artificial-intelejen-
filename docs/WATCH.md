@@ -120,14 +120,20 @@ represented as the WireGuard full tunnel. A successful WireGuard connection
 still needs device-level verification (permission prompt, handshake, routes,
 DNS, IPv4/IPv6 leak behavior, disconnect, revoke, and network handoff).
 
-## Nmap
+## Network Scanner
 
-The native Capacitor `Nmap` plugin source exists and implements a fixed
-unprivileged TCP connect scan (`-sT -Pn -T4 -F --host-timeout 30s -oX -`),
-returning raw XML. The host validator accepts an IP address or hostname.
-The Nmap control panel is present in the Cyber Lab screen in `index.html` and invokes `Capacitor.Plugins.Nmap.scan({host})`. The Watch screen also exposes a dedicated Nmap panel.
+The former Nmap integration has been replaced with original Kotlin code in
+`id.maskiplay.net.NetworkScannerPlugin`. The Capacitor plugin is registered
+as `NetworkScanner` and is exposed in both Cyber Lab and the Watch screen.
 
-**Release blocker (legal + technical):** no Android ARM64 `assets/nmap/nmap` binary is committed or built by CI. The plugin therefore fails with a clear missing-binary error. More importantly, the Nmap Project states that NPSL is not directly compatible with other licenses and specifically treats software designed to execute Nmap and parse its output as a derivative work for NPSL purposes. The Android fork also identifies its code as NPSL and its binary as dynamically linked, requiring `libc++_shared.so`. Do not bundle or distribute Nmap in this GPL-3.0-only app without written permission/relicensing from the Nmap Project or an appropriate OEM agreement, and a complete source/runtime-assets audit. The existing Nmap UI/plugin must remain marked unavailable until this is resolved. A generic Linux static Nmap binary is not a valid Android ARM64 substitute. Only scan systems you own or are authorized to test.
+The scanner performs an unprivileged TCP connect against a fixed list of 50
+common TCP ports for one IPv4 address or hostname per request. It resolves one
+host, uses a 250 ms per-port connect timeout, reports ports that successfully
+accept a TCP connection, and returns structured port/service data. It does not
+perform SYN/raw-packet scans, UDP scans, OS fingerprinting, service version
+detection, subnet sweeps, or invoke the Nmap executable. It has no external
+binary dependency and does not bundle Nmap/NPSL code. Use it only against
+systems you own or have explicit permission to test.
 
 ## Acceptance test report
 
@@ -137,7 +143,7 @@ physical-device media/VPN behavior.
 
 | # | Acceptance test | Status |
 |---|---|---|
-| 1 | `./gradlew :app:assembleDebug` succeeds | **Passed** in GitHub Actions run 43168809915 (commit 2c4d2e9); APK artifact uploaded |
+| 1 | `./gradlew :app:assembleDebug` succeeds | Previous baseline passed; latest branch build failed on Kotlin regex escaping and is being corrected |
 | 2 | Dracin search for `love` returns at least five cards with covers | Not run against live API |
 | 3 | Open a Dracin title and load episodes | Not run against live API |
 | 4 | Play episode 1 with moving video, audio, duration, and quality switching | Not run on physical device |
@@ -145,14 +151,14 @@ physical-device media/VPN behavior.
 | 6 | Paste a manual MP4 URL and play it | Not run on physical device |
 | 7 | Disable network and verify a recoverable error state without crash | Not run on physical device |
 | 8 | WireGuard prepare → consent → up → AKTIF → down → MATI | Not run on physical device |
-| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: Android binary/runtime missing and NPSL requires explicit licensing resolution; UI is integrated |
+| 9 | Network Scanner checks 50 TCP ports on 127.0.0.1 and returns structured results | Not run on device; implementation and both UI entry points added, compile verification pending |
 | 10 | Jarvis, chat, STT, TTS, and accessibility remain functional | Regression test not run on physical device |
 | 11 | No API key or Bearer token is required by the new integrations | Static source inspection pending final audit |
 
 A green debug build verifies compilation only; it does not verify live API
-responses, video playback, WireGuard tunnel operation, Nmap execution, or
+responses, video playback, WireGuard tunnel operation, network scan behavior, or
 regression behavior on a physical device. The current release workflow runs
 from `main`, and the existing public tag `v9.1.0` must not be overwritten.
 Do not publish this feature branch as a completed feature release until the
-remaining acceptance tests pass, the Android Nmap binary/runtime assets are supplied and license-reviewed, and the
+remaining acceptance tests pass, the Network Scanner passes device-level tests, and the
 release workflow is run with a new version and valid signing secrets.
