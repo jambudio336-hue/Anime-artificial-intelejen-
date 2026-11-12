@@ -53,10 +53,11 @@ class WatchPlugin : Plugin() {
         val source = call.getString("source", "melolo") ?: "melolo"
         val videoId = call.getString("videoId") ?: throw IllegalArgumentException("videoId wajib diisi")
         val title = call.getString("title", "Video") ?: "Video"
+        val seriesId = call.getString("seriesId", videoId) ?: videoId
         val playback = registry.get(source).resolve(videoId)
         val preferred = playback.variants.firstOrNull { !it.codec.orEmpty().contains("bytevc1", true) }
             ?: playback.variants.first()
-        saveHistory(source, videoId, title, playback.poster)
+        saveHistory(source, seriesId, videoId, title, playback.poster)
         val intent = Intent(activity, PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_TITLE, title)
             putExtra(PlayerActivity.EXTRA_VARIANTS, playbackJson(playback).toString())
@@ -79,7 +80,16 @@ class WatchPlugin : Plugin() {
         val prefs = context.getSharedPreferences(PREFS, 0)
         val rows = try { org.json.JSONArray(prefs.getString(KEY_HISTORY, "[]")) }
             catch (_: Exception) { org.json.JSONArray() }
-        call.resolve(JSObject().apply { put("items", rows) })
+        if (call.getString("action") == "remove") {
+            val id = call.getString("id") ?: return call.reject("id wajib diisi")
+            val kept = org.json.JSONArray()
+            for (i in 0 until rows.length()) {
+                val row = rows.optJSONObject(i) ?: continue
+                if (row.optString("videoId") != id) kept.put(row)
+            }
+            prefs.edit().putString(KEY_HISTORY, kept.toString()).apply()
+            call.resolve(JSObject().apply { put("items", kept) })
+        } else call.resolve(JSObject().apply { put("items", rows) })
     }
 
     @PluginMethod
@@ -110,13 +120,13 @@ class WatchPlugin : Plugin() {
         }
     }
 
-    private fun saveHistory(source: String, videoId: String, title: String, poster: String?) {
+    private fun saveHistory(source: String, seriesId: String, videoId: String, title: String, poster: String?) {
         val prefs = context.getSharedPreferences(PREFS, 0)
         val old = try { org.json.JSONArray(prefs.getString(KEY_HISTORY, "[]")) }
             catch (_: Exception) { org.json.JSONArray() }
         val next = org.json.JSONArray()
         next.put(JSObject().apply {
-            put("id", videoId); put("videoId", videoId); put("seriesId", videoId)
+            put("id", videoId); put("videoId", videoId); put("seriesId", seriesId)
             put("source", source); put("title", title); put("cover", poster)
             put("updatedAt", System.currentTimeMillis())
         })
