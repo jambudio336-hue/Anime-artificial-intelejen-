@@ -43,7 +43,8 @@
       cards.append(card);
     }
   }
-  function sourceLabel(){return source==="melolo"?"Melolo":source==="anime"?"Anime":source==="manual"?"Manual":"Riwayat";}
+  function sourceId(value){const v=String(value||source).toLowerCase();return v==="anime"||v==="manual"||v==="melolo"?v:v.includes("anime")?"anime":v.includes("manual")?"manual":"melolo";}
+  function sourceLabel(value){const v=String(value||source).toLowerCase();return v==="history"?"Riwayat":v==="watchlist"?"Daftar":v==="anime"?"Anime":v==="manual"?"Manual":"Melolo";}
   function statusLabel(item){
     if(item.sourceLabel==="Anime"||item.source==="anime") return item.status||"Anime";
     const value=String(item.status||"").toLowerCase();
@@ -73,7 +74,7 @@
         const b=document.createElement("button"); b.className="episode"; b.disabled=!!ep.locked;
         b.innerHTML='<span>'+String(ep.index+1).padStart(2,"0")+'</span><b>'+esc(ep.title)+'</b><span>'+(ep.locked?"TERKUNCI":"▶")+'</span>';
         b.addEventListener("click",async()=>{
-          try { await api.play({source:item.source==="Manual"?"manual":(item.source==="Anime"?"anime":"melolo"),videoId:ep.videoId,seriesId:item.id,title:item.title+" · "+ep.title}); }
+          try { await api.play({source:sourceId(item.source),videoId:ep.videoId,seriesId:item.id,title:item.title+" · "+ep.title}); }
           catch(e){showError(e.message);}
         });
         list.append(b);
