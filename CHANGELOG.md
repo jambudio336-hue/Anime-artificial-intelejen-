@@ -1,5 +1,11 @@
 # Changelog
 
+## [9.4.1] — 2026-11-12
+
+- Browser internal layar penuh.
+- Jarvis menampilkan jawaban teks dan membacakannya dengan TTS.
+- WebView utama diperkeras dengan menonaktifkan akses file dan content secara langsung.
+
 ## [9.4.0] — 2026-11-12
 
 ### Jarvis dan browser internal
