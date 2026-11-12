@@ -4,14 +4,21 @@ import android.os.Bundle
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
-import androidx.annotation.SuppressLint
+import android.annotation.SuppressLint
 import com.getcapacitor.BridgeActivity
+import id.maskiplay.watch.PlayerActivity
+import id.maskiplay.watch.WatchPlugin
+import id.maskiplay.vpn.VpnPlugin
+import id.maskiplay.net.NetworkScannerPlugin
 
 class MainActivity : BridgeActivity() {
     private var nativeBridge: Bridge? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
+        registerPlugin(WatchPlugin::class.java)
+        registerPlugin(VpnPlugin::class.java)
+        registerPlugin(NetworkScannerPlugin::class.java)
         super.onCreate(savedInstanceState)
 
         val web = bridge.webView
@@ -47,9 +54,10 @@ class MainActivity : BridgeActivity() {
             }
         }
 
-        nativeBridge = Bridge(this, web)
-        web.addJavascriptInterface(nativeBridge, "MK")
-        web.addJavascriptInterface(nativeBridge, "MasKiplayNative")
+        val bridgeInstance = Bridge(this, web)
+        nativeBridge = bridgeInstance
+        web.addJavascriptInterface(bridgeInstance, "MK")
+        web.addJavascriptInterface(bridgeInstance, "MasKiplayNative")
     }
 
     @Deprecated("Deprecated in Java")

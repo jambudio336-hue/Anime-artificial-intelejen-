@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.1.0"
+        default: "9.2.0"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.1.0' }}
+      VERSION: ${{ inputs.versi || '9.2.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +51,7 @@ jobs:
           cp sw.js www/ 2>/dev/null || true
           cp icon.png www/ 2>/dev/null || true
           cp *.mp4 www/ 2>/dev/null || true
+          cp watch.html watch.js watch.css www/
           test -s www/video.mp4
           test -s www/Dashboard.mp4
           cp *.png www/ 2>/dev/null || true
@@ -149,6 +150,8 @@ jobs:
           set -euo pipefail
           D=android/app/src/main/java/ai/maskiplay/app
           mkdir -p "$D"
+          # Capacitor generates MainActivity.java for this package. Replace it with the Kotlin host activity to avoid duplicate JVM classes.
+          find "$D" -maxdepth 1 -type f -name "MainActivity.java" -delete
           cp pkg/kotlin/MainActivity.kt "$D/MainActivity.kt"
           cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
           cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
@@ -168,6 +171,11 @@ jobs:
           grep -q "fun vpnStart" "$D/Bridge.kt"
           grep -q "fun vpnStop" "$D/Bridge.kt"
           grep -q "vpnStart" "$D/Bridge.kt"
+          mkdir -p android/app/src/main/java/id
+          cp -R pkg/kotlin/id/maskiplay android/app/src/main/java/id/
+          mkdir -p android/app/src/main/res/layout android/app/src/main/res/xml
+          cp pkg/res/layout/activity_player.xml android/app/src/main/res/layout/
+          cp pkg/res/xml/network_security_config.xml android/app/src/main/res/xml/
 
       - name: Tulis resource service dan provider
         run: |
@@ -247,6 +255,7 @@ jobs:
           if application is None:
               raise RuntimeError("Elemen <application> tidak ditemukan")
           application.set(ns + "usesCleartextTraffic", "false")
+          application.set(ns + "networkSecurityConfig", "@xml/network_security_config")
           application.set(ns + "allowBackup", "false")
 
           service = ET.SubElement(application, "service")
@@ -282,6 +291,24 @@ jobs:
           pmeta.set(ns + "name", "android.support.FILE_PROVIDER_PATHS")
           pmeta.set(ns + "resource", "@xml/file_paths")
 
+          if not any(x.get(ns + "name") == "id.maskiplay.watch.PlayerActivity" for x in application.findall("activity")):
+              player = ET.SubElement(application, "activity")
+              player.set(ns + "name", "id.maskiplay.watch.PlayerActivity")
+              player.set(ns + "exported", "false")
+
+          if not any(x.get(ns + "name") == "com.wireguard.android.backend.GoBackend$VpnService" for x in application.findall("service")):
+              service = ET.SubElement(application, "service")
+              service.set(ns + "name", "com.wireguard.android.backend.GoBackend$VpnService")
+              service.set(ns + "exported", "false")
+              service.set(ns + "permission", "android.permission.BIND_VPN_SERVICE")
+              service.set(ns + "foregroundServiceType", "specialUse")
+              intent = ET.SubElement(service, "intent-filter")
+              action = ET.SubElement(intent, "action")
+              action.set(ns + "name", "android.net.VpnService")
+              prop = ET.SubElement(service, "property")
+              prop.set(ns + "name", "android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE")
+              prop.set(ns + "value", "WireGuard tunnel service")
+
           ET.indent(tree, space="    ")
           tree.write(path, encoding="utf-8", xml_declaration=True)
           ET.parse(path)
@@ -294,21 +321,12 @@ jobs:
           print("AndroidManifest.xml valid dan lengkap.")
           PY
 
-      - name: Naikkan minSdk dan set versi
+      - name: Set versi release
         run: |
           set -euo pipefail
-          if [ -f android/variables.gradle ]; then
-            sed -i -E 's/minSdkVersion = [0-9]+/minSdkVersion = 26/' android/variables.gradle
-          fi
-          sed -i -E 's/minSdkVersion [0-9]+/minSdkVersion 26/' android/app/build.gradle
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 910010/' android/app/build.gradle
-          if [ -f android/variables.gradle ]; then
-            grep -q "minSdkVersion = 26" android/variables.gradle
-          else
-            grep -q "minSdkVersion 26" android/app/build.gradle
-          fi
-          grep -q "versionName \"${{ env.VERSION }}\"" android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 910020/' android/app/build.gradle
+          grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
         run: |
@@ -316,14 +334,31 @@ jobs:
           python3 - <<'PY'
           path = "android/app/build.gradle"
           text = open(path, encoding="utf-8").read()
-          if "androidx.core:core" not in text:
-              text = text.replace(
-                  "dependencies {",
-                  'dependencies {\n    implementation "androidx.core:core:1.13.1"',
-                  1,
-              )
+          root_path = "android/build.gradle"
+          root_text = open(root_path, encoding="utf-8").read()
+          if "symbol-processing-gradle-plugin" not in root_text:
+              root_text = root_text.replace("dependencies {", "dependencies {" + chr(10) + "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.24'" + chr(10) + "        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:1.9.24-1.0.20'", 1)
+              open(root_path, "w", encoding="utf-8").write(root_text)
+          if "apply plugin: 'com.google.devtools.ksp'" not in text:
+              text = text.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'" + chr(10) + "apply plugin: 'kotlin-android'" + chr(10) + "apply plugin: 'com.google.devtools.ksp'", 1)
+          if "kotlinOptions" not in text:
+              text = text.replace("android {", "android {" + chr(10) + "    kotlinOptions { jvmTarget = '17' }" + chr(10) + "    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }", 1)
+          additions = [
+              'implementation "androidx.core:core:1.13.1"',
+              'implementation "androidx.media3:media3-exoplayer:1.4.1"',
+              'implementation "androidx.media3:media3-exoplayer-hls:1.4.1"',
+              'implementation "androidx.media3:media3-ui:1.4.1"',
+              'implementation "com.squareup.okhttp3:okhttp:4.12.0"',
+              'implementation "com.wireguard.android:tunnel:1.0.20230706"',
+              'implementation "androidx.work:work-runtime-ktx:2.9.1"',
+              'implementation "androidx.room:room-runtime:2.6.1"',
+              'ksp "androidx.room:room-compiler:2.6.1"',
+          ]
+          missing = [line for line in additions if line not in text]
+          if missing:
+              text = text.replace("dependencies {", "dependencies {\n    " + "\n    ".join(missing), 1)
               open(path, "w", encoding="utf-8").write(text)
-          print("dependencies diperiksa.")
+          print("Dependensi native diperiksa.")
           PY
           cat > android/app/proguard-rules.pro <<'PRO'
           -keepclassmembers class ai.maskiplay.app.** {
@@ -408,11 +443,11 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
-            Status fitur jaringan: VPN Gate server directory dan pengukuran kandidat tersedia. OpenVPN 3 Core/full-tunnel IPv4+IPv6 belum terintegrasi; layanan yang tersedia saat ini hanya DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
+            Status fitur jaringan: WireGuard GoBackend menyediakan full-tunnel berdasarkan konfigurasi milik pengguna. DNS Shield IPv4 adalah layanan terpisah. OpenVPN 3 Core tidak termasuk dalam build branch ini. Nmap tidak dibundel; fitur pemindaian memakai NetworkScanner TCP native buatan proyek.
 
             Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package serta sertifikat penandatanganan pada pipeline release.
 
-            Catatan transparansi: katalog VPN Gate hanya melakukan penemuan server. OpenVPN 3 dan full-tunnel belum tersedia pada versi ini; layanan VPN saat ini adalah DNS-only IPv4.
+            Catatan transparansi: WireGuard memerlukan konfigurasi server dan izin VPN Android. Integrasi OpenVPN 3 Core berada di PR terpisah dan belum menjadi bagian build ini. NetworkScanner melakukan TCP connect pada 50 port umum untuk satu host; bukan implementasi Nmap.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 

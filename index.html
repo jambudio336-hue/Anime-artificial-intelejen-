@@ -282,11 +282,11 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     </div></section>
 
     <section class="v" id="vWCheck"><div class="sc">
-      <div class="cd"><h3>Web Check</h3><p class="sub">Analisis konfigurasi dan permukaan web melalui layanan eksternal. Situs dibuka di browser terpisah agar halaman pihak ketiga tidak mendapat akses ke native bridge aplikasi.</p><div class="mono">Layanan: web-check.xyz\nMode: browser eksternal\nTarget: masukkan URL di layanan</div><button class="btn pri" id="wOpen">Buka Web Check di browser</button></div>
+      <div class="cd"><h3>Web Check · In-App</h3><p class="sub">Buka layanan pemeriksaan situs langsung di dalam Mas Kiplay. Browser internal terisolasi, tanpa akses ke native bridge aplikasi.</p><input class="f" id="wTarget" value="https://web-check.xyz/" placeholder="https://domain-milikmu.com" autocapitalize="off" spellcheck="false"><button class="btn pri" id="wOpen">Buka Web Check di aplikasi</button><div class="mono">HTTPS only · JavaScript aktif · tautan tetap di dalam aplikasi · sertifikat TLS wajib valid</div></div>
     </div></section>
 
     <section class="v" id="vOsint"><div class="sc">
-      <div class="cd"><h3>OSINT</h3><p class="sub">Toolkit open-source intelligence. Layanan dibuka di browser terpisah untuk menjaga isolasi WebView dan native bridge.</p><div class="mono">Layanan: osint4all.com/tool\nMode: browser eksternal</div><button class="btn pri" id="oOpen">Buka OSINT di browser</button></div>
+      <div class="cd"><h3>OSINT · In-App</h3><p class="sub">Akses toolkit OSINT melalui browser internal Mas Kiplay. Gunakan hanya untuk riset sumber terbuka yang sah dan target yang memang boleh kamu analisis.</p><input class="f" id="oTarget" value="https://osint4all.com/tool/" placeholder="https://layanan-osint.example" autocapitalize="off" spellcheck="false"><button class="btn pri" id="oOpen">Buka OSINT di aplikasi</button><div class="mono">HTTPS only · browser terisolasi · tidak menerima akses native bridge</div></div>
     </div></section>
 
     <section class="v" id="vCyber"><div class="sc">
@@ -300,6 +300,12 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       <div class="cd"><h3>Hash</h3><textarea class="f" id="cHash" rows="2" placeholder="teks"></textarea>
         <div class="g3"><button class="btn sm" data-h="SHA-256">SHA256</button><button class="btn sm" data-h="SHA-384">SHA384</button><button class="btn sm" data-h="SHA-512">SHA512</button></div>
         <div class="mono" id="cHashOut">—</div></div>
+      <div class="cd"><h3>Network Scanner · TCP Connect</h3>
+        <p class="sub">Memeriksa 50 port TCP umum tanpa root. Scan hanya host yang kamu miliki atau punya izin untuk diuji.</p>
+        <input class="f" id="scanHost" value="127.0.0.1" placeholder="127.0.0.1 atau host yang diizinkan" autocapitalize="off">
+        <div class="g2"><button class="btn sm pri" id="scanStart">Mulai scan</button><button class="btn sm" id="scanCopy">Salin hasil</button></div>
+        <pre class="mono" id="scanOutput" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto">Belum ada hasil scan.</pre>
+      </div>
       <div class="cd"><h3>Base64 / URL Codec</h3><textarea class="f" id="cCod" rows="2" placeholder="teks"></textarea>
         <div class="g2"><button class="btn sm" id="cB64E">B64 enc</button><button class="btn sm" id="cB64D">B64 dec</button><button class="btn sm" id="cUrlE">URL enc</button><button class="btn sm" id="cUrlD">URL dec</button></div>
         <div class="mono" id="cCodOut">—</div></div>
@@ -313,6 +319,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <input class="f" id="vpnResolver" value="1.1.1.1" inputmode="decimal" autocomplete="off">
         <div class="g2"><button class="btn sm pri" id="vpnToggle">Aktifkan VPN</button><button class="btn sm" id="vpnStatus">Periksa status</button></div>
         <div class="mono" id="vpnInfo">Status: Nonaktif</div>
+      </div>
+      <div class="cd">
+        <h3>WireGuard VPN · Full Tunnel</h3>
+        <p class="sub">Mesin WireGuard resmi berbasis GoBackend. Tempel konfigurasi .conf milikmu; konfigurasi disimpan terenkripsi di Android Keystore.</p>
+        <div class="row" style="align-items:center;gap:12px"><button class="btn pri" id="wgToggle" style="min-height:48px;flex:1">Aktifkan WireGuard</button><span class="dot" id="wgDot"></span></div>
+        <div class="mono" id="wgStatus">Status: MATI</div>
+        <label class="sub" for="wgConfig">Konfigurasi WireGuard</label>
+        <textarea class="f" id="wgConfig" rows="8" spellcheck="false" placeholder="[Interface]&#10;PrivateKey = ...&#10;Address = ...&#10;DNS = ...&#10;&#10;[Peer]&#10;PublicKey = ...&#10;Endpoint = host:51820&#10;AllowedIPs = 0.0.0.0/0, ::/0"></textarea>
+        <div class="g2"><button class="btn sm" id="wgGen">Generate keypair</button><button class="btn sm" id="wgCheck">Periksa status</button></div>
+        <pre class="mono" id="wgKeys" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
       </div>
       <div class="cd">
         <h3>VPN Gate · Smart Server Finder</h3>
@@ -361,6 +377,12 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       </div>
       <div class="cd"><h3>Instruksi tambahan</h3><textarea class="f" id="sysEx" rows="3"></textarea>
         <button class="btn sm" id="sysSave">Simpan</button></div>
+      <div class="cd"><h3>Sumber Anime</h3>
+        <p class="sub">Gunakan alamat instance Hianime-compatible milikmu (HTTPS). Sumber custom disimpan di perangkat.</p>
+        <input class="f" id="animeBaseUrl" placeholder="https://instance-anime.example/api/v2/hianime" autocomplete="url">
+        <button class="btn sm pri" id="animeBaseSave">Simpan sumber anime</button>
+        <div class="mono" id="animeBaseInfo">Mirror bawaan aktif sampai sumber khusus disimpan.</div>
+      </div>
       <div class="cd"><h3>Data</h3>
         <div class="g2"><button class="btn sm" id="expBtn">Ekspor</button><button class="btn sm dgr" id="wipeBtn">Hapus semua chat</button></div>
       </div>
@@ -377,6 +399,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     <div class="di" data-go="wcheck"><i>🩻</i>Web Check</div>
     <div class="di" data-go="osint"><i>🕵</i>OSINT</div>
     <div class="di" data-go="cyber"><i>🧪</i>Cyber Lab</div>
+    <a class="di" href="watch.html" style="text-decoration:none"><i>🎬</i>Nonton Dracin &amp; Anime</a>
     <div class="di" data-go="vpn"><i>🛡</i>DNS VPN</div>
     <div class="di" data-go="hist"><i>🕘</i>Riwayat</div>
     <div class="di" data-go="set"><i>⚙</i>Setelan</div>
@@ -1096,7 +1119,7 @@ function dorks(){
     const g=el("div","g2");
     const a=el("button","btn sm");a.textContent="Salin";a.onclick=()=>cp(qq);
     const b=el("button","btn sm pri");b.textContent="Buka Google";
-    b.onclick=()=>{location.href="https://www.google.com/search?q="+encodeURIComponent(qq)+"&num=50";};
+    b.onclick=async()=>{const u="https://www.google.com/search?q="+encodeURIComponent(qq)+"&num=50";const r=await A("openInAppBrowser",u,"Google Dork");if(r.startsWith("err:"))toast(r);};
     g.append(a,b);c.appendChild(g);box.appendChild(c);
   });
   toast(DK.length+" dork siap");
@@ -1318,8 +1341,8 @@ $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopO
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
 $("#dBuild").onclick=dorks;
-$("#wOpen").onclick=async()=>{const r=await A("openUrl","https://web-check.xyz/");toast(r.startsWith("err:")?r:"Web Check dibuka di browser");};
-$("#oOpen").onclick=async()=>{const r=await A("openUrl","https://osint4all.com/tool/");toast(r.startsWith("err:")?r:"OSINT dibuka di browser");};
+$("#wOpen").onclick=async()=>{const u=$("#wTarget").value.trim()||"https://web-check.xyz/";const r=await A("openInAppBrowser",u,"Web Check");toast(r.startsWith("err:")?r:"Web Check dibuka di dalam Mas Kiplay");};
+$("#oOpen").onclick=async()=>{const u=$("#oTarget").value.trim()||"https://osint4all.com/tool/";const r=await A("openInAppBrowser",u,"OSINT");toast(r.startsWith("err:")?r:"OSINT dibuka di dalam Mas Kiplay");};
 
 /* boot */
 (function boot(){
@@ -1422,6 +1445,71 @@ $("#vpnStatus").onclick=()=>{
   vpnActive=!!(n&&n.vpnStatus&&n.vpnStatus());
   paintVpn();
 };
+
+// Native TCP connect scanner (original project implementation)
+let networkScanText="";
+$("#scanStart").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.NetworkScanner, host=$("#scanHost").value.trim();
+  if(!api){$("#scanOutput").textContent="Network Scanner hanya tersedia di APK Android.";return;}
+  $("#scanStart").disabled=true;$("#scanOutput").textContent="Memindai 50 port TCP umum pada "+host+"…";
+  try{
+    const r=await api.scan({host});
+    networkScanText="Host: "+r.host+" ("+r.address+")\nMetode: "+r.method+"\nPort diperiksa: "+r.scannedPorts+" · terbuka: "+r.openCount+"\nDurasi: "+r.durationMs+" ms\n\n"+(r.ports||[]).map(p=>p.port+"/tcp  "+p.state+"  "+p.service).join("\n");
+    if(!r.openCount)networkScanText+="\nTidak ada port terbuka yang terdeteksi pada daftar port ini.";
+    $("#scanOutput").textContent=networkScanText;toast("Pemindaian selesai");
+  }catch(e){$("#scanOutput").textContent=e.message;toast("Scanner: "+e.message);}
+  finally{$("#scanStart").disabled=false;}
+};
+$("#scanCopy").onclick=()=>{if(networkScanText)cp(networkScanText);else toast("Belum ada hasil scan untuk disalin");};
+
+// Custom anime mirror setting
+$("#animeBaseSave").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.Watch;
+  const url=$("#animeBaseUrl").value.trim();
+  if(!api){toast("Watch native hanya tersedia di APK Android");return;}
+  if(!url.startsWith("https://")){toast("Alamat sumber harus HTTPS");return;}
+  try{await api.setAnimeBase({url});$("#animeBaseInfo").textContent="Sumber anime khusus tersimpan.";toast("Sumber anime disimpan");}
+  catch(e){$("#animeBaseInfo").textContent=e.message;toast("Gagal menyimpan sumber anime");}
+};
+
+// WireGuard native full tunnel
+let wgActive=false;
+async function wgRefresh(){
+  const api=window.Capacitor?.Plugins?.Vpn;
+  if(!api){$("#wgStatus").textContent="Status: Plugin WireGuard belum tersedia di APK.";return;}
+  try{
+    const r=await api.status();wgActive=!!r.active;
+    $("#wgStatus").textContent="Status: "+(wgActive?"AKTIF":"MATI");
+    $("#wgDot").classList.toggle("on",wgActive);
+    $("#wgToggle").textContent=wgActive?"Matikan WireGuard":"Aktifkan WireGuard";
+  }catch(e){$("#wgStatus").textContent="Status gagal dibaca: "+e.message;}
+}
+$("#wgToggle").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.Vpn;
+  if(!api){toast("WireGuard native hanya tersedia di APK Android");return;}
+  const button=$("#wgToggle");button.disabled=true;
+  try{
+    if(wgActive){await api.down();wgActive=false;toast("WireGuard dimatikan");}
+    else{
+      const config=$("#wgConfig").value.trim();
+      if(!config){toast("Tempel konfigurasi WireGuard terlebih dahulu");return;}
+      const permission=await api.prepare();
+      if(!permission.granted){toast("Izin VPN Android belum diberikan");return;}
+      await api.up({config,name:"maskiplay"});
+      wgActive=true;toast("WireGuard aktif");
+    }
+    await wgRefresh();
+  }catch(e){toast("WireGuard: "+e.message);await wgRefresh();}
+  finally{button.disabled=false;}
+};
+$("#wgCheck").onclick=wgRefresh;
+$("#wgGen").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.Vpn;
+  if(!api){toast("Generate keypair tersedia di APK Android");return;}
+  try{const k=await api.genKey();$("#wgKeys").textContent="PrivateKey = "+k.privateKey+"\nPublicKey = "+k.publicKey;toast("Keypair berhasil dibuat");}
+  catch(e){toast("Gagal membuat keypair: "+e.message);}
+};
+wgRefresh();
 
 </script>
 </body>
