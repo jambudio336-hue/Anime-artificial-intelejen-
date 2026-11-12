@@ -6,7 +6,7 @@ Mas Kiplay v9.4.1 is an Android application and PWA that combines an AI chat/Jar
 
 - **Chat and Jarvis:** AI chat, speech input/output, and native Android integration through explicit user permissions.
 - **Device tools:** native bridge for supported device actions; sensitive actions should remain user-confirmed.
-- **WebCheck and OSINT:** HTTPS-only in-app browser for supported web services. Some sites may restrict embedded browsers or require their official app/browser.
+- **WebCheck and OSINT:** HTTPS-only in-app browser for supported web services. ChatGPT, Hacker AI, Shannon, G0DM0D3, Artex, ePorner, FlickReels, and Dracinema tiles open the in-app browser directly in one tap. Some sites may restrict embedded browsers or require a trusted browser for sign-in.
 - **Watch:** Melolo drama catalogue, anime provider integration, episode directories, watch history, watchlist, and an in-app Media3 player.
 - **Automatic catalogue refresh:** WorkManager refreshes the public Melolo catalogue in the background every six hours and keeps a local fallback. Episode directories and playback URLs are refreshed when the title/episode is opened.
 - **Startup media:** `video.mp4` is used for the opening splash; `Dashboard.mp4` is the looping dashboard background.
