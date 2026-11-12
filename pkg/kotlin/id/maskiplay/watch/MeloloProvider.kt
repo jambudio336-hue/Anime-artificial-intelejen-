@@ -117,7 +117,7 @@ class MeloloProvider : WatchProvider {
             val url = decodeUrl(entry.optString("main_url"))
                 ?: decodeUrl(entry.optString("backup_url_1"))
                 ?: continue
-            if (!url.startsWith("https://") || !url.contains(".melolostatic.com")) continue
+            if (!url.startsWith("https://") || !url.contains(WatchEndpoints.MELOLO_STATIC_SUFFIX)) continue
             val definition = entry.optString("definition").ifBlank {
                 when (key) { "video_2" -> "360p"; "video_3" -> "480p"; "video_4" -> "540p"; else -> "720p" }
             }
