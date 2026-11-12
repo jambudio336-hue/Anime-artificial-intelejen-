@@ -190,8 +190,11 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 databaseEnabled = false
                 allowFileAccess = false
                 allowContentAccess = false
-                javaScriptCanOpenWindowsAutomatically = false
+                javaScriptCanOpenWindowsAutomatically = true
+                // New-window links and window.open are routed into this same WebView.
+                // No secondary WebView or external browser is created.
                 setSupportMultipleWindows(false)
+                loadsImagesAutomatically = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 cacheMode = WebSettings.LOAD_DEFAULT
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
@@ -231,7 +234,17 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    return request.url.scheme?.lowercase() != "https"
+                    val scheme = request.url.scheme?.lowercase()
+                    if (scheme == "https") return false
+                    if (scheme == "http") {
+                        Toast.makeText(activity, "Navigasi HTTP tidak aman diblokir; gunakan HTTPS.", Toast.LENGTH_SHORT).show()
+                    }
+                    return true
+                }
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                    val scheme = Uri.parse(url).scheme?.lowercase()
+                    return scheme != "https"
                 }
                 override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: android.graphics.Bitmap?) {
                     progress.visibility = View.VISIBLE
@@ -244,6 +257,21 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                     }
                     back.isEnabled = view?.canGoBack() == true
                     forward.isEnabled = view?.canGoForward() == true
+                    title.text = view?.title?.take(64)?.ifBlank { pageTitle } ?: pageTitle
+                }
+                override fun onReceivedError(view: WebView?, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+                    super.onReceivedError(view, request, error)
+                    if (request.isForMainFrame) {
+                        title.text = "Gagal memuat halaman"
+                        Toast.makeText(activity, "WebView gagal memuat situs. Periksa internet, DNS/VPN, atau pembatasan situs.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest, response: android.webkit.WebResourceResponse) {
+                    super.onReceivedHttpError(view, request, response)
+                    if (request.isForMainFrame && response.statusCode >= 400) {
+                        title.text = "HTTP ${response.statusCode}"
+                        Toast.makeText(activity, "Situs membalas HTTP ${response.statusCode}", Toast.LENGTH_LONG).show()
+                    }
                 }
                 override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler, error: SslError) {
                     handler.cancel()
