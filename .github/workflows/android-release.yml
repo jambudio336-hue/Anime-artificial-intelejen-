@@ -108,6 +108,7 @@ jobs:
           main = Path("pkg/kotlin/MainActivity.kt").read_text(encoding="utf-8")
           vpn = Path("pkg/kotlin/id/maskiplay/vpn/VpnPlugin.kt").read_text(encoding="utf-8")
           store = Path("pkg/kotlin/id/maskiplay/vpn/VpnStore.kt").read_text(encoding="utf-8")
+          bridge = Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8")
           scanner = Path("pkg/kotlin/id/maskiplay/net/NetworkScannerPlugin.kt").read_text(encoding="utf-8")
           import re
           port_block = re.search(r"COMMON_PORTS = intArrayOf\((.*?)\)", scanner, re.S)
@@ -128,6 +129,11 @@ jobs:
               "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
               "App package version": package.get("version") == "9.4.1",
               "WebView user-agent version": "MasKiplay/9.4.1" in main,
+              "Native consent for shell commands": 'confirmNativeAction("Konfirmasi perintah shell", cmd)' in bridge,
+              "Native consent for ROOT commands": 'confirmNativeAction("Konfirmasi perintah ROOT", cmd)' in bridge,
+              "Native consent for Termux commands": 'confirmNativeAction("Konfirmasi eksekusi Termux", cmd)' in bridge,
+              "Shell command length limit": "cmd.length > 4096" in bridge,
+              "Full command shown in native consent": "command.take(4096)" in bridge,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
