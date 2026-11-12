@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.4.0"
+        default: "9.4.1"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.4.0' }}
+      VERSION: ${{ inputs.versi || '9.4.1' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -130,8 +130,8 @@ jobs:
               "DNS VPN disclosure": "Tidak mengalihkan seluruh trafik perangkat" in html,
               "WireGuard full tunnel UI": "WireGuard VPN · Full Tunnel" in html,
               "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
-              "App package version": package.get("version") == "9.4.0",
-              "WebView user-agent version": "MasKiplay/9.4.0" in main,
+              "App package version": package.get("version") == "9.4.1",
+              "WebView user-agent version": "MasKiplay/9.4.1" in main,
               "Main WebView file access disabled": "allowFileAccess = false" in main,
               "Main WebView content access disabled": "allowContentAccess = false" in main,
               "Full-window internal browser": "ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
@@ -394,7 +394,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 940000/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 941000/' android/app/build.gradle
           grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
