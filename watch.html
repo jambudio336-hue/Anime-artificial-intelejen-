@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050506">
+<title>Nonton — Mas Kiplay</title>
+<link rel="stylesheet" href="watch.css">
+</head>
+<body>
+<div class="watch-app">
+  <header><a class="back" href="index.html" aria-label="Kembali">‹</a><div><b>MAS KIPLAY / WATCH</b><small>DRACIN • ANIME • VIDEO</small></div><button id="refresh" aria-label="Muat ulang">↻</button></header>
+  <nav class="tabs"><button data-source="melolo" class="active">Dracin</button><button data-source="anime">Anime</button><button data-source="history">Riwayat</button><button data-source="manual">Tempel URL</button></nav>
+  <main>
+    <section class="search"><input id="query" type="search" placeholder="Cari judul tontonan…" autocomplete="off"><button id="searchBtn">Cari</button></section>
+    <p id="hint" class="hint">Cari drama China favorit tanpa API key.</p>
+    <section id="cards" class="cards" aria-live="polite"></section>
+    <section id="episodes" class="episodes hidden"><div class="section-head"><button id="backCards">← Kembali</button><h2 id="seriesTitle">Episode</h2></div><div id="episodeList"></div></section>
+    <section id="error" class="error hidden"><b>Gagal memuat sumber</b><p id="errorText"></p><button id="retry">Coba lagi</button></section>
+  </main>
+  <footer>Streaming hanya dari sumber yang dapat diakses. Gunakan konten sesuai hak dan aturan di wilayahmu.</footer>
+</div>
+<script src="watch.js"></script>
+</body>
+</html>
