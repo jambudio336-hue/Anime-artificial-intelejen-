@@ -4,6 +4,9 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.media.AudioManager
+import android.view.MotionEvent
+import android.view.View
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -22,6 +25,7 @@ import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
 import org.json.JSONObject
 import java.util.concurrent.Executors
+import kotlin.math.abs
 
 @UnstableApi
 class PlayerActivity : Activity() {
@@ -31,6 +35,12 @@ class PlayerActivity : Activity() {
     private var selectedUrl: String = ""
     private var currentTitle: String = "Video"
     private var videoId: String = ""
+    private var source: String = "melolo"
+    private var seriesId: String = ""
+    private var previousId: String? = null
+    private var previousTitle: String? = null
+    private var nextId: String? = null
+    private var nextTitle: String? = null
     private val dbWorker = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
     private val saveProgress = object : Runnable {
@@ -46,11 +56,30 @@ class PlayerActivity : Activity() {
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         currentTitle = intent.getStringExtra(EXTRA_TITLE) ?: "Video"
         videoId = intent.getStringExtra(EXTRA_VIDEO_ID).orEmpty()
+        source = intent.getStringExtra(EXTRA_SOURCE).orEmpty().ifBlank { "melolo" }
+        seriesId = intent.getStringExtra(EXTRA_SERIES_ID).orEmpty()
+        previousId = intent.getStringExtra(EXTRA_PREVIOUS_ID)
+        previousTitle = intent.getStringExtra(EXTRA_PREVIOUS_TITLE)
+        nextId = intent.getStringExtra(EXTRA_NEXT_ID)
+        nextTitle = intent.getStringExtra(EXTRA_NEXT_TITLE)
         selectedUrl = intent.getStringExtra(EXTRA_SELECTED_URL).orEmpty()
         val raw = intent.getStringExtra(EXTRA_VARIANTS).orEmpty()
         setContentView(R.layout.activity_player)
         playerView = findViewById(R.id.player_view)
         findViewById<TextView>(R.id.player_quality).setOnClickListener { showQualityPicker() }
+        findViewById<TextView>(R.id.player_previous).setOnClickListener {
+            previousId?.let { loadNeighbor(it, previousTitle ?: "Episode sebelumnya") }
+        }
+        findViewById<TextView>(R.id.player_next).setOnClickListener {
+            nextId?.let { loadNeighbor(it, nextTitle ?: "Episode berikutnya") }
+        }
+        updateEpisodeControls()
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = (
+            View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        )
 
         variants = try {
             val array = JSONObject(raw).optJSONArray("variants") ?: org.json.JSONArray()
@@ -62,6 +91,7 @@ class PlayerActivity : Activity() {
             return
         }
         initializePlayer(selectedUrl)
+        installGestures()
         handler.postDelayed(saveProgress, 5_000L)
     }
 
@@ -126,6 +156,120 @@ class PlayerActivity : Activity() {
                 .show()
         } else {
             exo.playWhenReady = true
+        }
+    }
+
+    private fun loadNeighbor(id: String, title: String) {
+        val provider: WatchProvider = when (source) {
+            "melolo" -> MeloloProvider()
+            "anime" -> AnimeProvider(this)
+            else -> return
+        }
+        findViewById<TextView>(R.id.player_previous).isEnabled = false
+        findViewById<TextView>(R.id.player_next).isEnabled = false
+        Thread {
+            try {
+                val playback = provider.resolve(id)
+                val allEpisodes = provider.episodes(seriesId)
+                val index = allEpisodes.indexOfFirst { it.videoId == id }
+                val prev = allEpisodes.getOrNull(index - 1)
+                val next = allEpisodes.getOrNull(index + 1)
+                runOnUiThread {
+                    savePosition()
+                    videoId = id
+                    currentTitle = title
+                    previousId = prev?.videoId
+                    previousTitle = prev?.title
+                    nextId = next?.videoId
+                    nextTitle = next?.title
+                    variants = playback.variants.map { v ->
+                        JSONObject().put("label", v.label).put("url", v.url)
+                            .put("codec", v.codec).put("isHls", v.isHls).put("referer", v.referer)
+                    }
+                    val payload = JSONObject().apply {
+                        put("duration", playback.duration)
+                        put("poster", playback.poster)
+                        put("variants", org.json.JSONArray(variants))
+                        put("subtitles", org.json.JSONArray().also { rows ->
+                            playback.subtitles.forEach { sub -> rows.put(
+                                JSONObject().put("label", sub.label).put("url", sub.url)
+                                    .put("language", sub.language)
+                            ) }
+                        })
+                    }
+                    intent.putExtra(EXTRA_VARIANTS, payload.toString())
+                    intent.putExtra(EXTRA_VIDEO_ID, videoId)
+                    intent.putExtra(EXTRA_TITLE, currentTitle)
+                    selectedUrl = playback.variants.firstOrNull {
+                        !it.codec.orEmpty().contains("bytevc1", true)
+                    }?.url ?: playback.variants.first().url
+                    updateEpisodeControls()
+                    initializePlayer(selectedUrl)
+                    dbWorker.execute {
+                        try {
+                            WatchDb.get(applicationContext).watchDao().putHistory(
+                                HistoryEntity(videoId, seriesId, source, currentTitle,
+                                    playback.poster, System.currentTimeMillis())
+                            )
+                        } catch (_: Exception) { }
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    updateEpisodeControls()
+                    AlertDialog.Builder(this).setMessage(e.message ?: "Gagal memuat episode")
+                        .setPositiveButton("OK", null).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun updateEpisodeControls() {
+        findViewById<TextView>(R.id.player_previous)?.apply {
+            isEnabled = !previousId.isNullOrBlank()
+            alpha = if (isEnabled) 1f else 0.35f
+        }
+        findViewById<TextView>(R.id.player_next)?.apply {
+            isEnabled = !nextId.isNullOrBlank()
+            alpha = if (isEnabled) 1f else 0.35f
+        }
+    }
+
+    private fun installGestures() {
+        val surface = playerView.videoSurfaceView ?: return
+        var startX = 0f
+        var startY = 0f
+        var startBrightness = 0.5f
+        var startVolume = 0
+        val audio = getSystemService(AUDIO_SERVICE) as AudioManager
+        val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        surface.setOnTouchListener { view, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.x
+                    startY = event.y
+                    startBrightness = window.attributes.screenBrightness.takeIf { it >= 0f } ?: 0.5f
+                    startVolume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.x - startX
+                    val dy = event.y - startY
+                    if (abs(dy) > abs(dx) && abs(dy) > 18f) {
+                        if (startX < view.width / 2f) {
+                            val params = window.attributes
+                            params.screenBrightness = (startBrightness - dy / view.height).coerceIn(0.05f, 1f)
+                            window.attributes = params
+                        } else {
+                            val target = (startVolume - dy / view.height * maxVolume).toInt()
+                                .coerceIn(0, maxVolume)
+                            audio.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0)
+                        }
+                        true
+                    } else false
+                }
+                else -> false
+            }
         }
     }
 
@@ -202,6 +346,12 @@ class PlayerActivity : Activity() {
         const val EXTRA_SELECTED_URL = "watch.selected_url"
         const val EXTRA_DURATION = "watch.duration"
         const val EXTRA_VIDEO_ID = "watch.video_id"
+        const val EXTRA_SOURCE = "watch.source"
+        const val EXTRA_SERIES_ID = "watch.series_id"
+        const val EXTRA_PREVIOUS_ID = "watch.previous_id"
+        const val EXTRA_PREVIOUS_TITLE = "watch.previous_title"
+        const val EXTRA_NEXT_ID = "watch.next_id"
+        const val EXTRA_NEXT_TITLE = "watch.next_title"
         private const val PREFS = "watch_player"
         private const val KEY_LANDSCAPE = "landscape"
     }
