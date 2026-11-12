@@ -579,6 +579,12 @@ const TTS={q:[],run:false,seq:0,aud:null,wait:null,
   }
   if(my===this.seq){this.run=false;setState("");}
  }};
+window.MK_onTermuxResult=function(raw){
+  let r=raw;try{if(typeof raw==="string")r=JSON.parse(raw);}catch(e){r={error:"hasil Termux tidak valid"};}
+  const body=["Hasil Termux"+(r.id?" #"+r.id:""),r.stdout||"",r.stderr?("STDERR:\\n"+r.stderr):"",r.error?("ERROR: "+r.error):"", "Exit code: "+(r.exitCode??"—")].filter(Boolean).join("\\n");
+  if(active){active.msgs.push({role:"assistant",content:"\u0060\u0060\u0060text\\n"+body+"\\n\u0060\u0060\u0060"});saveChats();}
+  addMsg("assistant",body);
+};
 window.MK_onTTS=function(raw){
   let o;try{o=JSON.parse(raw);}catch(e){return;}
   if(o.ok&&!o.end)setState("spk");
@@ -632,7 +638,7 @@ const CTRL=[
 "root id",
 "shot",
 "```",
-"Perintah: open, url, dump, tap, swipe, click, text, key, scroll, wait, shell, root, shot, wall, speak, clip.",
+"Perintah: open, url, dump, tap, swipe, click, text, key, scroll, wait, shell, root, termux, shot, wall, speak, clip. Untuk termux, minta persetujuan pengguna sebelum eksekusi.",
 "Blok di akhir jawaban. Setelah blok, sistem kirim output; analisa seperti operator sungguhan.",
 "",
 "## MEMORI",
@@ -886,6 +892,7 @@ async function doAct(line){
       case "open": return openApp(a);
       case "url": return openUrl(a);
       case "shell": return "$ "+a+"\n"+await shell(a,false);
+      case "termux": {\n        if(!a)return "err: perintah Termux kosong";\n        if(!window.confirm("Izinkan Mas Kiplay menjalankan perintah ini melalui Termux?\\n\\n"+a))return "dibatalkan pengguna";\n        const n=mk();if(!n||!n.termuxRun)return "Termux bridge hanya tersedia di APK Android";\n        return String(n.termuxRun(a,"~/"));\n      }
       case "root": return "# "+a+"\n"+await shell(a,true);
       case "install": return await A("installApk",a);
       case "wall": return await A("wall",a);
