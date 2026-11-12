@@ -64,6 +64,7 @@ class WatchPlugin : Plugin() {
             putExtra(PlayerActivity.EXTRA_VARIANTS, playbackJson(playback).toString())
             putExtra(PlayerActivity.EXTRA_SELECTED_URL, preferred.url)
             putExtra(PlayerActivity.EXTRA_DURATION, playback.duration)
+            putExtra(PlayerActivity.EXTRA_VIDEO_ID, videoId)
         }
         activity.runOnUiThread { activity.startActivity(intent) }
         JSObject().apply { put("started", true) }
