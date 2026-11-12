@@ -79,7 +79,7 @@ class PlayerActivity : Activity() {
             val array = JSONObject(raw).optJSONArray("variants") ?: org.json.JSONArray()
             (0 until array.length()).mapNotNull { array.optJSONObject(it) }
         } catch (_: Exception) { emptyList() }
-        if (selectedUrl.isBlank() && variants.isNotEmpty()) selectedUrl = variants.last().optString("url")
+        if (selectedUrl.isBlank() && variants.isNotEmpty()) selectedUrl = variants.first().optString("url")
         if (selectedUrl.isBlank()) {
             finish()
             return
