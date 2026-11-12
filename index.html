@@ -666,7 +666,7 @@ const CTRL=[
 
 function sysP(voice){
   const b=(PER[S.persona]||PER.brutal).p;
-  const v=voice?"\n\nMODE SUARA: jawaban dibacakan. Maks 5 kalimat, tanpa markdown, tanpa blok kode.":"\n\nMODE TEKS: detail penuh, markdown penuh.";
+  const v=voice?"\n\nMODE JARVIS AUDIO-ONLY: balas dengan kalimat percakapan yang natural untuk langsung dibacakan TTS. Maksimal 5 kalimat. Jangan gunakan Markdown, tabel, blok kode, URL panjang, atau instruksi format visual. Jangan tampilkan jawaban AI sebagai teks di panel Jarvis; keluaran jawaban hanya melalui audio. Jika aksi diperlukan, keluarkan blok run terpisah tanpa membacakan isi blok.":"\n\nMODE TEKS: detail penuh, markdown penuh.";
   const mem=S.mem.length?"\n\n## MEMORI TENTANG PENGGUNA\n"+S.mem.map(x=>"- "+x).join("\n"):"";
   const quality="\n\n## KUALITAS JAWABAN WAJIB\nSebelum mengirim jawaban, periksa ulang ejaan, typo, tata bahasa, tanda baca, konsistensi istilah, dan fakta. Gunakan Bahasa Indonesia yang alami sesuai konteks. Jangan mengulang kata atau kalimat tanpa alasan. Pertahankan maksud pengguna. Jangan mengubah isi kode, URL, nama API, identifier, command, atau kutipan literal saat proofreading. Jika tidak yakin, nyatakan ketidakpastian daripada mengarang.";
   return IDENT+"\n\n"+b+v+quality+mem+CTRL+(S.sysEx?"\n\n## TAMBAHAN\n"+S.sysEx:"");
