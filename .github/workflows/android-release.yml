@@ -368,6 +368,22 @@ jobs:
           -keep class androidx.core.content.FileProvider { *; }
           PRO
 
+      - name: Gate distribusi Nmap (lisensi dan binary Android)
+        env:
+          NMAP_NPSL_PERMISSION: ${{ vars.NMAP_NPSL_PERMISSION }}
+        run: |
+          set -euo pipefail
+          if [ "${NMAP_NPSL_PERMISSION:-}" != "approved" ]; then
+            echo "::error::Rilis diblokir: integrasi Nmap memerlukan izin tertulis/relicense OEM karena NPSL tidak kompatibel langsung dengan GPL-3.0-only."
+            exit 1
+          fi
+          if [ ! -s pkg/assets/nmap/nmap ]; then
+            echo "::error::Binary Nmap Android ARM64 belum tersedia di pkg/assets/nmap/nmap."
+            exit 1
+          fi
+          mkdir -p android/app/src/main/assets/nmap
+          install -m 0755 pkg/assets/nmap/nmap android/app/src/main/assets/nmap/nmap
+
       - name: Validasi secret signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -443,11 +459,11 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
-            Status fitur jaringan: VPN Gate server directory dan pengukuran kandidat tersedia. OpenVPN 3 Core/full-tunnel IPv4+IPv6 belum terintegrasi; layanan yang tersedia saat ini hanya DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
+            Status fitur jaringan: WireGuard GoBackend menyediakan full-tunnel berdasarkan konfigurasi milik pengguna. DNS Shield IPv4 adalah layanan terpisah. OpenVPN 3 Core hanya capability probe, bukan koneksi VPN. Nmap belum didistribusikan karena izin NPSL dan binary Android ARM64 belum tersedia.
 
             Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package serta sertifikat penandatanganan pada pipeline release.
 
-            Catatan transparansi: katalog VPN Gate hanya melakukan penemuan server. OpenVPN 3 dan full-tunnel belum tersedia pada versi ini; layanan VPN saat ini adalah DNS-only IPv4.
+            Catatan transparansi: WireGuard memerlukan konfigurasi server dan izin VPN Android. OpenVPN 3 Core belum mengaktifkan sesi VPN. Nmap scanner tidak aktif pada rilis ini kecuali distribusi binary dan izin lisensinya telah diselesaikan.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 
