@@ -47,6 +47,21 @@ class VpnPlugin : Plugin() {
     }
 
     @PluginMethod
+    fun save(call: PluginCall) {
+        try {
+            val config = call.getString("config")?.trim()
+                ?: throw IllegalArgumentException("Konfigurasi WireGuard wajib diisi")
+            require(config.contains("[Interface]") && config.contains("[Peer]")) {
+                "Konfigurasi harus memuat bagian [Interface] dan [Peer]"
+            }
+            store.save(config)
+            call.resolve(JSObject().putValue("saved", true))
+        } catch (e: Exception) {
+            call.reject(e.message ?: "Gagal menyimpan konfigurasi", e)
+        }
+    }
+
+    @PluginMethod
     fun up(call: PluginCall) = runWorker(call) {
         val configText = call.getString("config") ?: store.load()
             ?: throw IllegalArgumentException("Tempel konfigurasi WireGuard terlebih dahulu")
