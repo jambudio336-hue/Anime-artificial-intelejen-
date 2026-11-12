@@ -2,9 +2,9 @@
 (() => {
   const plugin = () => window.Capacitor?.Plugins?.Watch;
   const vpn = () => window.Capacitor?.Plugins?.Vpn;
-  const nmap = () => window.Capacitor?.Plugins?.Nmap;
+  const networkScanner = () => window.Capacitor?.Plugins?.NetworkScanner;
   const $ = id => document.getElementById(id);
-  let source = "melolo", lastQuery = "", debounce = 0, selected = null, lastNmapXml = "";
+  let source = "melolo", lastQuery = "", debounce = 0, selected = null, lastScanText = "";
   const cards = $("cards"), episodes = $("episodes"), error = $("error");
   const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const output = (id, value) => { $(id).textContent = String(value ?? ""); };
@@ -87,8 +87,8 @@
   $("wgUp").addEventListener("click",async()=>{try{const api=vpn();if(!api)throw Error("Plugin VPN tidak tersedia.");const permission=await api.prepare();if(!permission.granted){output("wgOutput","Izin VPN belum diberikan.");return;}const r=await api.up({config:$("wgConfig").value.trim()});output("wgOutput","WireGuard: "+r.status+" · "+r.name);}catch(e){output("wgOutput","Gagal: "+e.message);}});
   $("wgDown").addEventListener("click",async()=>{try{const r=await withVpn(api=>api.down());output("wgOutput","WireGuard: "+r.status);}catch(e){output("wgOutput",e.message);}});
   $("wgStatus").addEventListener("click",async()=>{try{const r=await withVpn(api=>api.status());output("wgOutput","WireGuard: "+r.status);}catch(e){output("wgOutput",e.message);}});
-  $("nmapScan").addEventListener("click",async()=>{try{const api=nmap();if(!api)throw Error("Plugin Nmap native tidak tersedia.");const host=$("nmapHost").value.trim();output("nmapOutput","Memindai "+host+"…");const r=await api.scan({host});lastNmapXml=r.xml||"";output("nmapOutput","Host: "+r.host+" · exit "+r.exitCode+"\n"+lastNmapXml);}catch(e){output("nmapOutput","Scan gagal: "+e.message);}});
-  $("nmapCopy").addEventListener("click",async()=>{try{if(!lastNmapXml)throw Error("Belum ada hasil XML untuk disalin.");await navigator.clipboard.writeText(lastNmapXml);output("nmapOutput","XML berhasil disalin.");}catch(e){output("nmapOutput",e.message);}});
+  $("nmapScan").addEventListener("click",async()=>{try{const api=networkScanner();if(!api)throw Error("Network Scanner native tidak tersedia di APK.");const host=$("nmapHost").value.trim();output("nmapOutput","Memindai 50 port TCP umum pada "+host+"…");const r=await api.scan({host});lastScanText="Host: "+r.host+" ("+r.address+")\\nMetode: "+r.method+"\\nPort diperiksa: "+r.scannedPorts+" · terbuka: "+r.openCount+"\\nDurasi: "+r.durationMs+" ms\\n\\n"+(r.ports||[]).map(p=>p.port+"/tcp  "+p.state+"  "+p.service).join("\\n");if(!r.openCount)lastScanText+="\\nTidak ada port terbuka yang terdeteksi pada daftar port ini.";output("nmapOutput",lastScanText);}catch(e){output("nmapOutput","Scan gagal: "+e.message);}});
+  $("nmapCopy").addEventListener("click",async()=>{try{if(!lastScanText)throw Error("Belum ada hasil scan untuk disalin.");await navigator.clipboard.writeText(lastScanText);output("nmapOutput","Hasil scan berhasil disalin.");}catch(e){output("nmapOutput",e.message);}});
   $("animeSave").addEventListener("click",async()=>{try{const url=$("animeBase").value.trim();const api=plugin();if(!api)throw Error("Plugin Watch tidak tersedia.");const r=await api.setAnimeBase({url});output("animeOutput",r.saved?"Mirror anime tersimpan.":"Gagal menyimpan mirror.");}catch(e){output("animeOutput",e.message);}});
   document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>chooseSource(b.dataset.source)));
   $("query").addEventListener("input",()=>{clearTimeout(debounce);debounce=setTimeout(search,400);});
