@@ -55,6 +55,8 @@ jobs:
           set -euo pipefail
           D=android/app/src/main/java/ai/maskiplay/app
           mkdir -p "$D"
+          # Capacitor generates MainActivity.java for this package. Replace it with the Kotlin host activity to avoid duplicate JVM classes.
+          find "$D" -maxdepth 1 -type f -name "MainActivity.java" -delete
           cp pkg/kotlin/MainActivity.kt "$D/MainActivity.kt"
           cp pkg/kotlin/Bridge.kt "$D/Bridge.kt"
           cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
