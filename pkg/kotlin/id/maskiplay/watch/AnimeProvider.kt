@@ -72,12 +72,24 @@ class AnimeProvider(context: Context) : WatchProvider {
             )
         }.distinctBy { it.url }
         if (variants.isEmpty()) throw IllegalStateException("Mirror anime tidak mengembalikan stream")
-        val subtitles = data.optJSONArray("subtitles") ?: JSONArray()
-        // Subtitle URLs are retained as metadata by the plugin in the next layer.
+        val subtitleRows = data.optJSONArray("subtitles") ?: JSONArray()
+        val subtitles = (0 until subtitleRows.length()).mapNotNull { index ->
+            val row = subtitleRows.optJSONObject(index) ?: return@mapNotNull null
+            val url = row.optString("url").takeIf { it.startsWith("https://") } ?: return@mapNotNull null
+            val format = row.optString("format", row.optString("mimeType"))
+            if (!url.substringBefore('?').endsWith(".vtt", true) &&
+                !format.contains("vtt", true)) return@mapNotNull null
+            Subtitle(
+                label = row.optString("label").ifBlank { row.optString("lang", "Subtitle") },
+                url = url,
+                language = row.optString("lang").takeIf { it.isNotBlank() }
+            )
+        }
         return Playback(
             variants = variants.sortedByDescending { qualityScore(it.label) },
             duration = data.optLong("duration", 0L),
-            poster = data.optString("poster").takeIf { it.startsWith("https://") }
+            poster = data.optString("poster").takeIf { it.startsWith("https://") },
+            subtitles = subtitles
         )
     }
 
