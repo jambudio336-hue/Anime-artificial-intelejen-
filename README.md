@@ -1,11 +1,11 @@
 # Mas Kiplay — AI Agent Android
 
-Mas Kiplay v9.4.1 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
+Mas Kiplay v9.4.2 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
 
 ## Main capabilities
 
 - **Chat and Jarvis:** AI chat, speech input/output, visible Jarvis answer transcript, and native Android integration through explicit user permissions. Jarvis requires a configured provider API key and a working speech-recognition service.
-- **Device tools:** native bridge for supported device actions; sensitive actions should remain user-confirmed.
+- **Device tools:** native bridge for supported device actions; shell, ROOT, and Termux commands require a native Android confirmation dialog and are limited to 4,096 characters.
 - **WebCheck and OSINT:** HTTPS-only full-window in-app browser for supported web services. ChatGPT, Hacker AI, Shannon, G0DM0D3, Artex, ePorner, FlickReels, and Dracinema tiles open the in-app browser directly in one tap. Some sites may restrict embedded browsers or require a supported browser for sign-in.
 - **Watch:** Melolo drama catalogue, anime provider integration, episode directories, watch history, watchlist, and an in-app Media3 player.
 - **Automatic catalogue refresh:** WorkManager refreshes the public Melolo catalogue in the background every six hours and keeps a local fallback. Episode directories and playback URLs are refreshed when the title/episode is opened.

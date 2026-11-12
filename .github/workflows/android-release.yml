@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.4.1"
+        default: "9.4.2"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.4.1' }}
+      VERSION: ${{ inputs.versi || '9.4.2' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -130,14 +130,20 @@ jobs:
               "DNS VPN disclosure": "Tidak mengalihkan seluruh trafik perangkat" in html,
               "WireGuard full tunnel UI": "WireGuard VPN · Full Tunnel" in html,
               "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
-              "App package version": package.get("version") == "9.4.1",
-              "WebView user-agent version": "MasKiplay/9.4.1" in main,
+              "App package version": package.get("version") == "9.4.2",
+              "WebView user-agent version": "MasKiplay/9.4.2" in main,
               "Main WebView file access disabled": "allowFileAccess = false" in main,
               "Main WebView content access disabled": "allowContentAccess = false" in main,
               "Full-window internal browser": "ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT" in Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8"),
               "Jarvis answer transcript": 'id="janswer"' in html,
               "Jarvis requires key with visible guidance": 'API key AI belum diatur' in html,
               "Jarvis text plus voice mode": "MODE JARVIS SUARA + TEKS" in html,
+              "Native consent for shell commands": 'confirmNativeAction("Konfirmasi perintah shell", cmd)' in bridge,
+              "Native consent for ROOT commands": 'confirmNativeAction("Konfirmasi perintah ROOT", cmd)' in bridge,
+              "Native consent for Termux commands": 'confirmNativeAction("Konfirmasi eksekusi Termux", cmd)' in bridge,
+              "Shell command length limit": "cmd.length > 4096" in bridge,
+              "Native command confirmation dialog": "CountDownLatch" in bridge and "Setujui dan jalankan" in bridge,
+              "Agent respects sensitive action approval": "Jangan pernah melewati dialog izin atau konfirmasi sistem" in html and "persetujuan native Android" in html,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
@@ -394,7 +400,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 941000/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 942000/' android/app/build.gradle
           grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard

@@ -1,5 +1,18 @@
 # Changelog
 
+## [9.4.2] — 2026-11-12
+
+### Keamanan agent
+- Tambahkan dialog konfirmasi native Android sebelum menjalankan shell lokal, perintah ROOT, dan perintah Termux.
+- Terapkan batas 4.096 karakter untuk perintah shell dan Termux agar prompt/command tidak dapat mengirim payload tanpa batas.
+- Tutup jalur Termux legacy agar tidak melewati persetujuan native.
+- Tambahkan pemeriksaan CI untuk memastikan kontrol persetujuan native tidak terhapus tanpa sengaja.
+
+### Versi
+- Pertahankan browser internal layar penuh dan transkrip Jarvis dari v9.4.1.
+
+# Changelog
+
 ## [9.4.1] — 2026-11-12
 
 - Browser internal layar penuh.
