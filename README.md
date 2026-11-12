@@ -1,6 +1,6 @@
 # Mas Kiplay — AI Agent Android
 
-Mas Kiplay v9.4.0 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
+Mas Kiplay v9.4.1 is an Android application and PWA that combines an AI chat/Jarvis interface, on-device tools, web research utilities, and an in-app video catalogue.
 
 ## Main capabilities
 
@@ -22,6 +22,10 @@ Do not treat a successful CI build as proof of real-device functionality. VPN ro
 ## Media refresh details
 
 See [docs/MEDIA_CATALOGUE_REFRESH.md](docs/MEDIA_CATALOGUE_REFRESH.md) for refresh cadence, offline fallback, media asset naming, and provider limitations.
+
+## In-app website compatibility
+
+The internal browser routes HTTPS pages and user-initiated popups into the same WebView, supports JavaScript, DOM storage, cookies, file selection, and media playback. HTTP navigation and invalid TLS certificates are blocked. Google OAuth is not supported inside embedded WebViews by Google's security policy; sign-in may require a trusted browser or Android Custom Tabs. Some third-party services may independently block WebView, DRM playback, CAPTCHA, or uploads.
 
 ## VPN status
 
