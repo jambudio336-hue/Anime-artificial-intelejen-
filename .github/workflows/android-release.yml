@@ -171,6 +171,9 @@ jobs:
           grep -q "vpnStart" "$D/Bridge.kt"
           mkdir -p android/app/src/main/java/id
           cp -R pkg/kotlin/id/maskiplay android/app/src/main/java/id/
+          mkdir -p android/app/src/main/res/layout android/app/src/main/res/xml
+          cp pkg/res/layout/activity_player.xml android/app/src/main/res/layout/
+          cp pkg/res/xml/network_security_config.xml android/app/src/main/res/xml/
 
       - name: Tulis resource service dan provider
         run: |
@@ -250,6 +253,7 @@ jobs:
           if application is None:
               raise RuntimeError("Elemen <application> tidak ditemukan")
           application.set(ns + "usesCleartextTraffic", "false")
+          application.set(ns + "networkSecurityConfig", "@xml/network_security_config")
           application.set(ns + "allowBackup", "false")
 
           service = ET.SubElement(application, "service")
