@@ -495,7 +495,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             try {
                 AlertDialog.Builder(activity)
                     .setTitle(title)
-                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\\n\\n${command.take(4096)}")
+                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\n\n${command.take(4096)}")
                     .setPositiveButton("Setujui dan jalankan") { _, _ -> approved.set(true); latch.countDown() }
                     .setNegativeButton("Batal") { _, _ -> approved.set(false); latch.countDown() }
                     .setOnCancelListener { approved.set(false); latch.countDown() }
@@ -1015,15 +1015,15 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         if (safeCommand.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
         if (!confirmNativeAction("Konfirmasi eksekusi Termux", safeCommand)) return "dibatalkan pengguna"
         return try {
-        val i = Intent().apply {
+            val i = Intent().apply {
             setClassName("com.termux", "com.termux.app.RunCommandService")
             action = "com.termux.RUN_COMMAND"
             putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", safeCommand))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-        if (Build.VERSION.SDK_INT >= 26) activity.startForegroundService(i) else activity.startService(i)
-        "-> Termux"
+            }
+            if (Build.VERSION.SDK_INT >= 26) activity.startForegroundService(i) else activity.startService(i)
+            "-> Termux"
         } catch (e: Exception) { "err: ${e.message}" }
     }
 
