@@ -459,11 +459,11 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
-            Status fitur jaringan: WireGuard GoBackend menyediakan full-tunnel berdasarkan konfigurasi milik pengguna. DNS Shield IPv4 adalah layanan terpisah. OpenVPN 3 Core hanya capability probe, bukan koneksi VPN. Nmap belum didistribusikan karena izin NPSL dan binary Android ARM64 belum tersedia.
+            Status fitur jaringan: WireGuard GoBackend menyediakan full-tunnel berdasarkan konfigurasi milik pengguna. DNS Shield IPv4 adalah layanan terpisah. OpenVPN 3 Core tidak termasuk dalam build branch ini. Nmap belum didistribusikan karena izin NPSL dan binary Android ARM64 belum tersedia.
 
             Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package serta sertifikat penandatanganan pada pipeline release.
 
-            Catatan transparansi: WireGuard memerlukan konfigurasi server dan izin VPN Android. OpenVPN 3 Core belum mengaktifkan sesi VPN. Nmap scanner tidak aktif pada rilis ini kecuali distribusi binary dan izin lisensinya telah diselesaikan.
+            Catatan transparansi: WireGuard memerlukan konfigurasi server dan izin VPN Android. Integrasi OpenVPN 3 Core berada di PR terpisah dan belum menjadi bagian build ini. Nmap scanner tidak aktif pada rilis ini kecuali distribusi binary dan izin lisensinya telah diselesaikan.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 
