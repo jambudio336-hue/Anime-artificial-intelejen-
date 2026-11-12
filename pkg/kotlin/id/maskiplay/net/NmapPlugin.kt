@@ -24,20 +24,21 @@ class NmapPlugin : Plugin() {
             var process: Process? = null
             try {
                 val binary = extractBinary()
-                process = ProcessBuilder(
+                val running = ProcessBuilder(
                     binary.absolutePath,
                     "-sT", "-Pn", "-T4", "-F",
                     "--host-timeout", "30s",
                     "-oX", "-", host
                 ).redirectErrorStream(false).start()
-                val stdout = process.inputStream.bufferedReader().use { it.readText() }
-                val stderr = process.errorStream.bufferedReader().use { it.readText() }
-                if (!process.waitFor(35, TimeUnit.SECONDS)) {
-                    process.destroyForcibly()
+                process = running
+                val stdout = running.inputStream.bufferedReader().use { it.readText() }
+                val stderr = running.errorStream.bufferedReader().use { it.readText() }
+                if (!running.waitFor(35, TimeUnit.SECONDS)) {
+                    running.destroyForcibly()
                     throw IllegalStateException("Scan melewati batas waktu 35 detik")
                 }
-                if (process.exitValue() != 0 && stdout.isBlank()) {
-                    throw IllegalStateException(stderr.ifBlank { "Nmap gagal dengan kode ${process.exitValue()}" })
+                if (running.exitValue() != 0 && stdout.isBlank()) {
+                    throw IllegalStateException(stderr.ifBlank { "Nmap gagal dengan kode ${running.exitValue()}" })
                 }
                 if (!stdout.trimStart().startsWith("<?xml") && !stdout.contains("<nmaprun")) {
                     throw IllegalStateException(stderr.ifBlank { "Nmap tidak mengembalikan XML yang valid" })
@@ -45,7 +46,7 @@ class NmapPlugin : Plugin() {
                 call.resolve(JSObject().apply {
                     put("host", host)
                     put("xml", stdout)
-                    put("exitCode", process.exitValue())
+                    put("exitCode", running.exitValue())
                 })
             } catch (e: Exception) {
                 call.reject(e.message ?: "Pemindaian Nmap gagal", e)
