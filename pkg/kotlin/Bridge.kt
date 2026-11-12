@@ -493,7 +493,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             try {
                 AlertDialog.Builder(activity)
                     .setTitle(title)
-                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\n\n${command.take(1600)}")
+                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\n\n${command.take(4096)}")
                     .setPositiveButton("Setujui dan jalankan") { _, _ -> approved.set(true); latch.countDown() }
                     .setNegativeButton("Batal") { _, _ -> approved.set(false); latch.countDown() }
                     .setOnCancelListener { approved.set(false); latch.countDown() }
@@ -648,7 +648,9 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     // ---------- shell ----------
 
     @JavascriptInterface fun shell(cmd: String): String {
+        if (cmd.isBlank()) return "err: perintah kosong"
         if (cmd.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
+        if (!confirmNativeAction("Konfirmasi perintah shell", cmd)) return "dibatalkan pengguna"
         return exec(cmd, false)
     }
 
