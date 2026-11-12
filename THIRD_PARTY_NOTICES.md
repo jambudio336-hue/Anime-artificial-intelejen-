@@ -45,3 +45,8 @@ instances over HTTPS. These are third-party services and may change, rate-limit,
 or become unavailable. No API key, bearer token, or user registration is required
 by the integration as currently designed. Users should only access content they
 are authorized to view.
+
+- Kotlin Gradle Plugin 1.9.24 — Apache-2.0.
+  - https://github.com/JetBrains/kotlin
+- Kotlin Symbol Processing (KSP) 1.9.24-1.0.20 — Apache-2.0.
+  - https://github.com/google/ksp
