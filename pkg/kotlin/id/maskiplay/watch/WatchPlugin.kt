@@ -33,7 +33,7 @@ class WatchPlugin : Plugin() {
         if (source == "manual" && q.startsWith("http", true)) manual.register(q)
         val items = if (source == "melolo" && q.isBlank() && offset == 0)
             melolo.searchPopular() else registry.get(source).search(q, offset)
-        JSObject().apply { put("items", items.toJsonArray()) }
+        JSObject().apply { put("items", items.toJsonArray(source)) }
     }
 
     @PluginMethod
@@ -99,7 +99,7 @@ class WatchPlugin : Plugin() {
         val rows = org.json.JSONArray()
         dao.getHistory().forEach { row -> rows.put(JSObject().apply {
             put("id", row.videoId); put("videoId", row.videoId); put("seriesId", row.seriesId)
-            put("source", row.source); put("title", row.title); put("cover", row.cover)
+            put("source", row.source); put("title", row.title); put("cover", coverDataUri(row.cover, row.source))
             put("updatedAt", row.updatedAt)
         }) }
         JSObject().apply { put("items", rows) }
@@ -123,7 +123,7 @@ class WatchPlugin : Plugin() {
         val rows = org.json.JSONArray()
         dao.getWatchlist().forEach { row -> rows.put(JSObject().apply {
             put("id", row.id); put("source", row.source); put("title", row.title)
-            put("cover", row.cover); put("addedAt", row.addedAt)
+            put("cover", coverDataUri(row.cover, row.source)); put("addedAt", row.addedAt)
         }) }
         JSObject().apply { put("items", rows) }
     }
@@ -148,12 +148,24 @@ class WatchPlugin : Plugin() {
         }
     }
 
-    private fun List<Item>.toJsonArray(): org.json.JSONArray =
+    private fun coverDataUri(url: String?, source: String): String? {
+        if (url.isNullOrBlank()) return null
+        if (url.startsWith("data:image/")) return url
+        if (!url.startsWith("https://")) return null
+        return try {
+            val referer = if (source == "anime") WatchEndpoints.ANIME_REFERER else WatchEndpoints.MELOLO_REFERER
+            val (bytes, mime) = WatchHttp.getBytes(url, mapOf("Referer" to referer))
+            "data:$mime;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        } catch (_: Exception) { null }
+    }
+
+    private fun List<Item>.toJsonArray(source: String): org.json.JSONArray =
         org.json.JSONArray().also { array ->
             forEach { item -> array.put(JSObject().apply {
                 put("id", item.id); put("title", item.title); put("cover", item.cover)
                 put("synopsis", item.synopsis); put("totalEps", item.totalEps)
                 put("status", item.status); put("lang", item.lang)
+                put("source", source); put("cover", coverDataUri(item.cover, source))
             }) }
         }
 
