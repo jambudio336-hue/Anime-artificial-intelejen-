@@ -8,6 +8,15 @@
 - Ciphertext konfigurasi yang tidak dapat didekripsi dibersihkan agar tidak terus memicu kegagalan.
 - User-Agent WebView diselaraskan dengan versi aplikasi.
 
+### Browser internal
+- Tile dan menu ChatGPT, Hacker AI, Shannon, G0DM0D3, ePorner 18+, Artex, FlickReels, dan Dracinema membuka situs melalui browser internal dalam satu ketukan.
+- Tombol pada halaman layanan memakai satu fungsi pembuka yang sama, termasuk konfirmasi usia untuk situs dewasa.
+- Browser internal menampilkan diagnosis kegagalan jaringan dan HTTP; navigasi HTTPS dipertahankan, HTTP dan sertifikat TLS tidak valid diblokir.
+- Popup yang dipicu pengguna dirutekan ke WebView yang sama; popup otomatis tetap diblokir.
+
+### Batasan browser
+- Google OAuth dapat memerlukan browser tepercaya/Custom Tabs; beberapa situs membatasi WebView, CAPTCHA, DRM, pemutaran, atau upload.
+
 ### Pemeriksaan rilis
 - Pipeline memvalidasi registrasi plugin native Watch, WireGuard, dan Network Scanner.
 - Pipeline memeriksa penggunaan Android Keystore AES-GCM untuk penyimpanan konfigurasi WireGuard.
