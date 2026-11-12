@@ -99,6 +99,8 @@ not depend on either catalogue API and is session-local.
   URLs.
 - Playback progress is persisted to Room and local preferences at five-second
   intervals. History and watchlist are stored in Room.
+- Previous/next episode controls stay in the same PlayerActivity. Vertical
+  swipes on the video surface adjust brightness (left half) and volume (right half).
 - Some streams may use HEVC/bytevc1; support depends on the Android device's
   hardware decoder. External-player fallback is shown when the player reports
   a decoder/codec error.
@@ -120,11 +122,16 @@ DNS, IPv4/IPv6 leak behavior, disconnect, revoke, and network handoff).
 
 ## Nmap
 
-Nmap is **not yet integrated** in this branch. No arm64 static `assets/nmap/nmap`
-binary is committed or built by CI yet, and no Nmap acceptance result is claimed.
-The intended mode is an unprivileged TCP connect scan (`-sT`) with XML output;
-it must be restricted to hosts the user owns or is authorized to test. A real
-static arm64 Nmap binary and its license notices are release blockers.
+The native Capacitor `Nmap` plugin and Cyber Lab UI are present. The plugin
+extracts `assets/nmap/nmap` into app-private storage, executes a fixed
+unprivileged TCP connect scan (`-sT -Pn -T4 -F --host-timeout 30s -oX -`),
+and returns raw XML. The host field accepts only an IP address or hostname;
+scan only systems you own or are authorized to test.
+
+**Release blocker:** no arm64 static `assets/nmap/nmap` binary is committed or
+built by CI yet. The UI will report that the binary is missing until that asset
+is supplied. The Nmap binary license and its source/notice obligations must be
+audited before bundling it.
 
 ## Acceptance test report
 
