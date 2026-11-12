@@ -26,12 +26,12 @@ class MainActivity : BridgeActivity() {
             javaScriptEnabled = true
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
-            allowFileAccess = true
-            allowContentAccess = true
+            allowFileAccess = false
+            allowContentAccess = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             allowFileAccessFromFileURLs = false
             allowUniversalAccessFromFileURLs = false
-            userAgentString = "$userAgentString MasKiplay/9.4.0"
+            userAgentString = "$userAgentString MasKiplay/9.4.1"
         }
 
         web.webChromeClient = object : WebChromeClient() {

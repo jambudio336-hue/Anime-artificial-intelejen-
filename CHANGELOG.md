@@ -1,6 +1,22 @@
 # Changelog
 
+## [9.4.1] — 2026-11-12
+
+- Browser internal layar penuh.
+- Jarvis menampilkan jawaban teks dan membacakannya dengan TTS.
+- WebView utama diperkeras dengan menonaktifkan akses file dan content secara langsung.
+
 ## [9.4.0] — 2026-11-12
+
+### Jarvis dan browser internal
+- Browser internal diperluas menjadi layar penuh mengikuti ukuran jendela aplikasi dan menyesuaikan keyboard.
+- Jarvis menampilkan transkrip jawaban sekaligus membacakannya dengan TTS; bila API key belum diatur, pengguna diarahkan ke Setelan dengan pesan yang jelas.
+- Akses file dan content URI dinonaktifkan pada WebView utama untuk mengurangi permukaan serangan file:// dan content://; pemilihan berkas situs tetap melalui chooser Android yang eksplisit.
+
+### Catatan kompatibilitas
+- Jarvis membutuhkan API key/model provider, koneksi internet, izin mikrofon, dan layanan Speech Recognition/TTS Android yang tersedia.
+- Situs pihak ketiga tetap dapat membatasi WebView, login, CAPTCHA, DRM, atau streaming.
+
 
 ### Diperbaiki
 - Validasi konfigurasi WireGuard memakai parser resmi sebelum konfigurasi disimpan atau tunnel dijalankan.
