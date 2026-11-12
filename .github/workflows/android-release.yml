@@ -297,7 +297,7 @@ jobs:
           if not any(x.get(ns + "name") == "com.wireguard.android.backend.GoBackend$VpnService" for x in application.findall("service")):
               service = ET.SubElement(application, "service")
               service.set(ns + "name", "com.wireguard.android.backend.GoBackend$VpnService")
-              service.set(ns + "exported", "true")
+              service.set(ns + "exported", "false")
               service.set(ns + "permission", "android.permission.BIND_VPN_SERVICE")
               service.set(ns + "foregroundServiceType", "specialUse")
               intent = ET.SubElement(service, "intent-filter")
