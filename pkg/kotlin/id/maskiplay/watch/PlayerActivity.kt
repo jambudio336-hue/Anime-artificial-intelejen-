@@ -24,6 +24,7 @@ import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.ui.PlayerView
 import org.json.JSONObject
+import java.util.concurrent.Executors
 
 @UnstableApi
 class PlayerActivity : Activity() {
@@ -32,6 +33,8 @@ class PlayerActivity : Activity() {
     private lateinit var variants: List<JSONObject>
     private var selectedUrl: String = ""
     private var currentTitle: String = "Video"
+    private var videoId: String = ""
+    private val dbWorker = Executors.newSingleThreadExecutor()
     private val handler = Handler(Looper.getMainLooper())
     private val saveProgress = object : Runnable {
         override fun run() {
@@ -45,6 +48,7 @@ class PlayerActivity : Activity() {
         requestedOrientation = if (getSharedPreferences(PREFS, 0).getBoolean(KEY_LANDSCAPE, false))
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         currentTitle = intent.getStringExtra(EXTRA_TITLE) ?: "Video"
+        videoId = intent.getStringExtra(EXTRA_VIDEO_ID).orEmpty()
         selectedUrl = intent.getStringExtra(EXTRA_SELECTED_URL).orEmpty()
         val raw = intent.getStringExtra(EXTRA_VARIANTS).orEmpty()
         val root = FrameLayout(this)
@@ -174,8 +178,23 @@ class PlayerActivity : Activity() {
     private fun savePosition() {
         val exo = player ?: return
         if (selectedUrl.isBlank()) return
+        val position = exo.currentPosition.coerceAtLeast(0L)
+        val duration = exo.duration.takeIf { it > 0L } ?: 0L
         getSharedPreferences(PREFS, 0).edit()
-            .putLong(progressKey(selectedUrl), exo.currentPosition.coerceAtLeast(0L)).apply()
+            .putLong(progressKey(selectedUrl), position).apply()
+        if (videoId.isNotBlank()) dbWorker.execute {
+            try {
+                WatchDb.get(applicationContext).watchDao().putProgress(
+                    ProgressEntity(
+                        key = videoId,
+                        videoId = videoId,
+                        positionMs = position,
+                        durationMs = duration,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            } catch (_: Exception) { }
+        }
     }
 
     private fun progressKey(url: String) = "progress:" + url.hashCode()
@@ -196,6 +215,7 @@ class PlayerActivity : Activity() {
         playerView.player = null
         player?.release()
         player = null
+        dbWorker.shutdown()
         super.onDestroy()
     }
 
@@ -204,6 +224,7 @@ class PlayerActivity : Activity() {
         const val EXTRA_VARIANTS = "watch.variants"
         const val EXTRA_SELECTED_URL = "watch.selected_url"
         const val EXTRA_DURATION = "watch.duration"
+        const val EXTRA_VIDEO_ID = "watch.video_id"
         private const val PREFS = "watch_player"
         private const val KEY_LANDSCAPE = "landscape"
     }
