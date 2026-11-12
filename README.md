@@ -11,7 +11,7 @@ Mas Kiplay v9.4.0 is an Android application and PWA that combines an AI chat/Jar
 - **Automatic catalogue refresh:** WorkManager refreshes the public Melolo catalogue in the background every six hours and keeps a local fallback. Episode directories and playback URLs are refreshed when the title/episode is opened.
 - **Startup media:** `video.mp4` is used for the opening splash; `Dashboard.mp4` is the looping dashboard background.
 - **VPN:** native WireGuard GoBackend integration accepts a valid user/server configuration. Configurations are parsed before being persisted and stored with Android Keystore AES-GCM. A generated keypair alone is not a VPN connection. Full-tunnel behavior depends on a correctly configured peer and routes.
-- **Security utilities:** an unprivileged TCP connect scanner for 50 common ports on one authorized host, plus web/OSINT utilities. The scanner is not Nmap and does not perform UDP, SYN, OS fingerprinting, or subnet scans.
+- **Security utilities:** an unprivileged TCP connect scanner for 51 common ports on one authorized host, plus web/OSINT utilities. The scanner is not Nmap and does not perform UDP, SYN, OS fingerprinting, or subnet scans.
 
 ## Build and release
 
