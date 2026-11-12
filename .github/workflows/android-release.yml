@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.3.0"
+        default: "9.4.0"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.3.0' }}
+      VERSION: ${{ inputs.versi || '9.4.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +84,20 @@ jobs:
           for token in ("video.mp4","Dashboard.mp4","window.mkBack","backBtn"):
               if token not in html: raise SystemExit("Komponen wajib hilang: "+token)
           if "<iframe" in html.lower(): raise SystemExit("Iframe pihak ketiga tidak boleh mendapat native bridge.")
+          for key, url in {
+              "chatgpt": "https://chatgpt.com/",
+              "hackerai": "https://hackerai.co/",
+              "shannon": "https://shannon-ai.com/chat",
+              "ghostgpt": "https://godmod3.ai/",
+              "eporner": "https://www.eporner.com/tag/indonesia-solo/",
+              "artex": "https://artex.lol/",
+          }.items():
+              if f'{key}:{{url:"{url}"' not in html:
+                  raise SystemExit(f"Konfigurasi WebView internal hilang: {key}")
+          if "if(WEB_TOOLS[v])launchWebTool(v)" not in html:
+              raise SystemExit("Tile/menu belum membuka layanan web dengan satu ketukan.")
+          if "window.MK" not in html or "openInAppBrowser" not in html:
+              raise SystemExit("Bridge browser internal tidak ditemukan.")
           Path("/tmp/maskiplay-inline.js").write_text("\n".join(p.js),encoding="utf-8")
           print(f"HTML valid secara struktural; {len(p.ids)} ID dan {p.scripts} script ditemukan.")
           PY
@@ -337,7 +351,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 930000/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 940000/' android/app/build.gradle
           grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
