@@ -122,7 +122,7 @@ jobs:
           existing={x.get(a+"name") for x in root.findall("uses-permission")}
           for name in ["android.permission.INTERNET","android.permission.ACCESS_NETWORK_STATE",
                        "android.permission.RECORD_AUDIO","android.permission.FOREGROUND_SERVICE",
-                       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE","android.permission.POST_NOTIFICATIONS"]:
+                       "android.permission.FOREGROUND_SERVICE_SPECIAL_USE","android.permission.POST_NOTIFICATIONS","com.termux.permission.RUN_COMMAND"]:
               if name not in existing:
                   node=ET.Element("uses-permission"); node.set(a+"name",name); root.insert(0,node)
           app=root.find("application")
