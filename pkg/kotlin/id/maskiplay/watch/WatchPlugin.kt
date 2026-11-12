@@ -29,6 +29,7 @@ class WatchPlugin : Plugin() {
         val source = call.getString("source", "melolo") ?: "melolo"
         val q = call.getString("q", "") ?: ""
         val offset = call.getInt("offset", 0) ?: 0
+        if (source == "manual" && q.startsWith("http", true)) manual.register(q)
         val items = registry.get(source).search(q, offset)
         JSObject().apply { put("items", items.toJsonArray()) }
     }
