@@ -24,7 +24,16 @@
         const remove=document.createElement("button"); remove.className="episode"; remove.textContent="Hapus riwayat";
         remove.addEventListener("click",async e=>{e.stopPropagation();try{await plugin().history({action:"remove",id:item.videoId});search();}catch(err){showError(err.message);}});
         card.querySelector(".meta").append(play,remove);
-      } else card.addEventListener("click",()=>openEpisodes(item));
+      } else {
+        card.addEventListener("click",()=>openEpisodes(item));
+        const save=document.createElement("button"); save.className="episode"; save.textContent="＋ Daftar tontonan";
+        save.addEventListener("click",async e=>{
+          e.stopPropagation();
+          try{await plugin().watchlist({action:"add",id:item.id,source:item.source==="Anime"?"anime":(item.source==="Manual"?"manual":"melolo"),title:item.title,cover:item.cover});save.textContent="✓ Tersimpan";}
+          catch(err){showError(err.message);}
+        });
+        card.querySelector(".meta").append(save);
+      }
       cards.append(card);
     }
   }
