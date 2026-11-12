@@ -320,7 +320,7 @@ jobs:
           ]
           missing = [line for line in additions if line not in text]
           if missing:
-              text = text.replace("dependencies {", "dependencies {\\n    " + "\\n    ".join(missing), 1)
+              text = text.replace("dependencies {", "dependencies {\n    " + "\n    ".join(missing), 1)
               open(path, "w", encoding="utf-8").write(text)
           print("Dependensi native diperiksa.")
           PY
