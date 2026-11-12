@@ -203,6 +203,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="t" data-go="chatgpt"><i>✨</i><b>ChatGPT</b><small>OpenAI · chatgpt.com</small></div>
         <div class="t" data-go="hackerai"><i>🛡️</i><b>Hacker AI</b><small>AI Pentest · hackerai.co</small></div>
         <div class="t" data-go="shannon"><i>🧠</i><b>Shannon AI</b><small>AI Chat · shannon-ai.com</small></div>
+        <div class="t" data-go="ghostgpt"><i>👻</i><b>Ghost GPT</b><small>G0DM0D3 · godmod3.ai</small></div>
         <div class="t" data-go="jarvis"><i>🎙</i><b>Jarvis</b><small>Suara murni</small></div>
         <div class="t" data-go="agent"><i>🤖</i><b>Agent</b><small>Kendali penuh</small></div>
         <div class="t" data-go="shortdrama"><i>🎬</i><b>Short Drama</b><small>FlickReels · Cinta Baru Dia</small></div>
@@ -251,6 +252,16 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
         <div class="mono" id="hackeraiStatus">Siap membuka HackerAI di dalam aplikasi.</div>
       </div>
       <div class="cd"><h3>Penggunaan aman</h3><p class="sub">Gunakan hanya pada aset milikmu atau target yang memiliki izin tertulis dan ruang lingkup pengujian yang jelas. Perintah agent dapat menjalankan tindakan nyata di sandbox cloud atau perangkat lokal yang terhubung.</p><p class="sub">Login dan pemrosesan AI dilakukan oleh layanan HackerAI. Kebijakan akun, paket, kuota, dan privasi mengikuti ketentuan resmi mereka. Fitur unggah file atau autentikasi tertentu mungkin membutuhkan dukungan WebView tambahan.</p></div>
+    </div></section>
+
+    <section class="v" id="vGhostGPT"><div class="sc">
+      <div class="cd"><h3>Ghost GPT · G0DM0D3</h3>
+        <p class="sub">Buka antarmuka resmi G0DM0D3 langsung di dalam Mas Kiplay menggunakan browser internal aplikasi, tanpa mengalihkan ke Chrome atau browser eksternal.</p>
+        <div class="row"><div class="bd"><b>G0DM0D3</b><small>godmod3.ai · Multi-model AI chat</small></div><span>👻</span></div>
+        <button class="btn pri" id="ghostgptOpen">👻 Jalankan Ghost GPT</button>
+        <div class="mono" id="ghostgptStatus">Siap membuka G0DM0D3 di dalam aplikasi.</div>
+      </div>
+      <div class="cd"><h3>Catatan penggunaan</h3><p class="sub">G0DM0D3 merupakan antarmuka chat multi-model. Penggunaan model dapat memerlukan API key/provider yang kamu konfigurasi sendiri. Ketersediaan model, biaya token, dan batas penggunaan mengikuti penyedia model.</p><p class="sub">Kredensial provider dan riwayat dapat disimpan pada penyimpanan browser lokal. Jangan masukkan API key ke perangkat bersama dan lindungi data aplikasi agar kredensial tidak terekspos.</p></div>
     </div></section>
 
     <section class="v" id="vShannon"><div class="sc">
@@ -452,6 +463,7 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
     <div class="di" data-go="chatgpt"><i>✨</i>ChatGPT</div>
     <div class="di" data-go="hackerai"><i>🛡️</i>Hacker AI</div>
     <div class="di" data-go="shannon"><i>🧠</i>Shannon AI</div>
+    <div class="di" data-go="ghostgpt"><i>👻</i>Ghost GPT</div>
     <div class="di" data-go="jarvis"><i>🎙</i>Jarvis</div>
     <div class="di" data-go="agent"><i>🤖</i>Agent</div>
     <div class="di" data-go="dork"><i>🔎</i>Dork</div>
@@ -506,8 +518,8 @@ async function A(fn,...a){
 }
 
 /* router */
-const V={home:"vHome",chat:"vChat",hackerai:"vHackerAI",shannon:"vShannon",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
-const TITLE={home:"Mas Kiplay",chat:"Chat",hackerai:"Hacker AI",shannon:"Shannon AI",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
+const V={home:"vHome",chat:"vChat",hackerai:"vHackerAI",ghostgpt:"vGhostGPT",shannon:"vShannon",chatgpt:"vChatGPT",jarvis:"vJ",agent:"vAgent",shortdrama:"vShortDrama",dracinema:"vDracinema",dork:"vDork",wcheck:"vWCheck",osint:"vOsint",cyber:"vCyber",vpn:"vVpn",hist:"vHist",set:"vSet"};
+const TITLE={home:"Mas Kiplay",chat:"Chat",hackerai:"Hacker AI",ghostgpt:"Ghost GPT",shannon:"Shannon AI",chatgpt:"ChatGPT",jarvis:"Jarvis",agent:"Agent",shortdrama:"Short Drama",dracinema:"Dracinema",dork:"Google Dork",wcheck:"Web Check",osint:"OSINT",cyber:"Cyber Lab",vpn:"DNS VPN",hist:"Riwayat",set:"Setelan"};
 function go(v){
   if(!V[v])v="home";
   $$(".v").forEach(s=>s.classList.remove("act"));
@@ -1412,6 +1424,7 @@ $("#jMic").onclick=()=>{if(busy){ab&&ab.abort();TTS.stop();return;}startL();};
 $("#jLoop").onclick=()=>{loopOn=!loopOn;$("#jLoop").classList.toggle("hot",loopOn);loopOn?startL():stopL();};
 $("#jStop").onclick=()=>{ab&&ab.abort();TTS.stop();stopL();loopOn=false;$("#jLoop").classList.remove("hot");
   busy=false;setState("");setLab("Dihentikan");};
+$("#ghostgptOpen").onclick=async()=>{const s=$("#ghostgptStatus");s.textContent="Membuka G0DM0D3 di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://godmod3.ai/","Ghost GPT · G0DM0D3");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#shannonOpen").onclick=async()=>{const s=$("#shannonStatus");s.textContent="Membuka Shannon AI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://shannon-ai.com/chat","Shannon AI · Chat");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#hackeraiOpen").onclick=async()=>{const s=$("#hackeraiStatus");s.textContent="Membuka HackerAI di browser internal Mas Kiplay…";const r=await A("openInAppBrowser","https://hackerai.co/","Hacker AI · Pentest Assistant");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
 $("#chatgptOpen").onclick=async()=>{const s=$("#chatgptStatus");s.textContent="Membuka ChatGPT di browser internal…";const r=await A("openInAppBrowser","https://chatgpt.com/","ChatGPT · OpenAI");s.textContent=String(r);if(String(r).startsWith("err:"))toast(String(r));};
