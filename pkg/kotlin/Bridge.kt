@@ -328,10 +328,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             browser.destroy()
         }
         dialog.show()
-        dialog.window?.setLayout(
-            (activity.resources.displayMetrics.widthPixels * 0.98f).toInt(),
-            (activity.resources.displayMetrics.heightPixels * 0.92f).toInt()
-        )
+        dialog.window?.apply {
+            // Browser takes the entire app window; no inset card that hides page content.
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
         browser.loadUrl(url)
     }
 
