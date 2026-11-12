@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 
 import android.accessibilityservice.AccessibilityService
 import android.app.Activity
+import android.app.PendingIntent
 import android.widget.Toast
 import android.widget.EditText
 import android.widget.TextView
@@ -61,6 +62,7 @@ import java.util.concurrent.Executors
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
  */
 class Bridge(private val activity: Activity, private val web: WebView?) {
+    companion object { private val termuxRequestId = java.util.concurrent.atomic.AtomicInteger(1000) }
     companion object { const val REQ_VPN = 991 }
     @Volatile private var pendingVpnHost: String? = null
     @Volatile private var pendingVpnPort: Int = 53
@@ -495,6 +497,62 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             val mode = if (hasSu()) "su" else "rish"
             "root siap via $mode\n" + exec("id", true)
         } else "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+    }
+
+    // ---------- Termux RUN_COMMAND ----------
+
+    @JavascriptInterface
+    fun termuxRun(command: String, workdir: String): String {
+        val cmd = command.trim()
+        if (cmd.isEmpty()) return "err: perintah kosong"
+        if (cmd.length > 8000) return "err: perintah melebihi batas 8.000 karakter"
+        if (activity.checkSelfPermission("com.termux.permission.RUN_COMMAND") != PackageManager.PERMISSION_GRANTED) {
+            return "err: izin RUN_COMMAND belum diberikan pada Info Aplikasi Mas Kiplay"
+        }
+        return try {
+            val id = termuxRequestId.incrementAndGet()
+            val resultIntent = Intent(activity, MainActivity::class.java).apply {
+                action = "ai.maskiplay.app.TERMUX_RESULT"
+                putExtra("mk_termux_id", id)
+            }
+            val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+                (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
+            val resultPending = PendingIntent.getActivity(activity, id, resultIntent, flags)
+            val run = Intent().apply {
+                setClassName("com.termux", "com.termux.app.RunCommandService")
+                action = "com.termux.RUN_COMMAND"
+                putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
+                putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-lc", cmd))
+                putExtra("com.termux.RUN_COMMAND_WORKDIR",
+                    workdir.trim().takeIf { it.startsWith("/") || it.startsWith("~/") } ?: "~/")
+                putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+                putExtra("com.termux.RUN_COMMAND_LABEL", "Mas Kiplay Agent")
+                putExtra("com.termux.RUN_COMMAND_DESCRIPTION", "Perintah diminta dari Chat/Jarvis Mas Kiplay")
+                putExtra("com.termux.RUN_COMMAND_PENDING_INTENT", resultPending)
+            }
+            activity.startService(run)
+            "queued:$id — perintah dikirim ke Termux. Hasil akan kembali ke Chat."
+        } catch (e: Exception) {
+            "err: Termux tidak siap: ${e.message ?: "gagal memulai layanan"}"
+        }
+    }
+
+    fun onTermuxResult(intent: Intent?) {
+        if (intent?.action != "ai.maskiplay.app.TERMUX_RESULT") return
+        val bundle = intent.getBundleExtra("com.termux.RESULT_BUNDLE")
+            ?: intent.getBundleExtra("com.termux.RUN_COMMAND_RESULT_BUNDLE")
+            ?: intent.getBundleExtra("com.termux.plugin.RESULT_BUNDLE")
+        if (bundle == null) {
+            js("MK_onTermuxResult", JSONObject().put("error", "Termux tidak mengembalikan result bundle").toString())
+            return
+        }
+        val payload = JSONObject()
+            .put("id", intent.getIntExtra("mk_termux_id", 0))
+            .put("stdout", bundle.getString("stdout", "").take(12000))
+            .put("stderr", bundle.getString("stderr", "").take(6000))
+            .put("exitCode", bundle.getInt("exitCode", -1))
+            .put("error", bundle.getString("errmsg", ""))
+        js("MK_onTermuxResult", payload.toString())
     }
 
     // ---------- shell ----------
