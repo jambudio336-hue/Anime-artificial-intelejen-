@@ -47,6 +47,7 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import android.webkit.ValueCallback
 import androidx.core.content.FileProvider
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -65,6 +66,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     companion object {
         private val termuxRequestId = java.util.concurrent.atomic.AtomicInteger(1000)
         const val REQ_VPN = 991
+        const val REQ_WEB_FILE = 992
     }
     @Volatile private var pendingVpnHost: String? = null
     @Volatile private var pendingVpnPort: Int = 53
@@ -80,6 +82,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     private var rate = 1.0f
     private var pitch = 0.92f
     private val vpnGateExecutor = Executors.newSingleThreadExecutor()
+    @Volatile private var pendingWebFileCallback: ValueCallback<Array<Uri>>? = null
 
     // ---------- browser internal terisolasi ----------
 
@@ -203,6 +206,28 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 override fun onReceivedTitle(view: WebView?, page: String?) {
                     if (!page.isNullOrBlank()) title.text = page.take(64)
                 }
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    filePathCallback: ValueCallback<Array<Uri>>,
+                    fileChooserParams: WebChromeClient.FileChooserParams
+                ): Boolean {
+                    pendingWebFileCallback?.onReceiveValue(null)
+                    pendingWebFileCallback = filePathCallback
+                    return try {
+                        val picker = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "*/*"
+                            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("text/*", "application/json", "application/pdf", "image/*", "application/zip", "application/octet-stream"))
+                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, fileChooserParams.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE)
+                        }
+                        activity.startActivityForResult(Intent.createChooser(picker, "Pilih file untuk situs"), REQ_WEB_FILE)
+                        true
+                    } catch (_: Exception) {
+                        pendingWebFileCallback = null
+                        filePathCallback.onReceiveValue(null)
+                        false
+                    }
+                }
             }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -305,13 +330,21 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         return "requesting"
     }
 
-    fun onActivityResult(resultCode: Int) {
-        val host = pendingVpnHost
-        val port = pendingVpnPort
-        pendingVpnHost = null
-        if (resultCode == Activity.RESULT_OK && host != null) launchVpn(host, port)
-        else js("MK_onVPN", JSONObject().put("active", false)
-            .put("error", "izin VPN ditolak").toString())
+    fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQ_WEB_FILE) {
+            val callback = pendingWebFileCallback
+            pendingWebFileCallback = null
+            callback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
+            return
+        }
+        if (requestCode == REQ_VPN) {
+            val host = pendingVpnHost
+            val port = pendingVpnPort
+            pendingVpnHost = null
+            if (resultCode == Activity.RESULT_OK && host != null) launchVpn(host, port)
+            else js("MK_onVPN", JSONObject().put("active", false)
+                .put("error", "izin VPN ditolak").toString())
+        }
     }
 
     private fun launchVpn(host: String, port: Int) {
