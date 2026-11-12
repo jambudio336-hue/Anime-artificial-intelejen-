@@ -62,8 +62,10 @@ import java.util.concurrent.Executors
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
  */
 class Bridge(private val activity: Activity, private val web: WebView?) {
-    companion object { private val termuxRequestId = java.util.concurrent.atomic.AtomicInteger(1000) }
-    companion object { const val REQ_VPN = 991 }
+    companion object {
+        private val termuxRequestId = java.util.concurrent.atomic.AtomicInteger(1000)
+        const val REQ_VPN = 991
+    }
     @Volatile private var pendingVpnHost: String? = null
     @Volatile private var pendingVpnPort: Int = 53
 
