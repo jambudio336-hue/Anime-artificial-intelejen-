@@ -339,6 +339,8 @@ jobs:
               open(root_path, "w", encoding="utf-8").write(root_text)
           if "apply plugin: 'com.google.devtools.ksp'" not in text:
               text = text.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'" + chr(10) + "apply plugin: 'kotlin-android'" + chr(10) + "apply plugin: 'com.google.devtools.ksp'", 1)
+          if "kotlinOptions" not in text:
+              text = text.replace("android {", "android {" + chr(10) + "    kotlinOptions { jvmTarget = '17' }" + chr(10) + "    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }", 1)
           additions = [
               'implementation "androidx.core:core:1.13.1"',
               'implementation "androidx.media3:media3-exoplayer:1.4.1"',
