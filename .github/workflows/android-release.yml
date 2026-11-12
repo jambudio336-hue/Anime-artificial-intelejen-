@@ -21,7 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       VERSION: ${{ inputs.versi || '9.1.0' }}
 
@@ -41,6 +41,38 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
+
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.2.12479018"
+
+      - name: Setup Rust toolchain for OpenVPN 3
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install OpenVPN 3 native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang libclang-dev pkg-config
+
+      - name: Fetch pinned OpenVPN 3 sources and build Android arm64 library
+        env:
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+          ANDROID_PLATFORM: android-24
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          CC_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          CXX_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++
+          AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          RANLIB_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+          BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android: --target=aarch64-linux-android24 --sysroot=/usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+        run: |
+          set -euo pipefail
+          git clone https://github.com/networks-rs/openvpn-connect-rs.git native/openvpn-connect-rs
+          git -C native/openvpn-connect-rs checkout 98fcf3ba0abfddb9f2458daace5ab2182052054b
+          git -C native/openvpn-connect-rs submodule update --init --recursive
+          cargo build --manifest-path native/openvpn3/Cargo.toml --release --target aarch64-linux-android
+          test -s native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
 
       - name: Siapkan folder web
         run: |
@@ -154,10 +186,15 @@ jobs:
           cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
           cp pkg/kotlin/MasKiplayVpnService.kt "$D/MasKiplayVpnService.kt"
           cp pkg/kotlin/VpnGateRepository.kt "$D/VpnGateRepository.kt"
+          cp pkg/kotlin/OpenVpn3Native.kt "$D/OpenVpn3Native.kt"
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
+          cp native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so android/app/src/main/jniLibs/arm64-v8a/
           test -s "$D/MainActivity.kt"
           test -s "$D/Bridge.kt"
           test -s "$D/KiplayAccessibility.kt"
           test -s "$D/VpnGateRepository.kt"
+          test -s "$D/OpenVpn3Native.kt"
+          test -s android/app/src/main/jniLibs/arm64-v8a/libmaskiplay_openvpn3.so
           grep -q "^package ai.maskiplay.app" "$D/Bridge.kt"
           grep -q "^package ai.maskiplay.app" "$D/MainActivity.kt"
           grep -q "Bridge(this, web)" "$D/MainActivity.kt"
@@ -370,6 +407,7 @@ jobs:
           set -euo pipefail
           APK=$(find android/app/build/outputs/apk -name "*.apk" -print -quit)
           test -n "$APK"
+          unzip -l "$APK" | grep -q "lib/arm64-v8a/libmaskiplay_openvpn3.so"
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           SIGNATURE=$("$APKSIGNER" verify --verbose --print-certs "$APK")
           printf '%s\n' "$SIGNATURE"
@@ -408,11 +446,11 @@ jobs:
           body: |
             APK Mas Kiplay v${{ env.VERSION }} — Dark Brutal
 
-            Status fitur jaringan: VPN Gate server directory dan pengukuran kandidat tersedia. OpenVPN 3 Core/full-tunnel IPv4+IPv6 belum terintegrasi; layanan yang tersedia saat ini hanya DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
+            Status fitur jaringan: OpenVPN 3 Core native arm64 disertakan dan dapat diperiksa dari panel VPN. Adapter sesi Android TunBuilder, socket protection, serta full-tunnel IPv4/IPv6 belum diaktifkan; layanan VPN yang dapat digunakan saat ini tetap DNS Shield IPv4. Jangan menganggapnya sebagai VPN penuh.
 
             Splash video `video.mp4`, dashboard video `Dashboard.mp4`, navigasi tombol kembali ke dashboard, dan validasi package serta sertifikat penandatanganan pada pipeline release.
 
-            Catatan transparansi: katalog VPN Gate hanya melakukan penemuan server. OpenVPN 3 dan full-tunnel belum tersedia pada versi ini; layanan VPN saat ini adalah DNS-only IPv4.
+            Catatan transparansi: native OpenVPN 3 Core telah dibundel sebagai tahap integrasi, tetapi belum menerima sesi VPN sampai adapter TUN Android dan proteksi socket selesai. Katalog VPN Gate hanya melakukan penemuan server; layanan VPN aktif saat ini adalah DNS-only IPv4.
 
             Unduh `.apk` di bawah, izinkan "instal dari sumber tidak dikenal", lalu pasang.
 

@@ -3,7 +3,8 @@ name: Android Debug Build
 on:
   push:
     branches:
-      - feature/vpngate-openvpn3
+      - feature/**
+      - feat/**
   pull_request:
     branches:
       - main
@@ -11,6 +12,11 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: maskiplay-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 
 jobs:
   debug-apk:
@@ -34,6 +40,38 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
+
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.2.12479018"
+
+      - name: Setup Rust toolchain for OpenVPN 3
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install OpenVPN 3 native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang libclang-dev pkg-config
+
+      - name: Fetch pinned OpenVPN 3 sources and build Android arm64 library
+        env:
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+          ANDROID_PLATFORM: android-24
+          CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          CC_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+          CXX_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++
+          AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+          RANLIB_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+          BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android: --target=aarch64-linux-android24 --sysroot=/usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+        run: |
+          set -euo pipefail
+          git clone https://github.com/networks-rs/openvpn-connect-rs.git native/openvpn-connect-rs
+          git -C native/openvpn-connect-rs checkout 98fcf3ba0abfddb9f2458daace5ab2182052054b
+          git -C native/openvpn-connect-rs submodule update --init --recursive
+          cargo build --manifest-path native/openvpn3/Cargo.toml --release --target aarch64-linux-android
+          test -s native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
 
       - name: Install web dependencies and create Capacitor Android project
         run: |
@@ -59,6 +97,9 @@ jobs:
           cp pkg/kotlin/KiplayAccessibility.kt "$D/KiplayAccessibility.kt"
           cp pkg/kotlin/MasKiplayVpnService.kt "$D/MasKiplayVpnService.kt"
           cp pkg/kotlin/VpnGateRepository.kt "$D/VpnGateRepository.kt"
+          cp pkg/kotlin/OpenVpn3Native.kt "$D/OpenVpn3Native.kt"
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
+          cp native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so android/app/src/main/jniLibs/arm64-v8a/
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -126,6 +167,25 @@ jobs:
           PY
           test -s "$D/VpnGateRepository.kt"
           grep -q "fun vpnGateRefresh" "$D/Bridge.kt"
+
+
+      - name: Validate DNS-only VPN truthfulness
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          ui = Path("index.html").read_text(encoding="utf-8")
+          vpn = Path("pkg/kotlin/MasKiplayVpnService.kt").read_text(encoding="utf-8")
+          docs = Path("docs/OPENVPN3_ANDROID_INTEGRATION.md").read_text(encoding="utf-8")
+          if "Tidak mengalihkan seluruh trafik perangkat" not in ui:
+              raise SystemExit("VPN UI must disclose DNS-only behavior")
+          if '.addRoute(DNS_ADDRESS, 32)' not in vpn:
+              raise SystemExit("Expected DNS-only route is missing")
+          if "Core native yang terpasang belum berarti sesi VPN aktif" not in ui:
+              raise SystemExit("VPN UI must disclose OpenVPN 3 is not integrated")
+          if "not yet a working OpenVPN session" not in docs:
+              raise SystemExit("OpenVPN 3 implementation status must remain explicit")
+          print("DNS-only VPN status disclosure checks passed.")
+          PY
 
       - name: Build debug APK
         working-directory: android

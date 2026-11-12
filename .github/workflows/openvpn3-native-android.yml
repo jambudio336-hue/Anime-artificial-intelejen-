@@ -1,0 +1,71 @@
+name: OpenVPN 3 Core Android Native Build
+
+on:
+  push:
+    branches: [feat/**, feature/**]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maskiplay-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  openvpn3-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ANDROID_PLATFORM: android-24
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/27.2.12479018
+      CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+      CC_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang
+      CXX_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang++
+      AR_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+      RANLIB_aarch64_linux_android: /usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+      BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android: --target=aarch64-linux-android24 --sysroot=/usr/local/lib/android/sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Android NDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ndk;27.2.12479018
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install native build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build clang libclang-dev pkg-config
+
+      - name: Checkout pinned OpenVPN 3 Rust bindings and submodules
+        run: |
+          set -euo pipefail
+          git clone https://github.com/networks-rs/openvpn-connect-rs.git native/openvpn-connect-rs
+          git -C native/openvpn-connect-rs checkout 98fcf3ba0abfddb9f2458daace5ab2182052054b
+          git -C native/openvpn-connect-rs submodule update --init --recursive
+          test -s native/openvpn-connect-rs/openvpn-connect-sys/vendor/openvpn3/client/ovpncli.cpp
+          test -s native/openvpn-connect-rs/openvpn-connect-sys/vendor/asio/asio/include/asio.hpp
+
+      - name: Build OpenVPN 3 Core for Android arm64
+        run: |
+          set -euo pipefail
+          cargo build --manifest-path native/openvpn3/Cargo.toml --release --target aarch64-linux-android
+          test -s native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          file native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so | grep -E 'AArch64|Machine'
+
+      - name: Upload native core artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: maskiplay-openvpn3-arm64
+          path: native/openvpn3/target/aarch64-linux-android/release/libmaskiplay_openvpn3.so
+          if-no-files-found: error

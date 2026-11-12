@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased] — branch feat/openvpn3-core-android
+
+### Ditambah
+- WebCheck dan OSINT dapat dibuka di browser internal Android tanpa berpindah ke browser eksternal.
+- Hasil Google Dork dibuka dalam browser internal aplikasi.
+
+### Diperbaiki
+- Browser internal memakai WebView terpisah tanpa JavaScript/native bridge aplikasi, membatasi navigasi ke HTTPS, menolak sertifikat TLS yang tidak valid, memblokir mixed content, serta menonaktifkan akses file/content.
+- Jarvis membuat instance SpeechRecognizer per sesi, mengabaikan callback dari sesi lama, dan membatalkan serta menghancurkan recognizer saat dihentikan.
+
+### Belum tersedia
+- OpenVPN 3 Core belum ditautkan ke APK. VPN saat ini tetap DNS-only IPv4 dan bukan full-tunnel VPN.
+
 ## [9.0.3] — 2026-11-10
 
 ### Diperbaiki
