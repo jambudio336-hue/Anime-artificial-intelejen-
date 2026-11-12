@@ -284,6 +284,11 @@ jobs:
           pmeta.set(ns + "name", "android.support.FILE_PROVIDER_PATHS")
           pmeta.set(ns + "resource", "@xml/file_paths")
 
+          if not any(x.get(ns + "name") == "id.maskiplay.watch.PlayerActivity" for x in application.findall("activity")):
+              player = ET.SubElement(application, "activity")
+              player.set(ns + "name", "id.maskiplay.watch.PlayerActivity")
+              player.set(ns + "exported", "false")
+
           ET.indent(tree, space="    ")
           tree.write(path, encoding="utf-8", xml_declaration=True)
           ET.parse(path)
