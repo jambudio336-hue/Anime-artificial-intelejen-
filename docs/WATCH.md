@@ -125,12 +125,9 @@ DNS, IPv4/IPv6 leak behavior, disconnect, revoke, and network handoff).
 The native Capacitor `Nmap` plugin source exists and implements a fixed
 unprivileged TCP connect scan (`-sT -Pn -T4 -F --host-timeout 30s -oX -`),
 returning raw XML. The host validator accepts an IP address or hostname.
-However, the Nmap control panel is not yet connected to the app UI.
+The Nmap control panel is present in the Cyber Lab screen in `index.html` and invokes `Capacitor.Plugins.Nmap.scan({host})`. The Watch screen also exposes a dedicated Nmap panel.
 
-**Release blocker:** no arm64 static `assets/nmap/nmap` binary is committed or
-built by CI. Calls to the plugin therefore fail with a clear missing-binary
-error. The Nmap binary license and its source/notice obligations must be
-audited before bundling it. Only scan systems you own or are authorized to test.
+**Release blocker:** no Android ARM64 `assets/nmap/nmap` binary is committed or built by CI. Calls to the plugin therefore fail with a clear missing-binary error. The available Android Nmap fork documents a dynamically linked AArch64 build, requires `libc++_shared.so`, and identifies its license as NPSL; its full license terms, source redistribution obligations, runtime data files, and compatibility with this GPL-3.0-only app must be reviewed before bundling. A generic Linux static Nmap binary is not a valid substitute for Android ARM64. Only scan systems you own or are authorized to test.
 
 ## Acceptance test report
 
@@ -148,7 +145,7 @@ physical-device media/VPN behavior.
 | 6 | Paste a manual MP4 URL and play it | Not run on physical device |
 | 7 | Disable network and verify a recoverable error state without crash | Not run on physical device |
 | 8 | WireGuard prepare → consent → up → AKTIF → down → MATI | Not run on physical device |
-| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: arm64 Nmap binary missing; Nmap UI not integrated |
+| 9 | Nmap scan of 127.0.0.1 returns XML with ports | Blocked: Android ARM64 binary, runtime dependencies/data, and NPSL distribution review missing; UI is integrated |
 | 10 | Jarvis, chat, STT, TTS, and accessibility remain functional | Regression test not run on physical device |
 | 11 | No API key or Bearer token is required by the new integrations | Static source inspection pending final audit |
 
@@ -157,5 +154,5 @@ responses, video playback, WireGuard tunnel operation, Nmap execution, or
 regression behavior on a physical device. The current release workflow runs
 from `main`, and the existing public tag `v9.1.0` must not be overwritten.
 Do not publish this feature branch as a completed feature release until the
-remaining acceptance tests pass, the Nmap binary/UI are supplied, and the
+remaining acceptance tests pass, the Android Nmap binary/runtime assets are supplied and license-reviewed, and the
 release workflow is run with a new version and valid signing secrets.
