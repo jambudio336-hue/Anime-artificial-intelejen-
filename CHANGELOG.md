@@ -3,7 +3,7 @@
 ## [9.4.1] — 2026-11-12
 
 ### Keamanan
-- Perintah shell dengan hak ROOT wajib disetujui melalui dialog native Android; prompt JavaScript tidak dianggap sebagai batas keamanan.
+- Setiap perintah shell lokal maupun ROOT wajib disetujui melalui dialog native Android; prompt JavaScript tidak dianggap sebagai batas keamanan.
 - Eksekusi perintah melalui Termux juga meminta persetujuan native Android.
 - Batasi panjang perintah shell lokal dan ROOT hingga 4.096 karakter.
 
