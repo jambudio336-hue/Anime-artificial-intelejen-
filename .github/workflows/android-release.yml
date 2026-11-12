@@ -164,7 +164,7 @@ jobs:
           grep -q "^package ai.maskiplay.app" "$D/Bridge.kt"
           grep -q "^package ai.maskiplay.app" "$D/MainActivity.kt"
           grep -q "Bridge(this, web)" "$D/MainActivity.kt"
-          grep -q "addJavascriptInterface(nativeBridge, \"MK\")" "$D/MainActivity.kt"
+          grep -q "addJavascriptInterface(bridgeInstance, \"MK\")" "$D/MainActivity.kt"
           grep -q "KiplayAccessibility" "$D/Bridge.kt"
           grep -q "class KiplayAccessibility" "$D/KiplayAccessibility.kt"
           grep -q "class MasKiplayVpnService" "$D/MasKiplayVpnService.kt"
