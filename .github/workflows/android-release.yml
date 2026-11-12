@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.1.0"
+        default: "9.2.0"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.1.0' }}
+      VERSION: ${{ inputs.versi || '9.2.0' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -325,7 +325,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 910010/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 910020/' android/app/build.gradle
           grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
