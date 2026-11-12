@@ -9,6 +9,7 @@ import com.getcapacitor.BridgeActivity
 import id.maskiplay.watch.PlayerActivity
 import id.maskiplay.watch.WatchPlugin
 import id.maskiplay.vpn.VpnPlugin
+import id.maskiplay.net.NmapPlugin
 
 class MainActivity : BridgeActivity() {
     private var nativeBridge: Bridge? = null
@@ -17,6 +18,7 @@ class MainActivity : BridgeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         registerPlugin(WatchPlugin::class.java)
         registerPlugin(VpnPlugin::class.java)
+        registerPlugin(NmapPlugin::class.java)
         super.onCreate(savedInstanceState)
 
         val web = bridge.webView
