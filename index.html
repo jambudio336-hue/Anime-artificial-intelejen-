@@ -1020,8 +1020,8 @@ async function doAct(line){
       case "shell": return "$ "+a+"\n"+await shell(a,false);
       case "termux": {
         if(!a)return "err: perintah Termux kosong";
-        if(!window.confirm("Izinkan Mas Kiplay menjalankan perintah ini melalui Termux?\n\n"+a))return "dibatalkan pengguna";
         const n=mk();if(!n||!n.termuxRun)return "Termux bridge hanya tersedia di APK Android";
+        // Native Android confirmation is the single approval boundary.
         return String(n.termuxRun(a,"~/"));
       }
       case "root": return "# "+a+"\n"+await shell(a,true);
