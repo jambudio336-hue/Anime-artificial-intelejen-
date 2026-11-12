@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.webkit.PermissionRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
-import androidx.annotation.SuppressLint
+import android.annotation.SuppressLint
 import com.getcapacitor.BridgeActivity
 import id.maskiplay.watch.PlayerActivity
 import id.maskiplay.watch.WatchPlugin
@@ -54,9 +54,10 @@ class MainActivity : BridgeActivity() {
             }
         }
 
-        nativeBridge = Bridge(this, web)
-        web.addJavascriptInterface(nativeBridge, "MK")
-        web.addJavascriptInterface(nativeBridge, "MasKiplayNative")
+        val bridgeInstance = Bridge(this, web)
+        nativeBridge = bridgeInstance
+        web.addJavascriptInterface(bridgeInstance, "MK")
+        web.addJavascriptInterface(bridgeInstance, "MasKiplayNative")
     }
 
     @Deprecated("Deprecated in Java")
