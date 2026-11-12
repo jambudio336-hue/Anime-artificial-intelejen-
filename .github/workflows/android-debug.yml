@@ -129,6 +129,14 @@ jobs:
               player=ET.SubElement(app,"activity")
               player.set(a+"name","id.maskiplay.watch.PlayerActivity")
               player.set(a+"exported","false")
+          if not any(x.get(a+"name") == "com.wireguard.android.backend.GoBackend$VpnService" for x in app.findall("service")):
+              s=ET.SubElement(app,"service"); s.set(a+"name","com.wireguard.android.backend.GoBackend$VpnService")
+              s.set(a+"exported","true"); s.set(a+"permission","android.permission.BIND_VPN_SERVICE")
+              s.set(a+"foregroundServiceType","specialUse")
+              intent=ET.SubElement(s,"intent-filter")
+              action=ET.SubElement(intent,"action"); action.set(a+"name","android.net.VpnService")
+              prop=ET.SubElement(s,"property"); prop.set(a+"name","android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE")
+              prop.set(a+"value","WireGuard tunnel service")
           ET.indent(tree,space="    "); tree.write(p,encoding="utf-8",xml_declaration=True)
           ET.parse(p)
           PY
