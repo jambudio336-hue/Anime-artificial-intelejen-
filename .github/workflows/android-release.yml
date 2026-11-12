@@ -9,7 +9,7 @@ on:
       versi:
         description: "Versi rilis, contoh 8.0.0"
         required: true
-        default: "9.4.0"
+        default: "9.4.1"
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERSION: ${{ inputs.versi || '9.4.0' }}
+      VERSION: ${{ inputs.versi || '9.4.1' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +84,16 @@ jobs:
           for token in ("video.mp4","Dashboard.mp4","window.mkBack","backBtn"):
               if token not in html: raise SystemExit("Komponen wajib hilang: "+token)
           if "<iframe" in html.lower(): raise SystemExit("Iframe pihak ketiga tidak boleh mendapat native bridge.")
+          for url in (
+              "https://chatgpt.com/", "https://hackerai.co/",
+              "https://shannon-ai.com/chat", "https://godmod3.ai/",
+              "https://www.eporner.com/tag/indonesia-solo/", "https://artex.lol/",
+          ):
+              if url not in html: raise SystemExit("Konfigurasi WebView internal hilang: " + url)
+          if "if(WEB_TOOLS[v])launchWebTool(v)" not in html:
+              raise SystemExit("Tile/menu belum membuka layanan web dengan satu ketukan.")
+          if "window.MK" not in html or "openInAppBrowser" not in html:
+              raise SystemExit("Bridge browser internal tidak ditemukan.")
           Path("/tmp/maskiplay-inline.js").write_text("\n".join(p.js),encoding="utf-8")
           print(f"HTML valid secara struktural; {len(p.ids)} ID dan {p.scripts} script ditemukan.")
           PY
@@ -116,7 +126,7 @@ jobs:
               "DNS VPN disclosure": "Tidak mengalihkan seluruh trafik perangkat" in html,
               "WireGuard full tunnel UI": "WireGuard VPN · Full Tunnel" in html,
               "OpenVPN not advertised as ready": "Mesin OpenVPN 3 belum terpasang" in html,
-              "App package version": package.get("version") == "9.4.0",
+              "App package version": package.get("version") == "9.4.1",
               "WebView user-agent version": "MasKiplay/9.4.0" in main,
           }
           failed = [name for name, ok in checks.items() if not ok]
@@ -374,7 +384,7 @@ jobs:
         run: |
           set -euo pipefail
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
-          sed -i 's/versionCode .*/versionCode 940000/' android/app/build.gradle
+          sed -i 's/versionCode .*/versionCode 940001/' android/app/build.gradle
           grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
