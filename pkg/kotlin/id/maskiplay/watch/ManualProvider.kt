@@ -39,7 +39,7 @@ class ManualProvider : WatchProvider {
     override fun search(q: String, offset: Int): List<Item> =
         entries.entries.map { (key, _) ->
             Item(id = key, title = "Video manual", synopsis = key)
-        }.filter { q.isBlank() || it.title.contains(q, true) }
+        }.filter { q.isBlank() || it.title.contains(q, true) || it.synopsis.orEmpty().contains(q, true) }
 
     override fun episodes(seriesId: String): List<Episode> =
         if (entries.containsKey(seriesId)) listOf(Episode(0, seriesId, "Video")) else emptyList()
