@@ -124,6 +124,10 @@ jobs:
               action=ET.SubElement(intent,"action"); action.set(a+"name","android.net.VpnService")
               prop=ET.SubElement(s,"property"); prop.set(a+"name","android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE")
               prop.set(a+"value","VPN DNS tunnel untuk perlindungan resolusi DNS pengguna")
+          if not any(x.get(a+"name") == "id.maskiplay.watch.PlayerActivity" for x in app.findall("activity")):
+              player=ET.SubElement(app,"activity")
+              player.set(a+"name","id.maskiplay.watch.PlayerActivity")
+              player.set(a+"exported","false")
           ET.indent(tree,space="    "); tree.write(p,encoding="utf-8",xml_declaration=True)
           ET.parse(p)
           PY
