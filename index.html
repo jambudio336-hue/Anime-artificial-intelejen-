@@ -371,6 +371,12 @@ iframe.fr{width:100%;flex:1;min-height:0;border:none;background:#fff}
       </div>
       <div class="cd"><h3>Instruksi tambahan</h3><textarea class="f" id="sysEx" rows="3"></textarea>
         <button class="btn sm" id="sysSave">Simpan</button></div>
+      <div class="cd"><h3>Sumber Anime</h3>
+        <p class="sub">Gunakan alamat instance Hianime-compatible milikmu (HTTPS). Sumber custom disimpan di perangkat.</p>
+        <input class="f" id="animeBaseUrl" placeholder="https://instance-anime.example/api/v2/hianime" autocomplete="url">
+        <button class="btn sm pri" id="animeBaseSave">Simpan sumber anime</button>
+        <div class="mono" id="animeBaseInfo">Mirror bawaan aktif sampai sumber khusus disimpan.</div>
+      </div>
       <div class="cd"><h3>Data</h3>
         <div class="g2"><button class="btn sm" id="expBtn">Ekspor</button><button class="btn sm dgr" id="wipeBtn">Hapus semua chat</button></div>
       </div>
@@ -1432,6 +1438,16 @@ $("#vpnStatus").onclick=()=>{
   const n=mk();
   vpnActive=!!(n&&n.vpnStatus&&n.vpnStatus());
   paintVpn();
+};
+
+// Custom anime mirror setting
+$("#animeBaseSave").onclick=async()=>{
+  const api=window.Capacitor?.Plugins?.Watch;
+  const url=$("#animeBaseUrl").value.trim();
+  if(!api){toast("Watch native hanya tersedia di APK Android");return;}
+  if(!url.startsWith("https://")){toast("Alamat sumber harus HTTPS");return;}
+  try{await api.setAnimeBase({url});$("#animeBaseInfo").textContent="Sumber anime khusus tersimpan.";toast("Sumber anime disimpan");}
+  catch(e){$("#animeBaseInfo").textContent=e.message;toast("Gagal menyimpan sumber anime");}
 };
 
 // WireGuard native full tunnel
