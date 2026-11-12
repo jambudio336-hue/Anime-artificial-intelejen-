@@ -522,12 +522,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 setClassName("com.termux", "com.termux.app.RunCommandService")
                 action = "com.termux.RUN_COMMAND"
                 putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-                putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-lc", cmd))
-                putExtra("com.termux.RUN_COMMAND_WORKDIR",
+                putExtra("com.termux.execute.arguments", arrayOf("-lc", cmd))
+                putExtra("com.termux.execute.cwd",
                     workdir.trim().takeIf { it.startsWith("/") || it.startsWith("~/") } ?: "~/")
-                putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-                putExtra("com.termux.RUN_COMMAND_LABEL", "Mas Kiplay Agent")
-                putExtra("com.termux.RUN_COMMAND_DESCRIPTION", "Perintah diminta dari Chat/Jarvis Mas Kiplay")
+                putExtra("com.termux.execute.background", true)
+                putExtra("com.termux.execute.command_label", "Mas Kiplay Agent")
+                putExtra("com.termux.execute.command_description", "Perintah diminta dari Chat/Jarvis Mas Kiplay")
                 putExtra("pendingIntent", resultPending)
             }
             activity.startService(run)
