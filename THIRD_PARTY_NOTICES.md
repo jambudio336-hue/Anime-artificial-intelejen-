@@ -25,3 +25,21 @@ Before publishing an APK containing OpenVPN 3:
 4. Verify every transitive dependency and bundled binary license.
 5. Provide an in-app About / Open Source Licenses screen.
 6. Do not claim the VPN is connected until the native engine reports a successful tunnel and route installation.
+
+
+## Watch feature dependencies
+
+- AndroidX Media3 ExoPlayer, HLS, and UI 1.4.1 — Apache-2.0.
+  - https://github.com/androidx/media
+- OkHttp 4.12.0 — Apache-2.0 and MIT dual-licensed.
+  - https://github.com/square/okhttp
+- WireGuard Android tunnel 1.0.20230706 — Apache-2.0.
+  - https://github.com/WireGuard/wireguard-android
+- AndroidX WorkManager 2.9.1 — Apache-2.0.
+  - https://developer.android.com/jetpack/androidx/releases/work
+
+The Watch feature contacts the Melolo API and the configured keyless anime mirror
+instances over HTTPS. These are third-party services and may change, rate-limit,
+or become unavailable. No API key, bearer token, or user registration is required
+by the integration as currently designed. Users should only access content they
+are authorized to view.
