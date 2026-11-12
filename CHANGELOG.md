@@ -1,5 +1,24 @@
 # Changelog
 
+## [9.2.0] — 2026-11-12
+
+### Ditambahkan
+- Modul Watch untuk katalog Dracin Melolo, pencarian Anime melalui mirror Hianime-compatible, dan pemutaran MP4/HLS melalui Media3 ExoPlayer native.
+- Riwayat tontonan, daftar tontonan, penyimpanan progres, dan sinkronisasi lokal berkala.
+- Pengaturan mirror Anime dan input URL video manual.
+- Kontrol WireGuard GoBackend: izin VPN Android, konfigurasi terenkripsi, pembuatan keypair, sambung, putus, dan status.
+- Network Scanner TCP native untuk 50 port umum pada satu host, tersedia di Watch dan Cyber Lab.
+
+### Batasan yang dinyatakan
+- Network Scanner adalah TCP connect scanner sederhana buatan proyek, bukan Nmap; tidak menyediakan UDP, SYN scan, fingerprint OS, atau pemindaian subnet.
+- WireGuard membutuhkan konfigurasi server/peer yang valid. Status tunnel harus diverifikasi pada perangkat.
+- OpenVPN 3 Core di PR terpisah hanya capability probe; belum membangun sesi VPN atau TUN Android.
+- Ketersediaan Dracin/Anime bergantung pada API dan mirror pihak ketiga. Pemutaran dan decoder perlu diuji pada perangkat fisik.
+
+### Pipeline
+- Version name 9.2.0 dan versionCode 910020.
+- APK release hanya diterbitkan setelah build, verifikasi tanda tangan, dan pemeriksaan artefak berhasil.
+
 ## [9.0.3] — 2026-11-10
 
 ### Diperbaiki
