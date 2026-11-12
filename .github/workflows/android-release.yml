@@ -331,10 +331,10 @@ jobs:
           root_path = "android/build.gradle"
           root_text = open(root_path, encoding="utf-8").read()
           if "symbol-processing-gradle-plugin" not in root_text:
-              root_text = root_text.replace("dependencies {", "dependencies {\n        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:1.9.24-1.0.20'", 1)
+              root_text = root_text.replace("dependencies {", "dependencies {" + chr(10) + "        classpath 'com.google.devtools.ksp:symbol-processing-gradle-plugin:1.9.24-1.0.20'", 1)
               open(root_path, "w", encoding="utf-8").write(root_text)
           if "apply plugin: 'com.google.devtools.ksp'" not in text:
-              text = text.replace("apply plugin: 'kotlin-android'", "apply plugin: 'kotlin-android'\napply plugin: 'com.google.devtools.ksp'", 1)
+              text = text.replace("apply plugin: 'kotlin-android'", "apply plugin: 'kotlin-android'" + chr(10) + "apply plugin: 'com.google.devtools.ksp'", 1)
           additions = [
               'implementation "androidx.core:core:1.13.1"',
               'implementation "androidx.media3:media3-exoplayer:1.4.1"',
