@@ -1,4 +1,4 @@
-# Watch, WireGuard, and Nmap integration
+# Watch, WireGuard, and Network Scanner integration
 
 ## Architecture and source layout
 
