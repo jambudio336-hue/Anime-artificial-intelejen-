@@ -58,6 +58,8 @@ import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executors
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
@@ -191,7 +193,10 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                 allowFileAccess = false
                 allowContentAccess = false
                 javaScriptCanOpenWindowsAutomatically = false
+                // New-window links and window.open are routed into this same WebView.
+                // No secondary WebView or external browser is created.
                 setSupportMultipleWindows(false)
+                loadsImagesAutomatically = true
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 cacheMode = WebSettings.LOAD_DEFAULT
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
@@ -231,7 +236,17 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
             }
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    return request.url.scheme?.lowercase() != "https"
+                    val scheme = request.url.scheme?.lowercase()
+                    if (scheme == "https") return false
+                    if (scheme == "http") {
+                        Toast.makeText(activity, "Navigasi HTTP tidak aman diblokir; gunakan HTTPS.", Toast.LENGTH_SHORT).show()
+                    }
+                    return true
+                }
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+                    val scheme = Uri.parse(url).scheme?.lowercase()
+                    return scheme != "https"
                 }
                 override fun onPageStarted(view: WebView?, pageUrl: String?, favicon: android.graphics.Bitmap?) {
                     progress.visibility = View.VISIBLE
@@ -244,6 +259,21 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
                     }
                     back.isEnabled = view?.canGoBack() == true
                     forward.isEnabled = view?.canGoForward() == true
+                    title.text = view?.title?.take(64)?.ifBlank { pageTitle } ?: pageTitle
+                }
+                override fun onReceivedError(view: WebView?, request: WebResourceRequest, error: android.webkit.WebResourceError) {
+                    super.onReceivedError(view, request, error)
+                    if (request.isForMainFrame) {
+                        title.text = "Gagal memuat halaman"
+                        Toast.makeText(activity, "WebView gagal memuat situs. Periksa internet, DNS/VPN, atau pembatasan situs.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                override fun onReceivedHttpError(view: WebView?, request: WebResourceRequest, response: android.webkit.WebResourceResponse) {
+                    super.onReceivedHttpError(view, request, response)
+                    if (request.isForMainFrame && response.statusCode >= 400) {
+                        title.text = "HTTP ${response.statusCode}"
+                        Toast.makeText(activity, "Situs membalas HTTP ${response.statusCode}", Toast.LENGTH_LONG).show()
+                    }
                 }
                 override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler, error: SslError) {
                     handler.cancel()
@@ -454,6 +484,30 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         js("MK_onSR", JSONObject().put("t", kind).put("text", text).toString())
     }
 
+    /** Native confirmation is mandatory; a JavaScript prompt is not a security boundary. */
+    private fun confirmNativeAction(title: String, command: String): Boolean {
+        if (activity.isFinishing || activity.isDestroyed) return false
+        val latch = CountDownLatch(1)
+        val approved = AtomicReference(false)
+        activity.runOnUiThread {
+            try {
+                AlertDialog.Builder(activity)
+                    .setTitle(title)
+                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\\n\\n${command.take(1600)}")
+                    .setPositiveButton("Setujui dan jalankan") { _, _ -> approved.set(true); latch.countDown() }
+                    .setNegativeButton("Batal") { _, _ -> approved.set(false); latch.countDown() }
+                    .setOnCancelListener { approved.set(false); latch.countDown() }
+                    .show()
+            } catch (_: Exception) { latch.countDown() }
+        }
+        return try {
+            latch.await(75, TimeUnit.SECONDS) && approved.get()
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
+    }
+
     private fun exec(cmd: String, root: Boolean): String {
         if (cmd.isBlank()) return "err: perintah kosong"
         val argv = when {
@@ -546,6 +600,7 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         if (activity.checkSelfPermission("com.termux.permission.RUN_COMMAND") != PackageManager.PERMISSION_GRANTED) {
             return "err: izin RUN_COMMAND belum diberikan pada Info Aplikasi Mas Kiplay"
         }
+        if (!confirmNativeAction("Konfirmasi eksekusi Termux", cmd)) return "dibatalkan pengguna"
         return try {
             val id = termuxRequestId.incrementAndGet()
             val resultIntent = Intent(activity, MainActivity::class.java).apply {
@@ -592,8 +647,17 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     // ---------- shell ----------
 
-    @JavascriptInterface fun shell(cmd: String): String = exec(cmd, false)
-    @JavascriptInterface fun shellRoot(cmd: String): String = exec(cmd, true)
+    @JavascriptInterface fun shell(cmd: String): String {
+        if (cmd.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
+        return exec(cmd, false)
+    }
+
+    @JavascriptInterface fun shellRoot(cmd: String): String {
+        if (cmd.isBlank()) return "err: perintah kosong"
+        if (cmd.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
+        if (!confirmNativeAction("Konfirmasi perintah ROOT", cmd)) return "dibatalkan pengguna"
+        return exec(cmd, true)
+    }
 
     // ---------- aksesibilitas ----------
 
