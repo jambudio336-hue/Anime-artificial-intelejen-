@@ -56,6 +56,7 @@ class WatchPlugin : Plugin() {
         val playback = registry.get(source).resolve(videoId)
         val preferred = playback.variants.firstOrNull { !it.codec.orEmpty().contains("bytevc1", true) }
             ?: playback.variants.first()
+        saveHistory(source, videoId, title, playback.poster)
         val intent = Intent(activity, PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_TITLE, title)
             putExtra(PlayerActivity.EXTRA_VARIANTS, playbackJson(playback).toString())
@@ -109,6 +110,24 @@ class WatchPlugin : Plugin() {
         }
     }
 
+    private fun saveHistory(source: String, videoId: String, title: String, poster: String?) {
+        val prefs = context.getSharedPreferences(PREFS, 0)
+        val old = try { org.json.JSONArray(prefs.getString(KEY_HISTORY, "[]")) }
+            catch (_: Exception) { org.json.JSONArray() }
+        val next = org.json.JSONArray()
+        next.put(JSObject().apply {
+            put("id", videoId); put("videoId", videoId); put("seriesId", videoId)
+            put("source", source); put("title", title); put("cover", poster)
+            put("updatedAt", System.currentTimeMillis())
+        })
+        for (i in 0 until old.length()) {
+            val row = old.optJSONObject(i) ?: continue
+            if (row.optString("videoId") != videoId || row.optString("source") != source) next.put(row)
+            if (next.length() >= 100) break
+        }
+        prefs.edit().putString(KEY_HISTORY, next.toString()).apply()
+    }
+
     private fun runWorker(call: PluginCall, action: () -> JSObject) {
         worker.execute {
             try { call.resolve(action()) }
@@ -136,6 +155,11 @@ class WatchPlugin : Plugin() {
     private fun playbackJson(playback: Playback): JSObject = JSObject().apply {
         put("duration", playback.duration)
         put("poster", playback.poster)
+        put("subtitles", org.json.JSONArray().also { array ->
+            playback.subtitles.forEach { subtitle -> array.put(JSObject().apply {
+                put("label", subtitle.label); put("url", subtitle.url); put("language", subtitle.language)
+            }) }
+        })
         put("variants", org.json.JSONArray().also { array ->
             playback.variants.forEach { variant -> array.put(JSObject().apply {
                 put("label", variant.label); put("url", variant.url); put("codec", variant.codec)
