@@ -8,11 +8,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.Gravity
-import android.view.View
-import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.TextView
+import ai.maskiplay.app.R
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -51,29 +48,9 @@ class PlayerActivity : Activity() {
         videoId = intent.getStringExtra(EXTRA_VIDEO_ID).orEmpty()
         selectedUrl = intent.getStringExtra(EXTRA_SELECTED_URL).orEmpty()
         val raw = intent.getStringExtra(EXTRA_VARIANTS).orEmpty()
-        val root = FrameLayout(this)
-        root.setBackgroundColor(android.graphics.Color.BLACK)
-        playerView = PlayerView(this).apply {
-            useController = true
-            layoutParams = FrameLayout.LayoutParams(-1, -1)
-        }
-        root.addView(playerView)
-        val top = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.END
-            setPadding(12, 24, 12, 8)
-            setBackgroundColor(0x66000000)
-        }
-        val quality = TextView(this).apply {
-            text = "KUALITAS"
-            setTextColor(-1)
-            textSize = 12f
-            setPadding(14, 10, 14, 10)
-            setOnClickListener { showQualityPicker() }
-        }
-        top.addView(quality)
-        root.addView(top, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
-        setContentView(root)
+        setContentView(R.layout.activity_player)
+        playerView = findViewById(R.id.player_view)
+        findViewById<TextView>(R.id.player_quality).setOnClickListener { showQualityPicker() }
 
         variants = try {
             val array = JSONObject(raw).optJSONArray("variants") ?: org.json.JSONArray()
