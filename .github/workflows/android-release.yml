@@ -51,6 +51,7 @@ jobs:
           cp sw.js www/ 2>/dev/null || true
           cp icon.png www/ 2>/dev/null || true
           cp *.mp4 www/ 2>/dev/null || true
+          cp watch.html watch.js watch.css www/
           test -s www/video.mp4
           test -s www/Dashboard.mp4
           cp *.png www/ 2>/dev/null || true
