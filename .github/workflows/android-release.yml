@@ -296,21 +296,12 @@ jobs:
           print("AndroidManifest.xml valid dan lengkap.")
           PY
 
-      - name: Naikkan minSdk dan set versi
+      - name: Set versi release
         run: |
           set -euo pipefail
-          if [ -f android/variables.gradle ]; then
-            sed -i -E 's/minSdkVersion = [0-9]+/minSdkVersion = 26/' android/variables.gradle
-          fi
-          sed -i -E 's/minSdkVersion [0-9]+/minSdkVersion 26/' android/app/build.gradle
           sed -i 's/versionName ".*"/versionName "${{ env.VERSION }}"/' android/app/build.gradle
           sed -i 's/versionCode .*/versionCode 910010/' android/app/build.gradle
-          if [ -f android/variables.gradle ]; then
-            grep -q "minSdkVersion = 26" android/variables.gradle
-          else
-            grep -q "minSdkVersion 26" android/app/build.gradle
-          fi
-          grep -q "versionName \"${{ env.VERSION }}\"" android/app/build.gradle
+          grep -q 'versionName "${{ env.VERSION }}"' android/app/build.gradle
 
       - name: Tambah dependency androidx dan aturan proguard
         run: |
@@ -318,14 +309,20 @@ jobs:
           python3 - <<'PY'
           path = "android/app/build.gradle"
           text = open(path, encoding="utf-8").read()
-          if "androidx.core:core" not in text:
-              text = text.replace(
-                  "dependencies {",
-                  'dependencies {\n    implementation "androidx.core:core:1.13.1"',
-                  1,
-              )
+          additions = [
+              'implementation "androidx.core:core:1.13.1"',
+              'implementation "androidx.media3:media3-exoplayer:1.4.1"',
+              'implementation "androidx.media3:media3-exoplayer-hls:1.4.1"',
+              'implementation "androidx.media3:media3-ui:1.4.1"',
+              'implementation "com.squareup.okhttp3:okhttp:4.12.0"',
+              'implementation "com.wireguard.android:tunnel:1.0.20230706"',
+              'implementation "androidx.work:work-runtime-ktx:2.9.1"',
+          ]
+          missing = [line for line in additions if line not in text]
+          if missing:
+              text = text.replace("dependencies {", "dependencies {\\n    " + "\\n    ".join(missing), 1)
               open(path, "w", encoding="utf-8").write(text)
-          print("dependencies diperiksa.")
+          print("Dependensi native diperiksa.")
           PY
           cat > android/app/proguard-rules.pro <<'PRO'
           -keepclassmembers class ai.maskiplay.app.** {
