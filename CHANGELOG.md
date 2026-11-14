@@ -1,5 +1,18 @@
 # Changelog
 
+## [9.4.2] — 2026-11-12
+
+### Agent command security
+- Perintah shell biasa dan ROOT dari agent kini menampilkan dialog persetujuan native Android sebelum dieksekusi.
+- Perintah Termux memakai jalur RUN_COMMAND dengan pemeriksaan izin dan persetujuan native; entry point Termux lama diarahkan ke jalur yang sama.
+- Batas perintah shell dan Termux diseragamkan menjadi 4.096 karakter agar seluruh perintah dapat diperiksa pengguna sebelum disetujui.
+- Pemeriksaan CI ditambah untuk mencegah jalur eksekusi agent tanpa persetujuan native.
+
+### Catatan
+- Persetujuan native mengurangi risiko eksekusi tak sengaja, tetapi pengguna tetap harus memeriksa perintah sebelum menyetujuinya.
+- Fitur Termux memerlukan Termux terpasang dan izin RUN_COMMAND yang sesuai.
+- Build CI bukan pengganti uji perangkat fisik.
+
 ## [9.4.1] — 2026-11-12
 
 - Browser internal layar penuh.

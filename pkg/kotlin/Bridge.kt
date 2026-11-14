@@ -58,6 +58,8 @@ import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.Executors
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Jembatan WebView -> native. Didaftarkan MainActivity sebagai window.MK.
@@ -483,6 +485,38 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         js("MK_onSR", JSONObject().put("t", kind).put("text", text).toString())
     }
 
+    /** Native confirmation is mandatory; JavaScript prompts are not a security boundary. */
+    private fun confirmNativeAction(title: String, command: String): Boolean {
+        if (activity.isFinishing || activity.isDestroyed) return false
+        val latch = CountDownLatch(1)
+        val approved = AtomicReference(false)
+        val dialogRef = AtomicReference<AlertDialog?>(null)
+        activity.runOnUiThread {
+            try {
+                val dialog = AlertDialog.Builder(activity)
+                    .setTitle(title)
+                    .setMessage("Mas Kiplay meminta izin menjalankan perintah berikut. Periksa sebelum menyetujui.\n\n" + command.take(4096))
+                    .setPositiveButton("Setujui dan jalankan") { _, _ -> approved.set(true); latch.countDown() }
+                    .setNegativeButton("Batal") { _, _ -> approved.set(false); latch.countDown() }
+                    .setOnCancelListener { approved.set(false); latch.countDown() }
+                    .create()
+                dialogRef.set(dialog)
+                dialog.show()
+            } catch (_: Exception) {
+                latch.countDown()
+            }
+        }
+        return try {
+            val completed = latch.await(75, TimeUnit.SECONDS)
+            if (!completed) activity.runOnUiThread { dialogRef.get()?.dismiss() }
+            completed && approved.get()
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            activity.runOnUiThread { dialogRef.get()?.dismiss() }
+            false
+        }
+    }
+
     private fun exec(cmd: String, root: Boolean): String {
         if (cmd.isBlank()) return "err: perintah kosong"
         val argv = when {
@@ -525,11 +559,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         } catch (e: Exception) { "err: ${e.message}" }
     }
 
+    // Capability detection must not execute a ROOT command implicitly.
+    // The actual "id" probe is performed only after the native confirmation below.
     private fun hasSu(): Boolean = listOf(
-        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su"
-    ).any { File(it).exists() } || try {
-        ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start().waitFor(4, TimeUnit.SECONDS)
-    } catch (e: Exception) { false }
+        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su",
+        "/data/adb/magisk/su", "/data/adb/ksu/bin/su"
+    ).any { File(it).exists() }
 
     private fun hasRish(): Boolean = listOf(
         "/system/bin/rish", "/data/local/tmp/rish", "/data/data/com.termux/files/usr/bin/rish"
@@ -556,13 +591,17 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     @JavascriptInterface
     fun rootCheck(): String {
-        val ok = hasSu() || hasRish()
+        val suAvailable = hasSu()
+        val rishAvailable = !suAvailable && hasRish()
+        val ok = suAvailable || rishAvailable
         lastRoot = ok
         rootChecked = true
-        return if (ok) {
-            val mode = if (hasSu()) "su" else "rish"
-            "root siap via $mode\n" + exec("id", true)
-        } else "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+        if (!ok) return "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+        val mode = if (suAvailable) "su" else "rish"
+        if (!confirmNativeAction("Konfirmasi pemeriksaan ROOT", "id")) {
+            return "pemeriksaan ROOT dibatalkan pengguna"
+        }
+        return "root siap via $mode\n" + exec("id", true)
     }
 
     // ---------- Termux RUN_COMMAND ----------
@@ -571,10 +610,11 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
     fun termuxRun(command: String, workdir: String): String {
         val cmd = command.trim()
         if (cmd.isEmpty()) return "err: perintah kosong"
-        if (cmd.length > 8000) return "err: perintah melebihi batas 8.000 karakter"
+        if (cmd.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
         if (activity.checkSelfPermission("com.termux.permission.RUN_COMMAND") != PackageManager.PERMISSION_GRANTED) {
             return "err: izin RUN_COMMAND belum diberikan pada Info Aplikasi Mas Kiplay"
         }
+        if (!confirmNativeAction("Konfirmasi eksekusi Termux", cmd)) return "dibatalkan pengguna"
         return try {
             val id = termuxRequestId.incrementAndGet()
             val resultIntent = Intent(activity, MainActivity::class.java).apply {
@@ -621,8 +661,19 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     // ---------- shell ----------
 
-    @JavascriptInterface fun shell(cmd: String): String = exec(cmd, false)
-    @JavascriptInterface fun shellRoot(cmd: String): String = exec(cmd, true)
+    @JavascriptInterface fun shell(cmd: String): String {
+        if (cmd.isBlank()) return "err: perintah kosong"
+        if (cmd.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
+        if (!confirmNativeAction("Konfirmasi perintah shell", cmd)) return "dibatalkan pengguna"
+        return exec(cmd, false)
+    }
+
+    @JavascriptInterface fun shellRoot(cmd: String): String {
+        if (cmd.isBlank()) return "err: perintah kosong"
+        if (cmd.length > 4096) return "err: perintah melebihi batas 4.096 karakter"
+        if (!confirmNativeAction("Konfirmasi perintah ROOT", cmd)) return "dibatalkan pengguna"
+        return exec(cmd, true)
+    }
 
     // ---------- aksesibilitas ----------
 
@@ -967,18 +1018,9 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         }
     } catch (e: Exception) { "err: ${e.message}" }
 
+    /** Legacy JS entry point uses the same permission and native-consent path. */
     @JavascriptInterface
-    fun termux(cmd: String): String = try {
-        val i = Intent().apply {
-            setClassName("com.termux", "com.termux.app.RunCommandService")
-            action = "com.termux.RUN_COMMAND"
-            putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", cmd))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-        if (Build.VERSION.SDK_INT >= 26) activity.startForegroundService(i) else activity.startService(i)
-        "-> Termux"
-    } catch (e: Exception) { "err: ${e.message}" }
+    fun termux(cmd: String): String = termuxRun(cmd, "~/")
 
     @JavascriptInterface
     fun galeri(): String {

@@ -9,8 +9,8 @@ android {
         applicationId 'ai.maskiplay.app'
         minSdk 23
         targetSdk 34
-        versionCode 941000
-        versionName '9.4.1'
+        versionCode 942000
+        versionName '9.4.2'
     }
 
     buildTypes {
