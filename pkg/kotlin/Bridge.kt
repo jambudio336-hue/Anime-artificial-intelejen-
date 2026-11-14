@@ -559,11 +559,12 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
         } catch (e: Exception) { "err: ${e.message}" }
     }
 
+    // Capability detection must not execute a ROOT command implicitly.
+    // The actual "id" probe is performed only after the native confirmation below.
     private fun hasSu(): Boolean = listOf(
-        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su"
-    ).any { File(it).exists() } || try {
-        ProcessBuilder("su", "-c", "id").redirectErrorStream(true).start().waitFor(4, TimeUnit.SECONDS)
-    } catch (e: Exception) { false }
+        "/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su",
+        "/data/adb/magisk/su", "/data/adb/ksu/bin/su"
+    ).any { File(it).exists() }
 
     private fun hasRish(): Boolean = listOf(
         "/system/bin/rish", "/data/local/tmp/rish", "/data/data/com.termux/files/usr/bin/rish"
@@ -590,13 +591,17 @@ class Bridge(private val activity: Activity, private val web: WebView?) {
 
     @JavascriptInterface
     fun rootCheck(): String {
-        val ok = hasSu() || hasRish()
+        val suAvailable = hasSu()
+        val rishAvailable = !suAvailable && hasRish()
+        val ok = suAvailable || rishAvailable
         lastRoot = ok
         rootChecked = true
-        return if (ok) {
-            val mode = if (hasSu()) "su" else "rish"
-            "root siap via $mode\n" + exec("id", true)
-        } else "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+        if (!ok) return "root tidak tersedia — pasang Magisk/KernelSU, atau Shizuku untuk mode rish"
+        val mode = if (suAvailable) "su" else "rish"
+        if (!confirmNativeAction("Konfirmasi pemeriksaan ROOT", "id")) {
+            return "pemeriksaan ROOT dibatalkan pengguna"
+        }
+        return "root siap via $mode\n" + exec("id", true)
     }
 
     // ---------- Termux RUN_COMMAND ----------
