@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feature/**]
+    branches: [feature/**, feat/**]
 
 jobs:
   syntax:
@@ -31,3 +31,26 @@ jobs:
           print(f"Memeriksa inline JavaScript ({len(script)} karakter)")
           PY
           node --check /tmp/app-inline.js
+
+      - name: Validate native command consent boundaries
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          bridge = Path("pkg/kotlin/Bridge.kt").read_text(encoding="utf-8")
+          checks = {
+              "native confirmation helper exists": "private fun confirmNativeAction(title: String, command: String): Boolean" in bridge,
+              "shell commands require native approval": 'confirmNativeAction("Konfirmasi perintah shell", cmd)' in bridge,
+              "ROOT commands require native approval": 'confirmNativeAction("Konfirmasi perintah ROOT", cmd)' in bridge,
+              "ROOT capability probe requires native approval": 'confirmNativeAction("Konfirmasi pemeriksaan ROOT", "id")' in bridge,
+              "Termux commands require native approval": 'confirmNativeAction("Konfirmasi eksekusi Termux", cmd)' in bridge,
+              "legacy Termux entry uses guarded path": 'fun termux(cmd: String): String = termuxRun(cmd, "~/")' in bridge,
+              "shell and Termux length limits exist": bridge.count("cmd.length > 4096") >= 3,
+              "ROOT detection does not silently execute su": 'ProcessBuilder("su", "-c", "id")' not in bridge,
+              "native approval has timeout and dismissal": "latch.await(75, TimeUnit.SECONDS)" in bridge and "dialogRef.get()?.dismiss()" in bridge,
+          }
+          for name, ok in checks.items():
+              print(("PASS " if ok else "FAIL ") + name)
+          failed = [name for name, ok in checks.items() if not ok]
+          if failed:
+              raise SystemExit("Native command consent checks failed: " + ", ".join(failed))
+          PY
